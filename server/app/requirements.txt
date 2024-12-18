@@ -1,0 +1,7 @@
+# backend/app/requirements.txt
+
+fastapi
+uvicorn
+python-jira
+openai
+python-dotenv

@@ -1,0 +1,28 @@
+# docker-compose.yml
+
+version: '3.8'
+
+services:
+  ui:
+    build:
+      context: ./ui
+    ports:
+      - "3000:80"
+    depends_on:
+      - server
+    environment:
+      - REACT_APP_BACKEND_URL=http://backend:8000
+
+  server:
+    build:
+      context: ./server/app
+    ports:
+      - "8000:8000"
+    env_file:
+      - ./server/app/.env
+    depends_on:
+      - backend_dependencies
+
+  backend_dependencies:
+    image: alpine
+    command: sleep 3000
