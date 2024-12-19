@@ -1,7 +1,9 @@
 # backend/app/requirements.txt
-
-fastapi
-uvicorn
-python-jira
-openai
-python-dotenv
+pandas==2.2.3
+requests==2.32.3
+jira==3.8.0
+python-dotenv==1.0.1
+openai==1.57.0
+atlassian-python-api==3.41.16
+fastapi==0.115.6
+uvicorn==0.34.0

@@ -1,7 +1,4 @@
 # docker-compose.yml
-
-version: '3.8'
-
 services:
   ui:
     build:
@@ -11,11 +8,12 @@ services:
     depends_on:
       - server
     environment:
-      - REACT_APP_BACKEND_URL=http://backend:8000
+      - REACT_APP_BACKEND_URL=http://ui:8000
 
   server:
     build:
       context: ./server/app
+      dockerfile: ../Dockerfile
     ports:
       - "8000:8000"
     env_file:
