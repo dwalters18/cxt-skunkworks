@@ -1,5 +1,4 @@
-# backend/app/main.py
-
+# server/app/main.py
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 import os
@@ -9,7 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 
 # Load environment variables
-load_dotenv()
+load_dotenv(dotenv_path="../.env")
 
 app = FastAPI()
 

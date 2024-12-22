@@ -1,0 +1,16 @@
+name: cxt-skunkworks-server
+channels:
+  - defaults
+  - conda-forge
+dependencies:
+  - python=3.10
+  - pandas=2.2.3
+  - requests=2.32.3
+  - python-dotenv=1.0.1
+  - fastapi=0.115.6
+  - uvicorn=0.34.0
+  - pip
+  - pip:
+      - openai==1.57.0
+      - jira==3.8.0
+      - atlassian-python-api==3.41.16
