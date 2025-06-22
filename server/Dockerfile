@@ -19,7 +19,6 @@ RUN echo "source activate cxt-skunkworks-server" >> ~/.bashrc
 
 # Copy project files to the working directory
 COPY app /app
-COPY .env /server/.env
 
 # Expose the application port
 EXPOSE 8000

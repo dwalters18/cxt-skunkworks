@@ -19,3 +19,4 @@ server/.env
 server/.env.*
 server/__pycache__/
 server/*.pyc
+server/app/.env
