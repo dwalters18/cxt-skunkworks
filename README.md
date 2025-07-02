@@ -15,7 +15,7 @@ This project demonstrates a full-scale TMS implementation with:
 
 ### Backend Services
 - **FastAPI**: Python-based API gateway and services
-- **Apache Kafka**: Event streaming platform for real-time data flows
+- **Apache Kafka**: Event streaming platform with KRaft mode (no ZooKeeper dependency)
 - **Apache Flink**: Stream processing for real-time analytics and event processing
 
 ### Data Layer

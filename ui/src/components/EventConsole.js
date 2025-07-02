@@ -13,30 +13,8 @@ const EventConsole = ({ apiBase }) => {
         correlation_id: ''
     });
 
-    // Mock events for demonstration (in real implementation, these would come from WebSocket or SSE)
-    const [mockEvents] = useState([
-        {
-            event_id: 'evt-001',
-            event_type: 'LOAD_CREATED',
-            source: 'api',
-            timestamp: new Date().toISOString(),
-            data: { load_id: 'LOAD-10001', pickup_address: 'Dallas, TX', delivery_address: 'Houston, TX' }
-        },
-        {
-            event_id: 'evt-002',
-            event_type: 'VEHICLE_LOCATION_UPDATE',
-            source: 'telematics',
-            timestamp: new Date(Date.now() - 300000).toISOString(),
-            data: { vehicle_id: 'VEH-0123', location: { latitude: 32.7767, longitude: -96.7970 }, speed: 65 }
-        },
-        {
-            event_id: 'evt-003',
-            event_type: 'LOAD_ASSIGNED',
-            source: 'dispatcher',
-            timestamp: new Date(Date.now() - 600000).toISOString(),
-            data: { load_id: 'LOAD-10001', carrier_id: 'CAR-015', vehicle_id: 'VEH-0123', driver_id: 'DRV-0089' }
-        }
-    ]);
+    const [websocket, setWebsocket] = useState(null);
+    const [connectionStatus, setConnectionStatus] = useState('disconnected');
 
     const eventTypes = [
         'LOAD_CREATED', 'LOAD_ASSIGNED', 'LOAD_PICKED_UP', 'LOAD_IN_TRANSIT', 
@@ -48,10 +26,69 @@ const EventConsole = ({ apiBase }) => {
     useEffect(() => {
         fetchEventTopics();
         if (isAutoRefresh) {
-            const interval = setInterval(generateMockEvent, 5000); // Add mock event every 5 seconds
-            return () => clearInterval(interval);
+            connectWebSocket();
+        } else {
+            disconnectWebSocket();
         }
+        
+        return () => {
+            disconnectWebSocket();
+        };
     }, [isAutoRefresh]);
+
+    const connectWebSocket = () => {
+        if (websocket) {
+            return; // Already connected
+        }
+        
+        const wsUrl = apiBase.replace('http', 'ws') + '/ws/events';
+        const ws = new WebSocket(wsUrl);
+        
+        ws.onopen = () => {
+            console.log('WebSocket connected');
+            setConnectionStatus('connected');
+            setWebsocket(ws);
+        };
+        
+        ws.onmessage = (event) => {
+            try {
+                const message = JSON.parse(event.data);
+                if (message.type === 'event' && message.data) {
+                    setEvents(prev => [message.data, ...prev.slice(0, 49)]); // Keep last 50 events
+                }
+            } catch (error) {
+                console.error('Error parsing WebSocket message:', error);
+            }
+        };
+        
+        ws.onclose = () => {
+            console.log('WebSocket disconnected');
+            setConnectionStatus('disconnected');
+            setWebsocket(null);
+            
+            // Attempt to reconnect after 5 seconds if auto-refresh is still enabled
+            if (isAutoRefresh) {
+                setTimeout(() => {
+                    if (isAutoRefresh) {
+                        connectWebSocket();
+                    }
+                }, 5000);
+            }
+        };
+        
+        ws.onerror = (error) => {
+            console.error('WebSocket error:', error);
+            setConnectionStatus('error');
+        };
+    };
+    
+    const disconnectWebSocket = () => {
+        if (websocket) {
+            websocket.close();
+            setWebsocket(null);
+            setConnectionStatus('disconnected');
+        }
+    };
 
     const fetchEventTopics = async () => {
         try {
@@ -65,58 +102,7 @@ const EventConsole = ({ apiBase }) => {
         }
     };
 
-    const generateMockEvent = () => {
-        const eventType = eventTypes[Math.floor(Math.random() * eventTypes.length)];
-        const mockEventData = generateMockEventData(eventType);
-        
-        const newMockEvent = {
-            event_id: `evt-${Date.now()}`,
-            event_type: eventType,
-            source: ['api', 'telematics', 'dispatcher', 'ai_service'][Math.floor(Math.random() * 4)],
-            timestamp: new Date().toISOString(),
-            data: mockEventData
-        };
 
-        setEvents(prev => [newMockEvent, ...prev.slice(0, 49)]); // Keep last 50 events
-    };
-
-    const generateMockEventData = (eventType) => {
-        const loadIds = ['LOAD-10001', 'LOAD-10002', 'LOAD-10003', 'LOAD-10004'];
-        const vehicleIds = ['VEH-0123', 'VEH-0124', 'VEH-0125', 'VEH-0126'];
-        const driverIds = ['DRV-0089', 'DRV-0090', 'DRV-0091', 'DRV-0092'];
-        const carrierIds = ['CAR-015', 'CAR-016', 'CAR-017'];
-
-        switch (eventType) {
-            case 'LOAD_CREATED':
-                return {
-                    load_id: loadIds[Math.floor(Math.random() * loadIds.length)],
-                    pickup_address: 'Dallas, TX',
-                    delivery_address: 'Houston, TX',
-                    weight: Math.floor(Math.random() * 40000) + 5000
-                };
-            case 'VEHICLE_LOCATION_UPDATE':
-                return {
-                    vehicle_id: vehicleIds[Math.floor(Math.random() * vehicleIds.length)],
-                    location: {
-                        latitude: 32.7767 + (Math.random() - 0.5) * 0.1,
-                        longitude: -96.7970 + (Math.random() - 0.5) * 0.1
-                    },
-                    speed: Math.floor(Math.random() * 80),
-                    heading: Math.floor(Math.random() * 360)
-                };
-            case 'AI_PREDICTION':
-                return {
-                    prediction_type: ['delivery_time', 'fuel_consumption', 'maintenance_alert'][Math.floor(Math.random() * 3)],
-                    confidence: Math.random() * 0.3 + 0.7,
-                    load_id: loadIds[Math.floor(Math.random() * loadIds.length)]
-                };
-            default:
-                return {
-                    load_id: loadIds[Math.floor(Math.random() * loadIds.length)],
-                    vehicle_id: vehicleIds[Math.floor(Math.random() * vehicleIds.length)]
-                };
-        }
-    };
 
     const publishEvent = async () => {
         try {
@@ -190,11 +176,79 @@ const EventConsole = ({ apiBase }) => {
     };
 
     const fillSampleEventData = (eventType) => {
-        const sampleData = generateMockEventData(eventType);
+        const sampleData = {
+            'load.created': {
+                load_id: `LOAD-${Math.floor(Math.random() * 10000).toString().padStart(5, '0')}`,
+                pickup_address: '123 Main St, Dallas, TX',
+                delivery_address: '456 Oak Ave, Houston, TX',
+                weight: Math.floor(Math.random() * 50000) + 1000,
+                rate: Math.floor(Math.random() * 5000) + 500
+            },
+            'load.assigned': {
+                load_id: `LOAD-${Math.floor(Math.random() * 10000).toString().padStart(5, '0')}`,
+                vehicle_id: `VEH-${Math.floor(Math.random() * 1000).toString().padStart(4, '0')}`,
+                driver_id: `DRV-${Math.floor(Math.random() * 500).toString().padStart(4, '0')}`
+            },
+            'load.picked_up': {
+                load_id: `LOAD-${Math.floor(Math.random() * 10000).toString().padStart(5, '0')}`,
+                pickup_time: new Date().toISOString(),
+                location: { lat: 32.7767, lon: -96.7970 }
+            },
+            'load.in_transit': {
+                load_id: `LOAD-${Math.floor(Math.random() * 10000).toString().padStart(5, '0')}`,
+                current_location: { lat: 31.7619, lon: -96.7661 },
+                estimated_arrival: new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString()
+            },
+            'load.delivered': {
+                load_id: `LOAD-${Math.floor(Math.random() * 10000).toString().padStart(5, '0')}`,
+                delivery_time: new Date().toISOString(),
+                signature: 'John Doe'
+            },
+            'vehicle.location.updated': {
+                vehicle_id: `VEH-${Math.floor(Math.random() * 1000).toString().padStart(4, '0')}`,
+                location: { 
+                    latitude: 32.7767 + (Math.random() - 0.5) * 0.1, 
+                    longitude: -96.7970 + (Math.random() - 0.5) * 0.1 
+                },
+                speed: Math.floor(Math.random() * 80) + 35,
+                heading: Math.floor(Math.random() * 360)
+            },
+            'driver.status.changed': {
+                driver_id: `DRV-${Math.floor(Math.random() * 500).toString().padStart(4, '0')}`,
+                old_status: 'available',
+                new_status: 'on_duty',
+                reason: 'Manual status change'
+            },
+            'system.alert': {
+                alert_type: 'warning',
+                message: 'Sample system alert for testing',
+                severity: 'medium',
+                component: 'event_console'
+            },
+            'ai.prediction': {
+                prediction_type: 'demand_forecast',
+                confidence: 0.85,
+                prediction_data: {
+                    region: 'Dallas-Fort Worth',
+                    predicted_demand: 42,
+                    time_horizon: '24h'
+                }
+            },
+            'route.optimized': {
+                route_id: `ROUTE-${Math.floor(Math.random() * 1000).toString().padStart(4, '0')}`,
+                optimized_distance: Math.floor(Math.random() * 500) + 100,
+                estimated_duration: Math.floor(Math.random() * 480) + 60,
+                fuel_savings: Math.floor(Math.random() * 50) + 10
+            }
+        };
+
+        const data = sampleData[eventType] || { message: 'Sample event data' };
+        
         setNewEvent({
             ...newEvent,
-            event_type: eventType,
-            data: JSON.stringify(sampleData, null, 2)
+            data: JSON.stringify(data, null, 2),
+            source: 'manual_test',
+            correlation_id: `test-${Date.now()}`
         });
     };
 
@@ -235,6 +289,15 @@ const EventConsole = ({ apiBase }) => {
                         {events.filter(e => new Date(e.timestamp) > new Date(Date.now() - 300000)).length}
                     </div>
                     <div className="stat-label">Last 5 Minutes</div>
+                </div>
+                <div className="stat-card">
+                    <div className={`stat-value connection-status ${connectionStatus}`}>
+                        {connectionStatus === 'connected' ? '🟢' : 
+                         connectionStatus === 'error' ? '🔴' : '🟡'}
+                    </div>
+                    <div className="stat-label">
+                        WebSocket {connectionStatus.charAt(0).toUpperCase() + connectionStatus.slice(1)}
+                    </div>
                 </div>
             </div>
 

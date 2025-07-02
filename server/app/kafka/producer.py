@@ -32,7 +32,6 @@ class TMSEventProducer:
                 key_serializer=lambda k: k.encode('utf-8') if k else None,
                 compression_type="gzip",
                 acks='all',  # Wait for all replicas
-                retries=3,
                 retry_backoff_ms=1000,
                 request_timeout_ms=30000,
             )
@@ -117,7 +116,7 @@ class TMSEventProducer:
                 topic=topic,
                 value=event_dict,
                 key=key,
-                headers=headers.items()
+                headers=list(headers.items())
             )
             
             record_metadata = await future

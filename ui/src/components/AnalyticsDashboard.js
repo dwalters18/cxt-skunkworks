@@ -2,13 +2,14 @@ import React, { useState, useEffect } from 'react';
 
 const AnalyticsDashboard = ({ apiBase }) => {
     const [analytics, setAnalytics] = useState({
-        totalLoads: 0,
-        activeLoads: 0,
-        totalVehicles: 0,
-        activeVehicles: 0,
-        loadsByStatus: {},
-        vehiclesByStatus: {},
-        recentEvents: []
+        total_loads: 0,
+        active_loads: 0,
+        total_vehicles: 0,
+        active_vehicles: 0,
+        loads_by_status: {},
+        vehicles_by_status: {},
+        recent_events: [],
+        hourly_loads: []
     });
     const [timeRange, setTimeRange] = useState('24h');
     const [loading, setLoading] = useState(false);
@@ -22,7 +23,7 @@ const AnalyticsDashboard = ({ apiBase }) => {
     const fetchAnalytics = async () => {
         setLoading(true);
         try {
-            const response = await fetch(`${apiBase}/api/analytics/dashboard?timeRange=${timeRange}`);
+            const response = await fetch(`${apiBase}/api/analytics/dashboard?time_range=${timeRange}`);
             if (response.ok) {
                 const data = await response.json();
                 setAnalytics(data);
@@ -34,10 +35,10 @@ const AnalyticsDashboard = ({ apiBase }) => {
     };
 
     const calculateLoadMetrics = () => {
-        const total = analytics.totalLoads;
-        const delivered = analytics.loadsByStatus?.delivered || 0;
-        const inTransit = analytics.loadsByStatus?.in_transit || 0;
-        const pending = analytics.loadsByStatus?.pending || 0;
+        const total = analytics.total_loads;
+        const delivered = analytics.loads_by_status?.delivered || 0;
+        const inTransit = analytics.loads_by_status?.in_transit || 0;
+        const pending = analytics.loads_by_status?.pending || 0;
         
         return {
             deliveryRate: total > 0 ? ((delivered / total) * 100).toFixed(1) : 0,
@@ -47,10 +48,10 @@ const AnalyticsDashboard = ({ apiBase }) => {
     };
 
     const calculateVehicleMetrics = () => {
-        const total = analytics.totalVehicles;
-        const active = analytics.vehiclesByStatus?.in_transit || 0;
-        const available = analytics.vehiclesByStatus?.available || 0;
-        const maintenance = analytics.vehiclesByStatus?.maintenance || 0;
+        const total = analytics.total_vehicles;
+        const active = analytics.vehicles_by_status?.in_transit || 0;
+        const available = analytics.vehicles_by_status?.available || 0;
+        const maintenance = analytics.vehicles_by_status?.maintenance || 0;
         
         return {
             utilizationRate: total > 0 ? ((active / total) * 100).toFixed(1) : 0,
@@ -62,16 +63,10 @@ const AnalyticsDashboard = ({ apiBase }) => {
     const loadMetrics = calculateLoadMetrics();
     const vehicleMetrics = calculateVehicleMetrics();
 
-    // Mock performance data for charts
+    // Use real performance data from API
     const performanceData = {
-        hourlyLoads: Array.from({ length: 24 }, (_, i) => ({
-            hour: i,
-            loads: Math.floor(Math.random() * 20) + 5
-        })),
-        dailyRevenue: Array.from({ length: 7 }, (_, i) => ({
-            day: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][i],
-            revenue: Math.floor(Math.random() * 50000) + 20000
-        }))
+        hourlyLoads: analytics.hourly_loads || [],
+        recentEvents: analytics.recent_events || []
     };
 
     const getStatusColor = (status) => {
