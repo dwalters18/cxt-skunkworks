@@ -58,24 +58,35 @@ class DatabaseManager:
     
     async def _init_timescale(self):
         """Initialize TimescaleDB connection pool"""
-        try:
-            timescale_url = os.getenv("TIMESCALE_URL",
-                "postgresql://timescale_user:timescale_password@localhost:5433/tms_timeseries")
-            
-            self.timescale_pool = await asyncpg.create_pool(
-                timescale_url,
-                min_size=3,
-                max_size=15,
-                command_timeout=60,
-                server_settings={
-                    'application_name': 'tms_timeseries',
-                }
-            )
-            logger.info("TimescaleDB connection pool created")
-            
-        except Exception as e:
-            logger.error(f"Failed to initialize TimescaleDB: {e}")
-            raise
+        timescale_url = os.getenv("TIMESCALE_URL",
+            "postgresql://timescale_user:timescale_password@localhost:5433/tms_timeseries")
+        
+        max_retries = 5
+        retry_delay = 2  # Initial delay in seconds
+        
+        for attempt in range(max_retries):
+            try:
+                self.timescale_pool = await asyncpg.create_pool(
+                    timescale_url,
+                    min_size=3,
+                    max_size=15,
+                    command_timeout=60,
+                    server_settings={
+                        'application_name': 'tms_timeseries',
+                    }
+                )
+                logger.info("TimescaleDB connection pool created")
+                return
+                
+            except Exception as e:
+                if attempt < max_retries - 1:
+                    logger.warning(f"Failed to connect to TimescaleDB (attempt {attempt + 1}/{max_retries}): {e}")
+                    logger.info(f"Retrying in {retry_delay} seconds...")
+                    await asyncio.sleep(retry_delay)
+                    retry_delay *= 2  # Exponential backoff
+                else:
+                    logger.error(f"Failed to initialize TimescaleDB after {max_retries} attempts: {e}")
+                    raise
     
     async def _init_neo4j(self):
         """Initialize Neo4j connection"""
