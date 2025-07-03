@@ -8,8 +8,9 @@ function App() {
   return (
       <div className="App">
         <header className="App-header">
-          <h1>TMS Event-Driven Platform</h1>
-          <p>Transportation Management System with Real-time Event Processing</p>
+          <h1>The Next Generation of Logistics & Courier Software</h1>
+          <h4>AI-powered. Autonomous. Built for the future of delivery.</h4>
+          <p>Intelligent last-mile, route, and on-demand shipment orchestration that adapts and scales with your operation—empowering drivers, dispatchers, and clients with precision, speed, and ease.</p>
         </header>
         <TMSDashboard />
       </div>
