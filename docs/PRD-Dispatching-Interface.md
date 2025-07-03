@@ -1,6 +1,19 @@
 # Product Requirements Document (PRD)
 ## TMS Dispatching Interface
 
+> **Revision Note – July 2025**  
+> This PRD now includes clarified performance budgets, event prioritization strategy, accessibility commitments, and phased mobile/offline scope adjustments based on the July 2025 review.
+
+## July 2025 Addenda
+1. **UI Performance Budget** – Bundle ≤ 200 KB gzip, TTI ≤ 2 s on mid-range laptop; enforce Lighthouse score ≥ 90.
+2. **Event Prioritization Strategy** – MVP: rule-based severity weights (config table). ML classification deferred to Phase 3.
+3. **Accessibility** – Commit to WCAG 2.1 AA compliance across all UI components; add automated a11y tests (axe).
+4. **Mobile & Offline Scope** – Tablet-optimised responsive design remains in Phase 2; full offline functionality moved to backlog post-launch.
+5. **Observability Hooks** – Integrate OpenTelemetry browser tracing + Grafana dashboards for client-side metrics by Sprint 3.
+6. **Security & Auth** – UI to consume OAuth 2.1 flows; token refresh handling and role-based feature gating.
+
+---
+
 **Version:** 1.0  
 **Date:** July 2, 2025  
 **Authors:** Product Team  
