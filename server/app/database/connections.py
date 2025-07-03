@@ -174,6 +174,18 @@ class PostgresRepository:
             return await conn.execute(query, *args)
 
 
+class AuditRepository(PostgresRepository):
+    """Repository for audit log operations"""
+
+    async def log_action(self, table_name: str, record_id: str, action: str, changed_data: Dict[str, Any], user_id: Optional[str] = None):
+        """Insert an audit log entry"""
+        query = """
+        INSERT INTO audit_logs (table_name, record_id, action, changed_data, user_id)
+        VALUES ($1, $2, $3, $4, $5)
+        """
+        await self.execute_command(query, table_name, record_id, action, changed_data, user_id)
+
+
 class LoadRepository(PostgresRepository):
     """Repository for load operations"""
     
@@ -399,6 +411,12 @@ async def get_vehicle_repository() -> VehicleRepository:
     """Get vehicle repository instance"""
     db_manager = await get_db_manager()
     return VehicleRepository(db_manager)
+
+
+async def get_audit_repository() -> AuditRepository:
+    """Get audit repository instance"""
+    db_manager = await get_db_manager()
+    return AuditRepository(db_manager)
 
 
 async def get_timescale_repository() -> TimescaleRepository:

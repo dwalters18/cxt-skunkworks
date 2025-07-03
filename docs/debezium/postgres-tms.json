@@ -1,0 +1,22 @@
+{
+  "name": "tms-pg-cdc",
+  "config": {
+    "connector.class": "io.debezium.connector.postgresql.PostgresConnector",
+    "plugin.name": "pgoutput",
+    "database.hostname": "postgres",
+    "database.port": "5432",
+    "database.user": "tms_user",
+    "database.password": "tms_password",
+    "database.dbname": "tms_oltp",
+    "database.server.name": "tms",
+    "schema.include.list": "public",
+    "table.include.list": "public.loads,public.drivers,public.vehicles,public.carriers,public.routes,public.audit_logs",
+    "slot.name": "tms_pg_cdc_slot",
+    "slot.drop.on.stop": "false",
+    "tombstones.on.delete": "false",
+    "topic.prefix": "tms.cdc",
+    "transforms": "unwrap",
+    "transforms.unwrap.type": "io.debezium.transforms.ExtractNewRecordState",
+    "transforms.unwrap.drop.tombstones": "true"
+  }
+}

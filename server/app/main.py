@@ -19,7 +19,7 @@ from models.domain import (
 from models.events import EventType, BaseEvent
 from database.connections import (
     get_db_manager, get_load_repository, get_vehicle_repository,
-    get_timescale_repository, get_neo4j_repository, DatabaseManager
+    get_timescale_repository, get_neo4j_repository, get_audit_repository, DatabaseManager
 )
 from kafka.producer import get_producer, emit_load_created, emit_vehicle_location_update, emit_load_status_change
 from kafka.consumer import get_consumer, TMSEventConsumer
@@ -143,6 +143,9 @@ async def create_load(load_request: CreateLoadRequest, background_tasks: Backgro
         # Create load in database
         load_data = load_request.model_dump()
         load_id = await load_repo.create_load(load_data)
+        # Audit log
+        audit_repo = await get_audit_repository()
+        await audit_repo.log_action("loads", load_id, "create", load_data)
         
         # Emit load created event
         background_tasks.add_task(
@@ -209,11 +212,14 @@ async def assign_load(load_id: str, assignment: AssignLoadRequest, background_ta
         
         # Assign load in database
         await load_repo.assign_load(
-            load_id, 
-            assignment.carrier_id, 
-            assignment.vehicle_id, 
+            load_id,
+            assignment.carrier_id,
+            assignment.vehicle_id,
             assignment.driver_id
         )
+        # Audit log
+        audit_repo = await get_audit_repository()
+        await audit_repo.log_action("loads", load_id, "assign", assignment.model_dump())
         
         # Emit load assigned event
         background_tasks.add_task(

@@ -1,35 +1,36 @@
 # Product Requirements Document: TMS Backend System
 
-> **Revision Note – July 2025**  
-> This PRD has been updated to reflect the July 2025 architecture review. The addenda below clarify caching strategy, authentication, schema governance, observability, disaster-recovery, and Google Maps cost controls.
-
-## July 2025 Addenda
-1. **Caching Strategy** – Redis is optional. Decision due Sprint 0: either remove completely or implement as:
-   • Geocode result cache (Google Maps)  
-   • WebSocket session store  
-   • Dashboard hotspot cache (TTL ≤ 60 s)
-2. **Authentication & RBAC** – Adopt OAuth 2.1 (Keycloak) with role matrix: *Admin, Dispatcher, CSR, Driver*. Add epics in Sprint 2.
-3. **Kafka Schema Governance** – Introduce Confluent Schema Registry (or open-source equivalent) with Avro schemas; enforce compatibility=BACKWARD.
-4. **Observability** – Standardise on OpenTelemetry tracing + Prometheus metrics + Grafana dashboards. Deliver in Sprint 0.
-5. **Disaster Recovery Targets** – RPO ≤ 15 min, RTO ≤ 1 hr. Add cross-AZ Postgres replica, Timescale continuous archiving, Neo4j backup cron.
-6. **Google Maps Cost Control** – Enable daily quota caps, cache geocoding responses, and throttle Directions requests.
-7. **Accessibility & UX Performance** – All APIs used by UI must support data shaping/pagination; bundle size target ≤ 200 KB gzip; WCAG 2.1-AA.
-
----
-
 ## Executive Summary
 
-The Transportation Management System (TMS) Backend provides a comprehensive, event-driven microservices architecture designed to manage logistics operations including load management, vehicle tracking, driver coordination, route optimization, and real-time analytics. Built on FastAPI with a multi-database architecture and Kafka-based event streaming, the system supports both operational workflows and real-time monitoring capabilities.
+The TMS Backend System demonstrates a comprehensive, production-ready event-driven microservices architecture that serves as an excellent learning platform for modern distributed systems. Built on FastAPI with polyglot persistence and Kafka-based event streaming, the system provides a robust foundation for exploring advanced logistics operations, real-time processing, and scalable backend design patterns.
 
-## Problem Statement
+## Learning Objectives
 
-Transportation and logistics operations require robust, scalable backend systems that can:
-- Handle high-volume transactional operations (loads, vehicles, drivers)
-- Process real-time location and status updates
-- Provide complex routing and optimization capabilities
-- Support real-time monitoring and analytics
-- Integrate with external systems and APIs
-- Maintain data consistency across multiple data stores
+The backend system serves as a comprehensive learning platform for:
+- **Event-Driven Architecture**: Master Kafka integration and event-driven design patterns
+- **Polyglot Persistence**: Explore specialized database usage (PostgreSQL, TimescaleDB, Neo4j)
+- **API Design**: Implement modern REST APIs with FastAPI and Pydantic
+- **Real-time Systems**: Build WebSocket-based real-time communication
+- **Database Integration**: Learn async database operations and connection management
+- **Microservices Patterns**: Understand service decomposition and integration
+
+## Implementation Status
+
+**Currently Implemented ✅:**
+- **FastAPI Framework**: Complete REST API with async operations
+- **Polyglot Persistence**: PostgreSQL, TimescaleDB, and Neo4j integrations
+- **Event Streaming**: Full Kafka producer/consumer implementation
+- **Real-time Communication**: WebSocket support for live updates
+- **CRUD Operations**: Comprehensive load, vehicle, and driver management
+- **Route Optimization**: Basic Neo4j-based route finding
+- **Analytics Endpoints**: Dashboard data and metrics APIs
+- **Data Validation**: Pydantic models for request/response validation
+
+**Areas for Enhancement 🔄:**
+- **Advanced ML Integration**: MLserver API integration (planned)
+- **Caching Strategy**: Redis utilization for performance optimization
+- **Advanced Security**: Authentication and authorization implementation
+- **Performance Optimization**: Database query optimization and indexing
 
 ## Goals and Success Metrics
 
@@ -53,10 +54,10 @@ Transportation and logistics operations require robust, scalable backend systems
 - **API Framework**: FastAPI (Python)
 - **Event Streaming**: Apache Kafka (KRaft mode)
 - **Databases**:
-  - PostgreSQL (OLTP operations, core entities)
+  - PostgreSQL (OLTP operations, core entities, uses PostGIS for geospatial data support)
   - TimescaleDB (time-series data, tracking)
   - Neo4j (graph operations, route optimization)
-- **Caching**: Redis (configured, currently unused)
+- **Caching**: Redis (TBD, currently unused)
 - **Real-time**: WebSocket connections
 - **Containerization**: Docker with docker-compose
 
@@ -447,6 +448,31 @@ class Driver(BaseEntity):
 - Event-driven communication patterns
 - Standard API interfaces for external integration
 - Real-time data synchronization
+
+## 7. Audit & Change-Data-Capture Roadmap
+
+### Current State
+Application-level Kafka producers emit domain events (e.g. `LOAD_ASSIGNED`) directly from FastAPI endpoints.  There is no permanent audit table and Debezium is running without connectors.
+
+### Target State (Q3-2025)
+1. **Audit Table** – `audit_logs` (UUID id, table_name, record_id, action, changed_data JSONB, user_id, created_at).
+2. **Application Audit Writes** – Repositories write an audit row for every mutating action **before** emitting the domain event.
+3. **Debezium CDC** – A single Postgres connector captures changes for: `loads`, `drivers`, `vehicles`, `carriers`, `routes`, `audit_logs`.
+   • Connector name: `tms-pg-cdc`  
+   • Topic pattern: `tms.cdc.<table>`  
+   • Offset / status topics stored in Kafka (`debezium_offsets`, `debezium_status`).
+4. **Audit Event Stream** – Flink job `AuditAnomalyJob` consumes `tms.cdc.audit_logs` and writes results to:
+   • `audit_logs` table (back-write via JDBC sink) – ensures idempotent persistence.  
+   • `tms.anomalies` topic when an anomaly is detected.
+5. **Anomaly Detection (Phase-1 stub)** – Simple rule engine (rate > 1 msg/s for same user_id triggers `ANOMALY_SUSPECTED`).  Phase-2 will swap in an ML model hosted on ML-Server.
+
+### Success Criteria
+• 100 % of mutating API calls produce a corresponding audit row.  
+• Debezium lag < 2 s under 1 k rps.  
+• Flink job end-to-end latency < 1 s (95-th percentile).  
+• Anomalies forwarded to `tms.anomalies` within 3 s.
+
+---
 
 ## Conclusion
 

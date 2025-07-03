@@ -1,19 +1,6 @@
 # Product Requirements Document (PRD)
 ## TMS Dispatching Interface
 
-> **Revision Note – July 2025**  
-> This PRD now includes clarified performance budgets, event prioritization strategy, accessibility commitments, and phased mobile/offline scope adjustments based on the July 2025 review.
-
-## July 2025 Addenda
-1. **UI Performance Budget** – Bundle ≤ 200 KB gzip, TTI ≤ 2 s on mid-range laptop; enforce Lighthouse score ≥ 90.
-2. **Event Prioritization Strategy** – MVP: rule-based severity weights (config table). ML classification deferred to Phase 3.
-3. **Accessibility** – Commit to WCAG 2.1 AA compliance across all UI components; add automated a11y tests (axe).
-4. **Mobile & Offline Scope** – Tablet-optimised responsive design remains in Phase 2; full offline functionality moved to backlog post-launch.
-5. **Observability Hooks** – Integrate OpenTelemetry browser tracing + Grafana dashboards for client-side metrics by Sprint 3.
-6. **Security & Auth** – UI to consume OAuth 2.1 flows; token refresh handling and role-based feature gating.
-
----
-
 **Version:** 1.0  
 **Date:** July 2, 2025  
 **Authors:** Product Team  
@@ -23,17 +10,29 @@
 ## 1. Executive Summary
 
 ### 1.1 Product Overview
-The TMS Dispatching Interface is a centralized, real-time command center that enables dispatchers to monitor, manage, and respond to all events within the Transportation Management System. This interface serves as the primary operational hub for coordinating loads, vehicles, drivers, and routes through a comprehensive event-driven workflow.
+The TMS Dispatching Interface serves as a learning platform for building modern, real-time logistics interfaces. Starting with basic load and vehicle management capabilities, the system demonstrates progressive enhancement toward a comprehensive, gamified dispatching experience with Google Maps integration.
 
-### 1.2 Problem Statement
-Current dispatching operations are fragmented across multiple interfaces, requiring dispatchers to:
-- Switch between different systems to get complete operational visibility
-- Manually correlate events across loads, vehicles, and drivers
-- React to issues after they've already impacted operations
-- Lack real-time awareness of system-wide status and anomalies
+### 1.2 Learning Objectives
+- **Real-time UI Development**: Build responsive interfaces with live event updates
+- **Complex State Management**: Handle multiple data streams and user interactions
+- **Maps Integration**: Learn Google Maps API integration patterns (planned)
+- **Gamification Design**: Implement engaging UX patterns for operational software
+- **Event-Driven UI**: Master WebSocket integration and real-time data handling
 
-### 1.3 Solution Overview
-A unified dispatching interface that consolidates all TMS events into actionable workflows, enabling proactive dispatch management through real-time event monitoring, automated alerts, and intelligent decision support.
+### 1.3 Implementation Status
+**Currently Implemented ✅:**
+- **Basic Dispatch View**: Simple map placeholder with event console
+- **Load Management**: Create, assign, and track load lifecycle
+- **Vehicle Tracking**: Real-time location updates and status monitoring
+- **Event Console**: Live event streaming with categorization and filtering
+- **WebSocket Integration**: Real-time data flow from backend to UI
+
+**Planned Development 📋:**
+- **Google Maps Integration**: Interactive mapping with vehicle/load visualization
+- **Gamification Features**: Points, achievements, and engagement mechanics
+- **Advanced Route Visualization**: Real-time route optimization and traffic integration
+- **Mobile-Responsive Design**: Tablet and mobile dispatcher interfaces
+- **Advanced Assignment Logic**: AI-powered load-to-vehicle matching
 
 ---
 

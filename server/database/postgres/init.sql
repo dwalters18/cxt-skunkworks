@@ -89,7 +89,7 @@ CREATE TABLE routes (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Create indexes for performance
+-- Audit Logs Table\nCREATE TABLE audit_logs (\n    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),\n    table_name TEXT NOT NULL,\n    record_id UUID NOT NULL,\n    action VARCHAR(50) NOT NULL,\n    changed_data JSONB,\n    user_id UUID,\n    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP\n);\n\n-- Create indexes for performance
 CREATE INDEX idx_carriers_status ON carriers(status);
 CREATE INDEX idx_vehicles_carrier_id ON vehicles(carrier_id);
 CREATE INDEX idx_vehicles_status ON vehicles(status);
