@@ -403,6 +403,69 @@ class EventSubscription(BaseModel):
     webhook_url: Optional[str] = None
 
 
+@app.get("/api/events/recent")
+async def get_recent_events(limit: int = 10):
+    """Get recent events from TimescaleDB"""
+    try:
+        timescale_repo = await get_timescale_repository()
+        
+        # Query recent load events from TimescaleDB
+        query = """
+        SELECT 
+            time,
+            load_id,
+            event_type,
+            event_description,
+            location_lat,
+            location_lng,
+            driver_id,
+            vehicle_id,
+            metadata
+        FROM load_events 
+        ORDER BY time DESC 
+        LIMIT $1
+        """
+        
+        events = await timescale_repo.fetch_records(query, limit)
+        
+        # Format events for UI consumption
+        formatted_events = []
+        for event in events:
+            formatted_event = {
+                "id": f"load_event_{event['load_id']}_{int(event['time'].timestamp())}",
+                "timestamp": event['time'].isoformat(),
+                "type": event['event_type'],
+                "title": event['event_description'] or f"Load {event['event_type']}",
+                "description": event['event_description'] or f"Load {event['load_id']} status: {event['event_type']}",
+                "entity_type": "load",
+                "entity_id": str(event['load_id']),
+                "location": {
+                    "lat": event['location_lat'],
+                    "lng": event['location_lng']
+                } if event['location_lat'] and event['location_lng'] else None,
+                "metadata": event['metadata'] or {},
+                "driver_id": str(event['driver_id']) if event['driver_id'] else None,
+                "vehicle_id": str(event['vehicle_id']) if event['vehicle_id'] else None
+            }
+            formatted_events.append(formatted_event)
+        
+        return {
+            "events": formatted_events,
+            "total": len(formatted_events),
+            "limit": limit
+        }
+        
+    except Exception as e:
+        logger.error(f"Error fetching recent events: {e}")
+        # Return empty events list instead of error to prevent UI crashes
+        return {
+            "events": [],
+            "total": 0,
+            "limit": limit,
+            "error": "Unable to fetch events at this time"
+        }
+
+
 @app.get("/api/events/topics")
 async def get_event_topics():
     """Get available event topics"""

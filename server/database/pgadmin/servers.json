@@ -1,0 +1,26 @@
+{
+  "Servers": {
+    "1": {
+      "Name": "TMS PostgreSQL (OLTP)",
+      "Group": "TMS Databases",
+      "Host": "postgres",
+      "Port": 5432,
+      "MaintenanceDB": "tms_oltp",
+      "Username": "tms_user",
+      "PassFile": "/tmp/pgpassfile",
+      "SSLMode": "prefer",
+      "Favorite": true
+    },
+    "2": {
+      "Name": "TMS TimescaleDB (Time-Series)",
+      "Group": "TMS Databases", 
+      "Host": "timescaledb",
+      "Port": 5432,
+      "MaintenanceDB": "tms_timeseries",
+      "Username": "timescale_user",
+      "PassFile": "/tmp/pgpassfile",
+      "SSLMode": "prefer",
+      "Favorite": true
+    }
+  }
+}

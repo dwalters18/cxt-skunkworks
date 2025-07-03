@@ -1,9 +1,10 @@
 """Kafka Event Producer for TMS Events"""
 import json
 import asyncio
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Set
 from aiokafka import AIOKafkaProducer
 from aiokafka.errors import KafkaError
+from aiokafka.admin import AIOKafkaAdminClient, NewTopic
 import logging
 from datetime import datetime
 
@@ -20,12 +21,99 @@ class TMSEventProducer:
         self.producer: Optional[AIOKafkaProducer] = None
         self._started = False
     
+    def get_all_topics(self) -> Set[str]:
+        """Get all unique topic names from the event type mapping"""
+        topic_mapping = {
+            # Load events
+            EventType.LOAD_CREATED: "tms.loads",
+            EventType.LOAD_ASSIGNED: "tms.loads",
+            EventType.LOAD_PICKED_UP: "tms.loads",
+            EventType.LOAD_IN_TRANSIT: "tms.loads",
+            EventType.LOAD_DELIVERED: "tms.loads",
+            EventType.LOAD_CANCELLED: "tms.loads",
+            
+            # Vehicle events
+            EventType.VEHICLE_LOCATION_UPDATED: "tms.vehicles.tracking",
+            EventType.VEHICLE_STATUS_CHANGED: "tms.vehicles",
+            EventType.VEHICLE_MAINTENANCE_DUE: "tms.vehicles.maintenance",
+            
+            # Driver events
+            EventType.DRIVER_STATUS_CHANGED: "tms.drivers",
+            EventType.DRIVER_LOCATION_UPDATED: "tms.drivers.tracking",
+            EventType.DRIVER_HOS_VIOLATION: "tms.drivers.compliance",
+            
+            # Route events
+            EventType.ROUTE_OPTIMIZED: "tms.routes",
+            EventType.ROUTE_DEVIATION: "tms.routes.alerts",
+            EventType.ROUTE_COMPLETED: "tms.routes",
+            
+            # Carrier events
+            EventType.CARRIER_PERFORMANCE_UPDATED: "tms.carriers",
+            EventType.CARRIER_CAPACITY_CHANGED: "tms.carriers",
+            
+            # System events
+            EventType.SYSTEM_ALERT: "tms.system.alerts",
+            EventType.AI_PREDICTION: "tms.ai.predictions",
+        }
+        return set(topic_mapping.values())
+    
+    async def create_topics(self):
+        """Create all required Kafka topics if they don't exist"""
+        try:
+            admin_client = AIOKafkaAdminClient(
+                bootstrap_servers=self.bootstrap_servers
+            )
+            await admin_client.start()
+            
+            try:
+                # Get existing topics
+                metadata = await admin_client.describe_cluster()
+                existing_topics = set()
+                
+                # List existing topics
+                topic_metadata = await admin_client.list_topics()
+                existing_topics = set(topic_metadata)
+                
+                # Get all required topics
+                required_topics = self.get_all_topics()
+                
+                # Create missing topics
+                topics_to_create = required_topics - existing_topics
+                
+                if topics_to_create:
+                    logger.info(f"Creating {len(topics_to_create)} missing Kafka topics: {sorted(topics_to_create)}")
+                    
+                    new_topics = [
+                        NewTopic(
+                            name=topic_name,
+                            num_partitions=3,
+                            replication_factor=1
+                        )
+                        for topic_name in topics_to_create
+                    ]
+                    
+                    await admin_client.create_topics(new_topics)
+                    logger.info(f"Successfully created topics: {sorted(topics_to_create)}")
+                else:
+                    logger.info("All required Kafka topics already exist")
+                    
+            finally:
+                await admin_client.close()
+                
+        except Exception as e:
+            logger.error(f"Failed to create Kafka topics: {e}")
+            # Don't raise - topics might be created by auto-creation
+            logger.warning("Continuing with topic auto-creation enabled")
+    
     async def start(self):
         """Start the Kafka producer"""
         if self._started:
             return
             
         try:
+            # First, ensure all required topics exist
+            await self.create_topics()
+            
             self.producer = AIOKafkaProducer(
                 bootstrap_servers=self.bootstrap_servers,
                 value_serializer=lambda v: json.dumps(v, default=str).encode('utf-8'),

@@ -66,6 +66,23 @@ services:
     networks:
       - tms-network
 
+  # pgAdmin for PostgreSQL/TimescaleDB Management
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    ports:
+      - "5050:80"
+    depends_on:
+      - postgres
+      - timescaledb
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@cxt-software.com
+      PGADMIN_DEFAULT_PASSWORD: admin_password
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+    volumes:
+      - ./server/database/pgadmin/servers.json:/pgadmin4/servers.json
+    networks:
+      - tms-network
+
   # Flink for Stream Processing
   flink-jobmanager:
     image: flink:1.18.0
@@ -161,6 +178,29 @@ services:
       STATUS_STORAGE_TOPIC: debezium_status
     networks:
       - tms-network
+
+  # Debezium Connector Initialization (via REST API using curl)
+  debezium-init:
+    image: curlimages/curl:8.4.0
+    depends_on:
+      - debezium
+    volumes:
+      - ./docs/debezium:/connectors:ro
+    networks:
+      - tms-network
+    command: >
+      sh -c "
+        echo 'Waiting for Debezium Connect to start...'
+        until curl -f http://debezium:8083/connectors; do
+          sleep 5
+        done
+        echo 'Debezium Connect is ready. Registering PostgreSQL connector...'
+        curl -X POST http://debezium:8083/connectors \
+          -H 'Content-Type: application/json' \
+          -d @/connectors/postgres-tms.json
+        echo 'PostgreSQL CDC connector registered successfully!'
+      "
+    restart: "no"
 
 volumes:
   postgres_data:
