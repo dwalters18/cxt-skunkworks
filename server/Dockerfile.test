@@ -1,0 +1,31 @@
+# Use Miniconda as the base image for Conda support
+FROM continuumio/miniconda3
+
+# Set environment variables for Python
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+
+# Set working directory
+WORKDIR /app
+
+# Copy environment.yml to the container
+COPY environment.yml /server/environment.yml
+
+# Create the Conda environment
+RUN conda env create -f /server/environment.yml
+
+# Ensure the environment is activated on container start
+RUN echo "source activate cxt-skunkworks-server" >> ~/.bashrc
+
+# Copy project files to the working directory
+COPY app /app
+
+# Install additional test dependencies if needed
+RUN /bin/bash -c "source activate cxt-skunkworks-server && \
+    pip install pytest-cov pytest-xdist pytest-mock coverage"
+
+# Set Python path for proper imports
+ENV PYTHONPATH=/app
+
+# Default command for running tests
+CMD ["bash", "-c", "source activate cxt-skunkworks-server && python -m pytest tests/ -v --tb=short --color=yes"]

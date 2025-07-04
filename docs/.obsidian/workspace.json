@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "TMS-Object-Relationships.md",
+                "file": "PRD-Backend-System.md",
                 "mode": "preview",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "TMS-Object-Relationships"
+              "title": "PRD-Backend-System"
             }
           },
           {
@@ -111,8 +111,7 @@
               "title": "Bookmarks"
             }
           }
-        ],
-        "currentTab": 3
+        ]
       }
     ],
     "direction": "horizontal",
@@ -173,18 +172,20 @@
             "state": {
               "type": "outgoing-link",
               "state": {
+                "file": "PRD-Backend-System.md",
                 "linksCollapsed": false,
                 "unlinkedCollapsed": true
               },
               "icon": "links-going-out",
-              "title": "Outgoing links"
+              "title": "Outgoing links from PRD-Backend-System"
             }
           }
         ]
       }
     ],
     "direction": "horizontal",
-    "width": 582.5
+    "width": 582.5,
+    "collapsed": true
   },
   "left-ribbon": {
     "hiddenItems": {
@@ -196,14 +197,14 @@
       "command-palette:Open command palette": false
     }
   },
-  "active": "graph-panel",
+  "active": "60647aeda462e080",
   "lastOpenFiles": [
+    "PRD-Database-Schema.md",
     "TMS-Object-Relationships.md",
     "TMS-PKM-Index.md",
     "PKM-Setup-Guide.md",
     "PRD-Overview.md",
     "PRD-Backend-System.md",
-    "PRD-Database-Schema.md",
     "PRD-Events-Schema.md",
     "PRD-Dispatching-Interface.md",
     "Route-Optimization-Setup.md",

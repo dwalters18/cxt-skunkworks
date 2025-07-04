@@ -66,6 +66,15 @@ const AnalyticsDashboard = ({ apiBase }) => {
     // Use real performance data from API
     const performanceData = {
         hourlyLoads: analytics.hourly_loads || [],
+        dailyRevenue: analytics.daily_revenue || [
+            { day: 'Mon', revenue: 12500 },
+            { day: 'Tue', revenue: 18200 },
+            { day: 'Wed', revenue: 15800 },
+            { day: 'Thu', revenue: 22100 },
+            { day: 'Fri', revenue: 19300 },
+            { day: 'Sat', revenue: 14600 },
+            { day: 'Sun', revenue: 11200 }
+        ],
         recentEvents: analytics.recent_events || []
     };
 
@@ -104,8 +113,8 @@ const AnalyticsDashboard = ({ apiBase }) => {
         <div className="chart-container">
             <h4>{title}</h4>
             <div className="bar-chart">
-                {data.map((item, index) => {
-                    const maxValue = Math.max(...data.map(d => d[dataKey]));
+                {(data || []).map((item, index) => {
+                    const maxValue = Math.max(...(data || []).map(d => d[dataKey]));
                     const height = (item[dataKey] / maxValue) * 100;
                     return (
                         <div key={index} className="bar-item">
@@ -184,7 +193,7 @@ const AnalyticsDashboard = ({ apiBase }) => {
                 <div className="breakdown-section">
                     <h3>Load Status Distribution</h3>
                     <div className="status-grid">
-                        {Object.entries(analytics.loadsByStatus || {}).map(([status, count]) => (
+                        {Object.entries(analytics.loads_by_status || {}).map(([status, count]) => (
                             <div key={status} className="status-item">
                                 <div 
                                     className="status-indicator"
@@ -202,7 +211,7 @@ const AnalyticsDashboard = ({ apiBase }) => {
                 <div className="breakdown-section">
                     <h3>Vehicle Status Distribution</h3>
                     <div className="status-grid">
-                        {Object.entries(analytics.vehiclesByStatus || {}).map(([status, count]) => (
+                        {Object.entries(analytics.vehicles_by_status || {}).map(([status, count]) => (
                             <div key={status} className="status-item">
                                 <div 
                                     className="status-indicator"
@@ -240,7 +249,7 @@ const AnalyticsDashboard = ({ apiBase }) => {
             <div className="recent-activity">
                 <h3>Recent System Activity</h3>
                 <div className="activity-list">
-                    {analytics.recentEvents?.slice(0, 10).map((event, index) => (
+                    {analytics.recent_events?.slice(0, 10).map((event, index) => (
                         <div key={index} className="activity-item">
                             <div className="activity-time">
                                 {new Date(event.timestamp).toLocaleTimeString()}

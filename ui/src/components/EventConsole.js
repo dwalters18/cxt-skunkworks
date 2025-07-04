@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useWebSocket } from '../contexts/WebSocketContext';
 
 const EventConsole = ({ apiBase }) => {
     const [events, setEvents] = useState([]);
@@ -13,8 +14,7 @@ const EventConsole = ({ apiBase }) => {
         correlation_id: ''
     });
 
-    const [websocket, setWebsocket] = useState(null);
-    const [connectionStatus, setConnectionStatus] = useState('disconnected');
+    const { isConnected, events: wsEvents, addEventListener } = useWebSocket(apiBase);
 
     const eventTypes = [
         'LOAD_CREATED', 'LOAD_ASSIGNED', 'LOAD_PICKED_UP', 'LOAD_IN_TRANSIT', 
@@ -25,70 +25,18 @@ const EventConsole = ({ apiBase }) => {
 
     useEffect(() => {
         fetchEventTopics();
-        if (isAutoRefresh) {
-            connectWebSocket();
-        } else {
-            disconnectWebSocket();
-        }
-        
-        return () => {
-            disconnectWebSocket();
-        };
-    }, [isAutoRefresh]);
+    }, []);
 
-    const connectWebSocket = () => {
-        if (websocket) {
-            return; // Already connected
+    useEffect(() => {
+        if (isConnected) {
+            const cleanup = addEventListener((eventData) => {
+                // EventData is already parsed and ready to use
+                setEvents(prev => [eventData, ...prev.slice(0, 49)]); // Keep last 50 events
+            });
+
+            return cleanup;
         }
-        
-        const wsUrl = apiBase.replace('http', 'ws') + '/ws/events';
-        const ws = new WebSocket(wsUrl);
-        
-        ws.onopen = () => {
-            console.log('WebSocket connected');
-            setConnectionStatus('connected');
-            setWebsocket(ws);
-        };
-        
-        ws.onmessage = (event) => {
-            try {
-                const message = JSON.parse(event.data);
-                if (message.type === 'event' && message.data) {
-                    setEvents(prev => [message.data, ...prev.slice(0, 49)]); // Keep last 50 events
-                }
-            } catch (error) {
-                console.error('Error parsing WebSocket message:', error);
-            }
-        };
-        
-        ws.onclose = () => {
-            console.log('WebSocket disconnected');
-            setConnectionStatus('disconnected');
-            setWebsocket(null);
-            
-            // Attempt to reconnect after 5 seconds if auto-refresh is still enabled
-            if (isAutoRefresh) {
-                setTimeout(() => {
-                    if (isAutoRefresh) {
-                        connectWebSocket();
-                    }
-                }, 5000);
-            }
-        };
-        
-        ws.onerror = (error) => {
-            console.error('WebSocket error:', error);
-            setConnectionStatus('error');
-        };
-    };
-    
-    const disconnectWebSocket = () => {
-        if (websocket) {
-            websocket.close();
-            setWebsocket(null);
-            setConnectionStatus('disconnected');
-        }
-    };
+    }, [isConnected, addEventListener]);
 
     const fetchEventTopics = async () => {
         try {
@@ -175,74 +123,204 @@ const EventConsole = ({ apiBase }) => {
         return JSON.stringify(data, null, 2);
     };
 
+    const generateUUID = () => `${Math.random().toString(36).substr(2, 9)}-${Math.random().toString(36).substr(2, 4)}-${Math.random().toString(36).substr(2, 4)}-${Math.random().toString(36).substr(2, 4)}-${Math.random().toString(36).substr(2, 12)}`;
+    const generateLoadNumber = () => `LOAD-${Math.floor(Math.random() * 10000).toString().padStart(5, '0')}`;
+    const generateVehicleNumber = () => `VEH-${Math.floor(Math.random() * 1000).toString().padStart(4, '0')}`;
+    const generateDriverNumber = () => `DRV-${Math.floor(Math.random() * 500).toString().padStart(4, '0')}`;
+
     const fillSampleEventData = (eventType) => {
         const sampleData = {
-            'load.created': {
-                load_id: `LOAD-${Math.floor(Math.random() * 10000).toString().padStart(5, '0')}`,
-                pickup_address: '123 Main St, Dallas, TX',
-                delivery_address: '456 Oak Ave, Houston, TX',
-                weight: Math.floor(Math.random() * 50000) + 1000,
-                rate: Math.floor(Math.random() * 5000) + 500
+            'LOAD_CREATED': {
+                loadNumber: generateLoadNumber(),
+                customerId: generateUUID(),
+                pickupLocation: {
+                    latitude: 32.7767,
+                    longitude: -96.7970,
+                    address: "123 Industrial Blvd, Dallas, TX 75201"
+                },
+                deliveryLocation: {
+                    latitude: 29.7604,
+                    longitude: -95.3698,
+                    address: "456 Port Way, Houston, TX 77002"
+                },
+                pickupDate: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+                deliveryDate: new Date(Date.now() + 72 * 60 * 60 * 1000).toISOString(),
+                weight: Math.floor(Math.random() * 50000) + 5000,
+                volume: Math.floor(Math.random() * 500) + 100,
+                commodityType: "General Freight",
+                specialRequirements: ["Temperature Controlled", "Fragile"],
+                rate: Math.floor(Math.random() * 5000) + 1000
             },
-            'load.assigned': {
-                load_id: `LOAD-${Math.floor(Math.random() * 10000).toString().padStart(5, '0')}`,
-                vehicle_id: `VEH-${Math.floor(Math.random() * 1000).toString().padStart(4, '0')}`,
-                driver_id: `DRV-${Math.floor(Math.random() * 500).toString().padStart(4, '0')}`
+            'LOAD_ASSIGNED': {
+                loadNumber: generateLoadNumber(),
+                driverId: generateUUID(),
+                vehicleId: generateUUID(),
+                assignedBy: generateUUID(),
+                assignmentDate: new Date().toISOString(),
+                estimatedPickupTime: new Date(Date.now() + 8 * 60 * 60 * 1000).toISOString(),
+                estimatedDeliveryTime: new Date(Date.now() + 32 * 60 * 60 * 1000).toISOString()
             },
-            'load.picked_up': {
-                load_id: `LOAD-${Math.floor(Math.random() * 10000).toString().padStart(5, '0')}`,
-                pickup_time: new Date().toISOString(),
-                location: { lat: 32.7767, lon: -96.7970 }
+            'LOAD_PICKED_UP': {
+                loadNumber: generateLoadNumber(),
+                actualPickupTime: new Date().toISOString(),
+                location: {
+                    latitude: 32.7767,
+                    longitude: -96.7970,
+                    address: "123 Industrial Blvd, Dallas, TX 75201"
+                },
+                signature: "John Smith - Warehouse Manager",
+                weight: Math.floor(Math.random() * 50000) + 5000,
+                pieces: Math.floor(Math.random() * 50) + 1
             },
-            'load.in_transit': {
-                load_id: `LOAD-${Math.floor(Math.random() * 10000).toString().padStart(5, '0')}`,
-                current_location: { lat: 31.7619, lon: -96.7661 },
-                estimated_arrival: new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString()
+            'LOAD_IN_TRANSIT': {
+                loadNumber: generateLoadNumber(),
+                currentLocation: {
+                    latitude: 31.0845 + (Math.random() - 0.5) * 0.1,
+                    longitude: -97.6807 + (Math.random() - 0.5) * 0.1,
+                    address: "I-35, Waco, TX"
+                },
+                estimatedArrival: new Date(Date.now() + 4 * 60 * 60 * 1000).toISOString(),
+                speed: Math.floor(Math.random() * 20) + 60,
+                mileageRemaining: Math.floor(Math.random() * 200) + 50,
+                status: "On Schedule"
             },
-            'load.delivered': {
-                load_id: `LOAD-${Math.floor(Math.random() * 10000).toString().padStart(5, '0')}`,
-                delivery_time: new Date().toISOString(),
-                signature: 'John Doe'
+            'LOAD_DELIVERED': {
+                loadNumber: generateLoadNumber(),
+                actualDeliveryTime: new Date().toISOString(),
+                location: {
+                    latitude: 29.7604,
+                    longitude: -95.3698,
+                    address: "456 Port Way, Houston, TX 77002"
+                },
+                signature: "Maria Garcia - Receiving Manager",
+                deliveryNotes: "Delivered to dock 5, all items received in good condition",
+                proofOfDelivery: "POD-" + Math.floor(Math.random() * 10000)
             },
-            'vehicle.location.updated': {
-                vehicle_id: `VEH-${Math.floor(Math.random() * 1000).toString().padStart(4, '0')}`,
-                location: { 
-                    latitude: 32.7767 + (Math.random() - 0.5) * 0.1, 
-                    longitude: -96.7970 + (Math.random() - 0.5) * 0.1 
+            'LOAD_CANCELLED': {
+                loadNumber: generateLoadNumber(),
+                cancellationReason: "Customer Request",
+                cancellationDate: new Date().toISOString(),
+                cancelledBy: generateUUID(),
+                refundAmount: Math.floor(Math.random() * 2000) + 500,
+                restockingFee: Math.floor(Math.random() * 200) + 50
+            },
+            'VEHICLE_LOCATION_UPDATE': {
+                vehicleNumber: generateVehicleNumber(),
+                location: {
+                    latitude: 32.7767 + (Math.random() - 0.5) * 0.2,
+                    longitude: -96.7970 + (Math.random() - 0.5) * 0.2,
+                    accuracy: Math.floor(Math.random() * 10) + 3,
+                    altitude: Math.floor(Math.random() * 500) + 200
                 },
                 speed: Math.floor(Math.random() * 80) + 35,
-                heading: Math.floor(Math.random() * 360)
+                heading: Math.floor(Math.random() * 360),
+                odometer: Math.floor(Math.random() * 100000) + 50000,
+                fuelLevel: Math.floor(Math.random() * 100),
+                engineHours: Math.floor(Math.random() * 5000) + 1000,
+                driverId: generateUUID(),
+                loadId: generateUUID()
             },
-            'driver.status.changed': {
-                driver_id: `DRV-${Math.floor(Math.random() * 500).toString().padStart(4, '0')}`,
-                old_status: 'available',
-                new_status: 'on_duty',
-                reason: 'Manual status change'
+            'VEHICLE_STATUS_CHANGE': {
+                vehicleNumber: generateVehicleNumber(),
+                previousStatus: "available",
+                newStatus: "in_service",
+                statusReason: "Load assignment",
+                location: {
+                    latitude: 32.7767,
+                    longitude: -96.7970
+                },
+                changedBy: generateUUID()
             },
-            'system.alert': {
-                alert_type: 'warning',
-                message: 'Sample system alert for testing',
-                severity: 'medium',
-                component: 'event_console'
+            'DRIVER_STATUS_CHANGE': {
+                driverNumber: generateDriverNumber(),
+                previousStatus: "off_duty",
+                newStatus: "on_duty",
+                location: {
+                    latitude: 32.7767,
+                    longitude: -96.7970
+                },
+                hoursRemaining: 11,
+                nextBreakDue: new Date(Date.now() + 8 * 60 * 60 * 1000).toISOString(),
+                vehicleId: generateUUID()
             },
-            'ai.prediction': {
-                prediction_type: 'demand_forecast',
-                confidence: 0.85,
-                prediction_data: {
-                    region: 'Dallas-Fort Worth',
-                    predicted_demand: 42,
-                    time_horizon: '24h'
-                }
+            'DRIVER_ASSIGNED': {
+                driverNumber: generateDriverNumber(),
+                loadId: generateUUID(),
+                vehicleId: generateUUID(),
+                assignedBy: generateUUID(),
+                assignmentDate: new Date().toISOString(),
+                expectedDuration: "24 hours",
+                specialInstructions: "Hazmat certified driver required"
             },
-            'route.optimized': {
-                route_id: `ROUTE-${Math.floor(Math.random() * 1000).toString().padStart(4, '0')}`,
-                optimized_distance: Math.floor(Math.random() * 500) + 100,
-                estimated_duration: Math.floor(Math.random() * 480) + 60,
-                fuel_savings: Math.floor(Math.random() * 50) + 10
+            'ROUTE_OPTIMIZED': {
+                loadId: generateUUID(),
+                driverId: generateUUID(),
+                vehicleId: generateUUID(),
+                originalRoute: {
+                    distance: Math.floor(Math.random() * 500) + 200,
+                    duration: Math.floor(Math.random() * 480) + 240,
+                    waypoints: [
+                        { latitude: 32.7767, longitude: -96.7970 },
+                        { latitude: 29.7604, longitude: -95.3698 }
+                    ]
+                },
+                optimizedRoute: {
+                    distance: Math.floor(Math.random() * 450) + 180,
+                    duration: Math.floor(Math.random() * 420) + 200,
+                    waypoints: [
+                        { latitude: 32.7767, longitude: -96.7970 },
+                        { latitude: 31.0845, longitude: -97.6807 },
+                        { latitude: 29.7604, longitude: -95.3698 }
+                    ],
+                    fuelEstimate: Math.floor(Math.random() * 150) + 50,
+                    tollEstimate: Math.floor(Math.random() * 50) + 10
+                },
+                optimizationScore: Math.floor(Math.random() * 30) + 70,
+                algorithmUsed: "ML_ENHANCED_ROUTING",
+                fuelSavings: Math.floor(Math.random() * 25) + 5,
+                timeSavings: Math.floor(Math.random() * 60) + 15
+            },
+            'ROUTE_DEVIATION': {
+                loadId: generateUUID(),
+                vehicleId: generateUUID(),
+                driverId: generateUUID(),
+                plannedLocation: {
+                    latitude: 31.0845,
+                    longitude: -97.6807
+                },
+                actualLocation: {
+                    latitude: 31.1845,
+                    longitude: -97.5807
+                },
+                deviationDistance: Math.floor(Math.random() * 10) + 1,
+                deviationReason: "Traffic Avoidance",
+                impactOnETA: Math.floor(Math.random() * 30) + 5
+            },
+            'AI_PREDICTION': {
+                predictionType: ['demand_forecast', 'route_optimization', 'maintenance_alert', 'fuel_consumption'][Math.floor(Math.random() * 4)],
+                confidence: Math.floor(Math.random() * 30) + 70,
+                predictionData: {
+                    region: "Dallas-Fort Worth Metroplex",
+                    predictedValue: Math.floor(Math.random() * 100) + 20,
+                    timeHorizon: "24 hours",
+                    factors: ["weather", "traffic", "historical_patterns"]
+                },
+                modelVersion: "2.1.0",
+                dataPoints: Math.floor(Math.random() * 1000) + 500
+            },
+            'SYSTEM_ALERT': {
+                alertType: ['warning', 'error', 'info', 'critical'][Math.floor(Math.random() * 4)],
+                message: "Sample system alert for testing purposes",
+                severity: ['low', 'medium', 'high', 'critical'][Math.floor(Math.random() * 4)],
+                component: "event_console",
+                affectedServices: ["routing", "tracking"],
+                actionRequired: "Monitor system performance",
+                alertId: generateUUID(),
+                escalationLevel: Math.floor(Math.random() * 3) + 1
             }
         };
 
-        const data = sampleData[eventType] || { message: 'Sample event data' };
+        const data = sampleData[eventType] || { message: 'Sample event data for ' + eventType };
         
         setNewEvent({
             ...newEvent,
@@ -291,12 +369,11 @@ const EventConsole = ({ apiBase }) => {
                     <div className="stat-label">Last 5 Minutes</div>
                 </div>
                 <div className="stat-card">
-                    <div className={`stat-value connection-status ${connectionStatus}`}>
-                        {connectionStatus === 'connected' ? '🟢' : 
-                         connectionStatus === 'error' ? '🔴' : '🟡'}
+                    <div className={`stat-value connection-status ${isConnected ? 'connected' : 'disconnected'}`}>
+                        {isConnected ? '🟢' : '🔴'}
                     </div>
                     <div className="stat-label">
-                        WebSocket {connectionStatus.charAt(0).toUpperCase() + connectionStatus.slice(1)}
+                        WebSocket {isConnected ? 'Connected' : 'Disconnected'}
                     </div>
                 </div>
             </div>

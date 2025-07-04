@@ -1,8 +1,9 @@
 """TMS Domain Models"""
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional, List, Dict, Any
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 from enum import Enum
+from decimal import Decimal
 import uuid
 
 
@@ -41,13 +42,13 @@ class DriverStatus(str, Enum):
 # Base Models
 class BaseEntity(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 
 class Location(BaseModel):
-    latitude: float
-    longitude: float
+    latitude: float = Field(..., ge=-90.0, le=90.0)
+    longitude: float = Field(..., ge=-180.0, le=180.0)
     address: Optional[str] = None
     city: Optional[str] = None
     state: Optional[str] = None
@@ -103,8 +104,13 @@ class Load(BaseEntity):
     delivery_datetime: datetime
     weight: Optional[float] = None
     volume: Optional[float] = None
-    rate: Optional[float] = None
+    rate: Optional[Decimal] = None
     status: LoadStatus = LoadStatus.PENDING
+    
+    model_config = ConfigDict(
+        # Preserve Decimal types instead of converting to float
+        arbitrary_types_allowed=True
+    )
 
 
 class Shipment(BaseEntity):
@@ -124,38 +130,45 @@ class Route(BaseEntity):
     estimated_duration: Optional[int] = None  # minutes
     actual_distance: Optional[float] = None
     actual_duration: Optional[int] = None
+    distance_miles: Optional[float] = None
+    optimization_score: Optional[float] = None
+    fuel_estimate: Optional[float] = None
+    toll_estimate: Optional[float] = None
     status: str = "planned"
 
 
 # Request/Response Models
 class CreateLoadRequest(BaseModel):
-    load_number: str
-    pickup_address: str
-    delivery_address: str
+    load_number: str = Field(..., min_length=1)
+    pickup_address: str = Field(..., min_length=1)
+    delivery_address: str = Field(..., min_length=1)
     pickup_datetime: datetime
     delivery_datetime: datetime
     weight: Optional[float] = None
     volume: Optional[float] = None
-    rate: Optional[float] = None
+    rate: Optional[Decimal] = None
     shipper_id: Optional[str] = None
     consignee_id: Optional[str] = None
+    notes: Optional[str] = None
 
 
 class AssignLoadRequest(BaseModel):
-    load_id: str
-    carrier_id: str
-    vehicle_id: str
-    driver_id: str
+    load_id: str = Field(..., pattern=r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$')
+    carrier_id: str = Field(..., pattern=r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$')
+    vehicle_id: str = Field(..., pattern=r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$')
+    driver_id: str = Field(..., pattern=r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$')
+    estimated_pickup_time: Optional[datetime] = None
+    estimated_delivery_time: Optional[datetime] = None
 
 
 class UpdateLocationRequest(BaseModel):
     entity_id: str
     entity_type: str  # vehicle, driver
-    latitude: float
-    longitude: float
+    latitude: float = Field(..., ge=-90.0, le=90.0)
+    longitude: float = Field(..., ge=-180.0, le=180.0)
     timestamp: Optional[datetime] = None
-    speed: Optional[float] = None
-    heading: Optional[float] = None
+    speed: Optional[float] = Field(None, ge=0.0)  # Speed cannot be negative
+    heading: Optional[float] = Field(None, ge=0.0, lt=360.0)  # Heading 0-359 degrees
 
 
 class LoadSearchRequest(BaseModel):
@@ -178,7 +191,7 @@ class VehicleTrackingData(BaseModel):
     heading: Optional[float] = None
     fuel_level: Optional[float] = None
     is_moving: bool = False
-    timestamp: datetime = Field(default_factory=datetime.utcnow)
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 
 class PerformanceMetric(BaseModel):
@@ -188,7 +201,7 @@ class PerformanceMetric(BaseModel):
     metric_value: float
     unit: str
     period: str
-    timestamp: datetime = Field(default_factory=datetime.utcnow)
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 
 # AI/ML Models
@@ -211,3 +224,58 @@ class OptimizationRequest(BaseModel):
     load_ids: List[str]
     optimization_type: str = "distance"  # distance, time, cost
     constraints: Dict[str, Any] = Field(default_factory=dict)
+
+
+# Response Models (needed by tests)
+class LoadResponse(BaseModel):
+    """Response model for Load API endpoints"""
+    id: str
+    load_number: str
+    shipper_id: Optional[str] = None
+    consignee_id: Optional[str] = None
+    carrier_id: Optional[str] = None
+    vehicle_id: Optional[str] = None
+    driver_id: Optional[str] = None
+    pickup_location: Location
+    delivery_location: Location
+    pickup_address: str
+    delivery_address: str
+    pickup_datetime: datetime
+    delivery_datetime: datetime
+    weight: Optional[float] = None
+    volume: Optional[float] = None
+    rate: Optional[Decimal] = None
+    status: LoadStatus
+    created_at: datetime
+    updated_at: datetime
+
+
+class VehicleResponse(BaseModel):
+    """Response model for Vehicle API endpoints"""
+    id: str
+    carrier_id: str
+    vehicle_number: str
+    vehicle_type: str
+    capacity_weight: Optional[float] = None
+    capacity_volume: Optional[float] = None
+    status: VehicleStatus
+    current_location: Optional[Location] = None
+    fuel_level: Optional[float] = None
+    odometer: Optional[float] = None
+    created_at: datetime
+    updated_at: datetime
+
+
+class DriverResponse(BaseModel):
+    """Response model for Driver API endpoints"""
+    id: str
+    carrier_id: str
+    license_number: str
+    name: str
+    phone: Optional[str] = None
+    email: Optional[str] = None
+    status: DriverStatus
+    current_location: Optional[Location] = None
+    hours_remaining: Optional[float] = None
+    created_at: datetime
+    updated_at: datetime

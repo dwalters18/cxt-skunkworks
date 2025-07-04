@@ -1,5 +1,5 @@
 """TMS Event Schemas for Kafka messaging"""
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional, Dict, Any, List
 from pydantic import BaseModel, Field
 from enum import Enum
@@ -56,11 +56,12 @@ class BaseEvent(BaseModel):
     """Base event structure for all TMS events"""
     event_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     event_type: EventType
-    timestamp: datetime = Field(default_factory=datetime.utcnow)
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     source: str
     correlation_id: Optional[str] = None
     version: str = "1.0"
     metadata: Dict[str, Any] = Field(default_factory=dict)
+    data: Dict[str, Any] = Field(default_factory=dict)
 
 
 class Location(BaseModel):
@@ -189,7 +190,7 @@ class AIPredictionEvent(BaseEvent):
     data: Dict[str, Any] = Field(..., description="AI prediction data")
     
     class PredictionData(BaseModel):
-        model_name: str
+        ml_model_name: str
         prediction_type: str
         entity_id: str
         entity_type: str

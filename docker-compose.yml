@@ -30,6 +30,24 @@ services:
     networks:
       - tms-network
 
+  # Test Service for Pydantic Tests
+  tms-tests:
+    build:
+      context: ./server
+      dockerfile: Dockerfile.test
+    env_file:
+      - ./server/app/.env
+    depends_on:
+      - kafka
+      - postgres
+      - neo4j
+      - timescaledb
+    networks:
+      - tms-network
+    volumes:
+      - ./server/app/tests:/app/tests
+    command: ["bash", "-c", "source activate cxt-skunkworks-server && python -m pytest tests/ -v --tb=short"]
+
   # Event Processing Services
   # Kafka Infrastructure (KRaft Mode - No ZooKeeper)
   kafka:
