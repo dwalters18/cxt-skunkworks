@@ -22,9 +22,10 @@ The backend system serves as a comprehensive learning platform for:
 - **Event Streaming**: Full Kafka producer/consumer implementation
 - **Real-time Communication**: WebSocket support for live updates
 - **CRUD Operations**: Comprehensive load, vehicle, and driver management
-- **Route Optimization**: Basic Neo4j-based route finding
+- **Route Optimization**: Google Maps API integration with PostGIS storage
 - **Analytics Endpoints**: Dashboard data and metrics APIs
 - **Data Validation**: Pydantic models for request/response validation
+- **Spatial Data Processing**: PostGIS LINESTRING route geometry storage
 
 **Areas for Enhancement 🔄:**
 - **Advanced ML Integration**: MLserver API integration (planned)
@@ -195,18 +196,51 @@ Both databases require these extensions to be available:
 
 ### 4. Route Optimization API
 
-#### Neo4j Integration
-- **Find Optimal Route** (`POST /api/routes/optimize`)
-  - Graph-based route calculations
-  - Multi-constraint optimization (distance, time, cost)
-  - Real-time traffic and condition integration
-  - Waypoint and stop optimization
+#### Google Maps Integration
+Our production-ready route optimization service uses Google Maps Directions API for street-level routing:
+
+- **Optimize Load Route** (`POST /api/routes/optimize-load`)
+  - Load + Vehicle + Optional Driver optimization
+  - Google Maps Directions API integration
+  - Traffic-aware routing with real-time conditions
+  - PostGIS LINESTRING storage for precise coordinates
+  - Fallback to straight-line calculation when API unavailable
+
+- **Get Route Details** (`GET /api/routes/{route_id}`)
+  - Detailed route information with coordinates
+  - Turn-by-turn directions and waypoints
+  - Optimization metrics and performance scores
+  - Map-ready coordinate arrays for frontend display
+
+#### Service Architecture
+```python
+# services/route_optimization.py
+class RouteOptimizationService:
+    - Google Maps API client with traffic optimization
+    - PostGIS geometry storage (LINESTRING)
+    - Kafka event publishing for ROUTE_OPTIMIZED
+    - Optimization scoring algorithm (0-100 scale)
+    - Flexible driver assignment (nullable driver_id)
+```
+
+#### Database Integration
+- **Routes Table**: PostGIS-enabled with LINESTRING geometry
+- **Spatial Queries**: ST_GeogFromText for origin/destination points
+- **Optimization Metrics**: Score, fuel estimate, toll estimate storage
+- **Flexible Assignment**: Nullable driver_id supports operational changes
+
+#### Event Integration
+- **ROUTE_OPTIMIZED Events**: Published to `tms.routes` Kafka topic
+- **Real-time Updates**: WebSocket broadcasting to connected clients
+- **Event Schema**: Aligned with PRD Events Schema specification
+- **Structured Data**: Route metrics, optimization details, coordinates
 
 #### Optimization Features
-- Multiple optimization strategies (distance, time, fuel efficiency)
-- Constraint handling (vehicle restrictions, driver hours)
-- Real-time route adjustments
-- Performance analytics and reporting
+- **Traffic Consideration**: Real-time traffic data integration
+- **Flexible Driver Assignment**: Routes survive driver changes
+- **Optimization Scoring**: 0-100 efficiency rating system
+- **Fallback Strategy**: Straight-line calculation when Maps API unavailable
+- **Performance Analytics**: Route efficiency and fuel consumption estimates
 
 ### 5. Event Management System
 

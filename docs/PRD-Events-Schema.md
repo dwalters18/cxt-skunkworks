@@ -311,24 +311,19 @@ All events inherit from a common base structure:
   "entityType": "ROUTE",
   "entityId": "route-uuid",
   "data": {
-    "loadId": "uuid",
-    "driverId": "uuid",
-    "vehicleId": "uuid",
-    "originalRoute": {
-      "distance": "number",
-      "duration": "number",
-      "waypoints": [{"latitude": "number", "longitude": "number"}]
-    },
-    "optimizedRoute": {
-      "distance": "number",
-      "duration": "number",
-      "waypoints": [{"latitude": "number", "longitude": "number"}],
-      "fuelEstimate": "number",
-      "tollEstimate": "number"
-    },
-    "optimizationScore": "number",
-    "algorithmUsed": "string",
-    "savingsPercent": "number"
+    "route_id": "uuid",
+    "load_ids": ["uuid"],
+    "vehicle_id": "uuid",
+    "driver_id": "uuid (optional)",
+    "original_distance": "number (miles)",
+    "optimized_distance": "number (miles)",
+    "time_saved": "number (minutes)",
+    "fuel_saved": "number (gallons)",
+    "algorithm_used": "string (google_maps_api, straight_line, etc.)",
+    "optimization_score": "number (0-100)",
+    "traffic_considered": "boolean",
+    "steps_count": "number",
+    "encoded_polyline": "string (optional - Google Maps encoded polyline)"
   }
 }
 ```

@@ -22,7 +22,7 @@ CREATE TYPE vehicle_status_enum AS ENUM (
 );
 
 CREATE TYPE driver_status_enum AS ENUM (
-    'AVAILABLE', 'ASSIGNED', 'DRIVING', 'OFF_DUTY', 'ON_BREAK', 'SLEEPER'
+    'AVAILABLE', 'ASSIGNED', 'DRIVING', 'ON_DUTY', 'OFF_DUTY', 'ON_BREAK', 'SLEEPER'
 );
 
 CREATE TYPE route_status_enum AS ENUM (
@@ -129,7 +129,7 @@ CREATE TABLE loads (
 CREATE TABLE routes (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     load_id UUID NOT NULL REFERENCES loads(id),
-    driver_id UUID NOT NULL REFERENCES drivers(id),
+    driver_id UUID REFERENCES drivers(id),
     vehicle_id UUID NOT NULL REFERENCES vehicles(id),
     origin_location GEOGRAPHY(POINT, 4326) NOT NULL,
     destination_location GEOGRAPHY(POINT, 4326) NOT NULL,
@@ -235,7 +235,31 @@ INSERT INTO vehicles (carrier_id, vehicle_number, make, model, year, vin, licens
 ((SELECT id FROM carriers WHERE name = 'Schneider National'), 'SCH001', 'Peterbilt', '579', 2021, '1XPWD40X1ED123456', 'TX-23456', 'TRUCK', 80000.00, 3500.00, 'DIESEL', 'AVAILABLE'),
 ((SELECT id FROM carriers WHERE name = 'J.B. Hunt Transport'), 'JBH001', 'Kenworth', 'T680', 2023, '1XKWDB0X5NJ123456', 'TX-34567', 'TRUCK', 80000.00, 3500.00, 'DIESEL', 'AVAILABLE');
 
-INSERT INTO drivers (carrier_id, driver_number, first_name, last_name, email, phone, license_number, license_class, license_expiry, date_of_birth, hire_date, status) VALUES
-((SELECT id FROM carriers WHERE name = 'Swift Transportation'), 'DRV001', 'Robert', 'Wilson', 'robert.wilson@swift.com', '555-0301', 'CDL123456789', 'CDL-A', '2025-12-31', '1985-05-15', '2020-01-15', 'AVAILABLE'),
-((SELECT id FROM carriers WHERE name = 'Schneider National'), 'DRV002', 'Lisa', 'Anderson', 'lisa.anderson@schneider.com', '555-0302', 'CDL234567890', 'CDL-A', '2025-11-30', '1982-09-22', '2019-03-10', 'AVAILABLE'),
-((SELECT id FROM carriers WHERE name = 'J.B. Hunt Transport'), 'DRV003', 'James', 'Taylor', 'james.taylor@jbhunt.com', '555-0303', 'CDL345678901', 'CDL-A', '2026-01-15', '1988-12-08', '2021-06-01', 'AVAILABLE');
+INSERT INTO drivers (id, carrier_id, driver_number, first_name, last_name, email, phone, license_number, license_class, license_expiry, date_of_birth, hire_date, status) VALUES
+('d1f8b2c4-5e6f-4a7b-8c9d-0e1f2a3b4c5d', (SELECT id FROM carriers WHERE name = 'Swift Transportation'), 'DRV001', 'Robert', 'Wilson', 'robert.wilson@swift.com', '555-0301', 'CDL123456789', 'CDL-A', '2025-12-31', '1985-05-15', '2020-01-15', 'AVAILABLE'),
+('e2a9c3d5-6f7a-5b8c-9d0e-1f2a3b4c5d6e', (SELECT id FROM carriers WHERE name = 'Schneider National'), 'DRV002', 'Lisa', 'Anderson', 'lisa.anderson@schneider.com', '555-0302', 'CDL234567890', 'CDL-A', '2025-11-30', '1982-09-22', '2019-03-10', 'AVAILABLE'),
+('f3b0d4e6-7a8b-6c9d-0e1f-2a3b4c5d6e7f', (SELECT id FROM carriers WHERE name = 'J.B. Hunt Transport'), 'DRV003', 'James', 'Taylor', 'james.taylor@jbhunt.com', '555-0303', 'CDL345678901', 'CDL-A', '2026-01-15', '1988-12-08', '2021-06-01', 'AVAILABLE'),
+('a4c1e5f7-8b9c-7d0e-1f2a-3b4c5d6e7f8a', (SELECT id FROM carriers WHERE name = 'Swift Transportation'), 'DRV004', 'Maria', 'Garcia', 'maria.garcia@swift.com', '555-0304', 'CDL456789012', 'CDL-A', '2025-10-15', '1987-03-18', '2020-08-22', 'AVAILABLE'),
+('b5d2f6a8-9c0d-8e1f-2a3b-4c5d6e7f8a9b', (SELECT id FROM carriers WHERE name = 'Schneider National'), 'DRV005', 'Michael', 'Johnson', 'michael.johnson@schneider.com', '555-0305', 'CDL567890123', 'CDL-A', '2026-02-28', '1984-07-12', '2019-11-05', 'ON_DUTY');
+
+-- Update vehicle locations with realistic coordinates
+UPDATE vehicles SET current_location = ST_GeogFromText('POINT(-97.7431 30.2672)'), current_address = 'Austin, TX' WHERE vehicle_number = 'SWIFT001';
+UPDATE vehicles SET current_location = ST_GeogFromText('POINT(-95.3698 29.7604)'), current_address = 'Houston, TX' WHERE vehicle_number = 'SCH001';
+UPDATE vehicles SET current_location = ST_GeogFromText('POINT(-96.7970 32.7767)'), current_address = 'Dallas, TX' WHERE vehicle_number = 'JBH001';
+
+-- Insert sample load data with pickup and delivery locations
+INSERT INTO loads (load_number, customer_id, pickup_location, delivery_location, pickup_address, delivery_address, pickup_date, delivery_date, weight, volume, commodity_type, status) VALUES
+('LOAD001', (SELECT id FROM customers WHERE customer_code = 'CUST001'), 
+ ST_GeogFromText('POINT(-97.7431 30.2672)'), ST_GeogFromText('POINT(-95.3698 29.7604)'),
+ '123 Commerce St, Austin, TX 78701', '456 Industrial Blvd, Houston, TX 77002',
+ '2024-01-15 08:00:00', '2024-01-15 18:00:00', 25000.00, 1800.00, 'Electronics', 'ASSIGNED'),
+ 
+('LOAD002', (SELECT id FROM customers WHERE customer_code = 'CUST002'),
+ ST_GeogFromText('POINT(-96.7970 32.7767)'), ST_GeogFromText('POINT(-84.3880 33.7490)'),
+ '789 Freight Ave, Dallas, TX 75201', '321 Distribution Way, Atlanta, GA 30309',
+ '2024-01-16 09:00:00', '2024-01-17 14:00:00', 35000.00, 2200.00, 'Automotive Parts', 'IN_TRANSIT'),
+
+('LOAD003', (SELECT id FROM customers WHERE customer_code = 'CUST003'),
+ ST_GeogFromText('POINT(-95.3698 29.7604)'), ST_GeogFromText('POINT(-80.1918 25.7617)'),
+ '555 Port Rd, Houston, TX 77002', '888 Logistics Ln, Miami, FL 33101',
+ '2024-01-17 06:00:00', '2024-01-18 20:00:00', 18000.00, 1500.00, 'Consumer Goods', 'PICKED_UP');

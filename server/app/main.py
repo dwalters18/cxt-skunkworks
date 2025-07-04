@@ -10,6 +10,8 @@ import json
 from contextlib import asynccontextmanager
 from datetime import datetime
 from typing import Dict, List, Optional, Set
+from services.route_optimization import route_optimizer
+from database.connections import get_neo4j_repository, get_timescale_repository
 
 # TMS Imports
 from models.domain import (
@@ -19,7 +21,7 @@ from models.domain import (
 from models.events import EventType, BaseEvent
 from database.connections import (
     get_db_manager, get_load_repository, get_vehicle_repository,
-    get_timescale_repository, get_neo4j_repository, get_audit_repository, DatabaseManager
+    get_audit_repository, DatabaseManager
 )
 from kafka.producer import get_producer, emit_load_created, emit_vehicle_location_update, emit_load_status_change
 from kafka.consumer import get_consumer, TMSEventConsumer
@@ -395,6 +397,91 @@ async def optimize_route(start_location: str, end_location: str):
     except Exception as e:
         logger.error(f"Error optimizing route: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+class OptimizeLoadRouteRequest(BaseModel):
+    load_id: str
+    driver_id: Optional[str] = None
+    vehicle_id: str
+    priority: Optional[str] = "normal"  # normal, urgent, eco
+
+@app.post("/api/routes/optimize-load")
+async def optimize_load_route(request: OptimizeLoadRouteRequest, background_tasks: BackgroundTasks):
+    """
+    Calculate optimized street-level route for load assignment using Google Maps API
+    """
+    try:
+        from uuid import UUID
+        
+        result = await route_optimizer.optimize_route(
+            load_id=UUID(request.load_id),
+            driver_id=UUID(request.driver_id) if request.driver_id else None,
+            vehicle_id=UUID(request.vehicle_id)
+        )
+        
+        return {
+            "success": True,
+            "message": "Route optimization completed",
+            **result
+        }
+        
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Route optimization failed: {str(e)}")
+
+@app.get("/api/routes/{route_id}")
+async def get_route_details(route_id: str):
+    """Get detailed route information including turn-by-turn directions"""
+    try:
+        load_repository = await get_load_repository()
+        
+        query = """
+        SELECT r.*, l.load_number, d.name as driver_name, v.make, v.model
+        FROM routes r
+        JOIN loads l ON r.load_id = l.id
+        LEFT JOIN drivers d ON r.driver_id = d.id
+        JOIN vehicles v ON r.vehicle_id = v.id
+        WHERE r.id = $1
+        """
+        
+        result = await load_repository.execute_single(query, route_id)
+        
+        if not result:
+            raise HTTPException(status_code=404, detail="Route not found")
+        
+        # Convert route geometry to coordinates for frontend
+        route_coords = []
+        if result['route_geometry']:
+            # Extract coordinates from PostGIS LINESTRING
+            coords_query = """
+            SELECT ST_AsGeoJSON(route_geometry) as geojson
+            FROM routes WHERE id = $1
+            """
+            geojson_result = await load_repository.execute_single(coords_query, route_id)
+            
+            if geojson_result and geojson_result['geojson']:
+                import json
+                geojson = json.loads(geojson_result['geojson'])
+                route_coords = geojson.get('coordinates', [])
+        
+        return {
+            "route_id": str(result['id']),
+            "load_id": str(result['load_id']),
+            "load_number": result['load_number'],
+            "driver_name": result['driver_name'],
+            "vehicle": f"{result['make']} {result['model']}",
+            "distance_miles": float(result['planned_distance_miles'] or 0),
+            "duration_minutes": result['planned_duration_minutes'],
+            "optimization_score": float(result['optimization_score'] or 0),
+            "status": result['status'],
+            "route_coordinates": route_coords,  # For map display
+            "fuel_estimate": float(result['fuel_estimate'] or 0),
+            "toll_estimate": float(result['toll_estimate'] or 0)
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to get route details: {str(e)}")
 
 
 # Event Management Endpoints

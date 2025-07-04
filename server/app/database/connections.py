@@ -212,7 +212,15 @@ class LoadRepository(PostgresRepository):
     
     async def get_load(self, load_id: str):
         """Get load by ID"""
-        query = "SELECT * FROM loads WHERE id = $1"
+        query = """
+        SELECT *,
+               ST_Y(pickup_location::geometry) as pickup_latitude,
+               ST_X(pickup_location::geometry) as pickup_longitude,
+               ST_Y(delivery_location::geometry) as delivery_latitude,
+               ST_X(delivery_location::geometry) as delivery_longitude
+        FROM loads 
+        WHERE id = $1
+        """
         return await self.execute_single(query, load_id)
     
     async def update_load_status(self, load_id: str, status: str):
@@ -267,7 +275,12 @@ class LoadRepository(PostgresRepository):
         params.append(offset)
         
         query = f"""
-        SELECT * FROM loads 
+        SELECT *,
+               ST_Y(pickup_location::geometry) as pickup_latitude,
+               ST_X(pickup_location::geometry) as pickup_longitude,
+               ST_Y(delivery_location::geometry) as delivery_latitude,
+               ST_X(delivery_location::geometry) as delivery_longitude
+        FROM loads 
         {where_sql}
         ORDER BY created_at DESC 
         LIMIT {limit_param} OFFSET {offset_param}
@@ -282,11 +295,30 @@ class VehicleRepository(PostgresRepository):
     async def get_available_vehicles(self, carrier_id: Optional[str] = None):
         """Get available vehicles"""
         if carrier_id:
-            query = "SELECT * FROM vehicles WHERE status = 'AVAILABLE' AND carrier_id = $1"
-            return await self.execute_query(query, carrier_id)
+            query = """
+            SELECT *,
+                   ST_Y(current_location::geometry) as latitude,
+                   ST_X(current_location::geometry) as longitude
+            FROM vehicles 
+            WHERE status = 'AVAILABLE' AND carrier_id = $1
+            """
+            results = await self.execute_query(query, carrier_id)
         else:
-            query = "SELECT * FROM vehicles WHERE status = 'AVAILABLE'"
-            return await self.execute_query(query)
+            query = """
+            SELECT *,
+                   ST_Y(current_location::geometry) as latitude,
+                   ST_X(current_location::geometry) as longitude
+            FROM vehicles 
+            WHERE status = 'AVAILABLE'
+            """
+            results = await self.execute_query(query)
+        
+        # Debug: Log the first result to see what fields are available
+        if results:
+            logger.info(f"Vehicle record keys: {list(results[0].keys())}")
+            logger.info(f"First vehicle: {dict(results[0])}")
+        
+        return results
     
     async def update_vehicle_location(self, vehicle_id: str, latitude: float, longitude: float):
         """Update vehicle location"""
