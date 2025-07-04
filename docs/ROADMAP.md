@@ -1,5 +1,11 @@
 # TMS Implementation Roadmap
 
+**Tags:** #TMS-Core #TMS-Infrastructure #status/in-progress #priority/high
+**Related:** [[PRD-Overview]] | [[TMS-PKM-Index]] | [[PRD-Backend-System]] | [[PRD-Dispatching-Interface]]
+**Dependencies:** All PRD documents
+**Purpose:** Development milestones, MVP delivery plan, feature prioritization
+**Timeline:** July - September 2025
+
 > **Revision Note – July 2025**  
 > The roadmap has been updated based on the July 2025 product review. The new content introduces a 10-week MVP delivery plan, addresses identified gaps (auth/RBAC, schema registry, observability, Redis decision, DR planning, Google Maps cost controls, accessibility & UX performance), and lists immediate next steps.
 

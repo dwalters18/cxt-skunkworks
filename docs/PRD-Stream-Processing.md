@@ -4,6 +4,11 @@
 **Version:** 1.0  
 **Date:** July 3, 2025  
 **Authors:** Product Team  
+**Tags:** #TMS-Events #streaming #real-time #status/implemented #priority/high
+**Related:** [[PRD-Overview]] | [[PRD-Events-Schema]] | [[PRD-Real-time-Analytics]] | [[PRD-Backend-System]]
+**Dependencies:** [[PRD-Events-Schema]], [[PRD-Polyglot-Persistence]]
+**Used By:** [[PRD-Real-time-Analytics]], [[PRD-Dispatching-Interface]]
+**Technologies:** Kafka, Debezium, WebSockets, event sourcing
 
 ---
 

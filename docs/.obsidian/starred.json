@@ -1,0 +1,44 @@
+{
+  "items": [
+    {
+      "type": "file",
+      "title": "📋 TMS PKM Index",
+      "path": "TMS-PKM-Index.md"
+    },
+    {
+      "type": "file", 
+      "title": "🏗️ System Overview",
+      "path": "PRD-Overview.md"
+    },
+    {
+      "type": "file",
+      "title": "⚙️ Backend System",
+      "path": "PRD-Backend-System.md"
+    },
+    {
+      "type": "file",
+      "title": "🗃️ Database Schema", 
+      "path": "PRD-Database-Schema.md"
+    },
+    {
+      "type": "file",
+      "title": "⚡ Events Schema",
+      "path": "PRD-Events-Schema.md"
+    },
+    {
+      "type": "file",
+      "title": "🎯 Dispatching Interface",
+      "path": "PRD-Dispatching-Interface.md"
+    },
+    {
+      "type": "file",
+      "title": "🛣️ Route Optimization",
+      "path": "Route-Optimization-Setup.md"
+    },
+    {
+      "type": "file",
+      "title": "📈 Development Roadmap",
+      "path": "ROADMAP.md"
+    }
+  ]
+}

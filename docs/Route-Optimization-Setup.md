@@ -1,5 +1,11 @@
 # Route Optimization System Setup
 
+**Tags:** #route-optimization #TMS-Backend #status/implemented #priority/high #TMS-Frontend
+**Related:** [[PRD-Backend-System]] | [[PRD-Dispatching-Interface]] | [[PRD-Machine-Learning]] | [[PRD-Events-Schema]]
+**Dependencies:** [[PRD-Backend-System]], [[PRD-Database-Schema]]
+**Used By:** [[PRD-Dispatching-Interface]]
+**Technologies:** Google Maps API, PostGIS, route optimization algorithms
+
 This document explains how to configure and use the street-level route optimization feature in the TMS dispatch interface.
 
 ## Overview

@@ -1,0 +1,78 @@
+{
+  "TMS-Core": {
+    "color": "#3B82F6",
+    "description": "Core TMS system components and architecture"
+  },
+  "TMS-Backend": {
+    "color": "#10B981",
+    "description": "Backend services, APIs, and system architecture"
+  },
+  "TMS-Frontend": {
+    "color": "#F59E0B",
+    "description": "User interfaces and frontend components"
+  },
+  "TMS-Data": {
+    "color": "#8B5CF6",
+    "description": "Data models, schemas, and persistence"
+  },
+  "TMS-Events": {
+    "color": "#EF4444",
+    "description": "Event-driven architecture and real-time processing"
+  },
+  "TMS-ML": {
+    "color": "#06B6D4",
+    "description": "Machine learning and AI components"
+  },
+  "TMS-Analytics": {
+    "color": "#EC4899",
+    "description": "Analytics, reporting, and business intelligence"
+  },
+  "TMS-Infrastructure": {
+    "color": "#84CC16",
+    "description": "Infrastructure, deployment, and operations"
+  },
+  "route-optimization": {
+    "color": "#F97316",
+    "description": "Route optimization algorithms and services"
+  },
+  "real-time": {
+    "color": "#DC2626",
+    "description": "Real-time data processing and streaming"
+  },
+  "polyglot-persistence": {
+    "color": "#7C3AED",
+    "description": "Multi-database architecture and data distribution"
+  },
+  "dispatching": {
+    "color": "#059669",
+    "description": "Dispatching workflows and user interfaces"
+  },
+  "streaming": {
+    "color": "#0891B2",
+    "description": "Stream processing and event streaming"
+  },
+  "status/implemented": {
+    "color": "#16A34A",
+    "description": "Features that have been implemented"
+  },
+  "status/in-progress": {
+    "color": "#D97706",
+    "description": "Features currently being developed"
+  },
+  "status/planned": {
+    "color": "#6B7280",
+    "description": "Features planned for future development"
+  },
+  "priority/high": {
+    "color": "#DC2626",
+    "description": "High priority items requiring immediate attention"
+  },
+  "priority/medium": {
+    "color": "#F59E0B",
+    "description": "Medium priority items"
+  },
+  "priority/low": {
+    "color": "#10B981",
+    "description": "Low priority items"
+  }
+}

@@ -1,0 +1,29 @@
+{
+  "shouldShowTagPanel": true,
+  "tagToShow": "",
+  "contextMenu": {
+    "enabled": true,
+    "minimumTags": 5
+  },
+  "tagColors": {
+    "TMS-Core": "#3B82F6",
+    "TMS-Backend": "#10B981", 
+    "TMS-Frontend": "#F59E0B",
+    "TMS-Data": "#8B5CF6",
+    "TMS-Events": "#EF4444",
+    "TMS-ML": "#06B6D4",
+    "TMS-Analytics": "#EC4899",
+    "TMS-Infrastructure": "#84CC16",
+    "route-optimization": "#F97316",
+    "real-time": "#DC2626",
+    "polyglot-persistence": "#7C3AED",
+    "dispatching": "#059669",
+    "streaming": "#0891B2",
+    "status/implemented": "#16A34A",
+    "status/in-progress": "#D97706",
+    "status/planned": "#6B7280",
+    "priority/high": "#DC2626",
+    "priority/medium": "#F59E0B",
+    "priority/low": "#10B981"
+  }
+}

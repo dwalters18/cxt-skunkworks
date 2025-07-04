@@ -4,6 +4,8 @@
 **Version:** 1.0  
 **Date:** July 3, 2025  
 **Authors:** David Walters  
+**Tags:** #TMS-Core #PKM-index #status/implemented #priority/high
+**Related:** [[PRD-Backend-System]] | [[PRD-Database-Schema]] | [[PRD-Events-Schema]] | [[TMS-PKM-Index]]
 
 ---
 
@@ -241,4 +243,3 @@ The system is built on a comprehensive event-driven architecture where all opera
 - Comprehensive AI/ML feature set
 
 This TMS Skunkworks project represents a comprehensive exploration of modern distributed systems while building a production-ready transportation management platform that can scale to meet the demands of large-scale logistics operations.
-

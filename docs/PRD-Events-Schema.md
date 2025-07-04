@@ -4,6 +4,10 @@
 **Version:** 1.0  
 **Date:** July 3, 2025  
 **Authors:** Product Team  
+**Tags:** #TMS-Events #TMS-Core #status/implemented #priority/high #real-time #streaming
+**Related:** [[PRD-Overview]] | [[PRD-Backend-System]] | [[PRD-Stream-Processing]] | [[PRD-Real-time-Analytics]]
+**Dependencies:** [[PRD-Database-Schema]]
+**Used By:** [[PRD-Backend-System]], [[PRD-Stream-Processing]], [[PRD-Real-time-Analytics]]
 
 ---
 

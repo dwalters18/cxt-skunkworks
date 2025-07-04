@@ -4,6 +4,11 @@
 **Version:** 1.0  
 **Date:** July 3, 2025  
 **Authors:** Product Team  
+**Tags:** #TMS-Data #TMS-Infrastructure #polyglot-persistence #status/implemented #priority/high
+**Related:** [[PRD-Overview]] | [[PRD-Database-Schema]] | [[PRD-Backend-System]] | [[PRD-Real-time-Analytics]]
+**Dependencies:** [[PRD-Database-Schema]]
+**Used By:** [[PRD-Backend-System]], [[PRD-Real-time-Analytics]], [[PRD-Stream-Processing]]
+**Databases:** PostgreSQL, TimescaleDB, Neo4j, Redis
 
 ---
 

@@ -13,12 +13,26 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "PRD-Backend-System.md",
-                "mode": "source",
+                "file": "TMS-Object-Relationships.md",
+                "mode": "preview",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "PRD-Backend-System"
+              "title": "TMS-Object-Relationships"
+            }
+          },
+          {
+            "id": "setup-guide-tab",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "PKM-Setup-Guide.md",
+                "mode": "preview",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "PKM-Setup-Guide"
             }
           }
         ]
@@ -41,19 +55,42 @@
               "type": "file-explorer",
               "state": {
                 "sortOrder": "alphabetical",
-                "autoReveal": false
+                "autoReveal": true
               },
               "icon": "lucide-folder-closed",
               "title": "Files"
             }
           },
           {
-            "id": "2c80baddca660d4d",
+            "id": "starred-panel",
+            "type": "leaf",
+            "state": {
+              "type": "starred",
+              "state": {},
+              "icon": "lucide-file",
+              "title": "Plugin no longer active"
+            }
+          },
+          {
+            "id": "tag-panel",
+            "type": "leaf",
+            "state": {
+              "type": "tag",
+              "state": {
+                "sortOrder": "frequency",
+                "useHierarchy": true
+              },
+              "icon": "lucide-tag",
+              "title": "Tags"
+            }
+          },
+          {
+            "id": "a115f99bd7fca014",
             "type": "leaf",
             "state": {
               "type": "search",
               "state": {
-                "query": "",
+                "query": "tag:#status/implemented",
                 "matchingCase": false,
                 "explainSearch": false,
                 "collapseAll": false,
@@ -65,7 +102,7 @@
             }
           },
           {
-            "id": "2f558e163d3b5484",
+            "id": "f7b3a9c484570d22",
             "type": "leaf",
             "state": {
               "type": "bookmarks",
@@ -74,27 +111,38 @@
               "title": "Bookmarks"
             }
           }
-        ]
+        ],
+        "currentTab": 3
       }
     ],
     "direction": "horizontal",
     "width": 300
   },
   "right": {
-    "id": "084a2e57125da831",
+    "id": "8c0f3b9c0c8ab123",
     "type": "split",
     "children": [
       {
-        "id": "78a568f1aebc099b",
+        "id": "right-tabs",
         "type": "tabs",
         "children": [
           {
-            "id": "6040e4254f3c5ad0",
+            "id": "graph-panel",
+            "type": "leaf",
+            "state": {
+              "type": "graph",
+              "state": {},
+              "icon": "lucide-git-fork",
+              "title": "Graph view"
+            }
+          },
+          {
+            "id": "backlinks-panel",
             "type": "leaf",
             "state": {
               "type": "backlink",
               "state": {
-                "file": "PRD-Overview.md",
+                "file": "TMS-PKM-Index.md",
                 "collapseAll": false,
                 "extraContext": false,
                 "sortOrder": "alphabetical",
@@ -103,61 +151,40 @@
                 "backlinkCollapsed": false,
                 "unlinkedCollapsed": true
               },
-              "icon": "links-coming-in",
-              "title": "Backlinks for PRD-Overview"
+              "icon": "lucide-link",
+              "title": "Backlinks"
             }
           },
           {
-            "id": "a6930b441098230e",
-            "type": "leaf",
-            "state": {
-              "type": "outgoing-link",
-              "state": {
-                "file": "PRD-Dispatching-Interface.md",
-                "linksCollapsed": false,
-                "unlinkedCollapsed": true
-              },
-              "icon": "links-going-out",
-              "title": "Outgoing links from PRD-Dispatching-Interface"
-            }
-          },
-          {
-            "id": "e3d483f2cd6d379b",
-            "type": "leaf",
-            "state": {
-              "type": "tag",
-              "state": {
-                "sortOrder": "frequency",
-                "useHierarchy": true,
-                "showSearch": false,
-                "searchQuery": ""
-              },
-              "icon": "lucide-tags",
-              "title": "Tags"
-            }
-          },
-          {
-            "id": "f39c9fca192d20f6",
+            "id": "outline-panel",
             "type": "leaf",
             "state": {
               "type": "outline",
               "state": {
-                "file": "PRD-Dispatching-Interface.md",
-                "followCursor": false,
-                "showSearch": false,
-                "searchQuery": ""
+                "file": "TMS-PKM-Index.md"
               },
               "icon": "lucide-list",
-              "title": "Outline of PRD-Dispatching-Interface"
+              "title": "Outline"
+            }
+          },
+          {
+            "id": "fe5344b60df374ab",
+            "type": "leaf",
+            "state": {
+              "type": "outgoing-link",
+              "state": {
+                "linksCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-going-out",
+              "title": "Outgoing links"
             }
           }
-        ],
-        "currentTab": 2
+        ]
       }
     ],
     "direction": "horizontal",
-    "width": 300,
-    "collapsed": true
+    "width": 582.5
   },
   "left-ribbon": {
     "hiddenItems": {
@@ -169,15 +196,17 @@
       "command-palette:Open command palette": false
     }
   },
-  "active": "60647aeda462e080",
+  "active": "graph-panel",
   "lastOpenFiles": [
-    "DATABASE-UI-ACCESS.md",
+    "TMS-Object-Relationships.md",
+    "TMS-PKM-Index.md",
+    "PKM-Setup-Guide.md",
     "PRD-Overview.md",
     "PRD-Backend-System.md",
-    "PRD-Machine-Learning.md",
-    "PRD-Real-time-Analytics.md",
-    "PRD-Polyglot-Persistence.md",
-    "ROADMAP.md",
-    "PRD-Dispatching-Interface.md"
+    "PRD-Database-Schema.md",
+    "PRD-Events-Schema.md",
+    "PRD-Dispatching-Interface.md",
+    "Route-Optimization-Setup.md",
+    "ROADMAP.md"
   ]
 }

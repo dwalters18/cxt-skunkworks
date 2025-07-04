@@ -4,6 +4,10 @@
 **Version:** 1.0  
 **Date:** July 3, 2025  
 **Authors:** Product Team  
+**Tags:** #TMS-Data #TMS-Core #status/implemented #priority/high #polyglot-persistence
+**Related:** [[PRD-Overview]] | [[PRD-Backend-System]] | [[PRD-Polyglot-Persistence]] | [[TMS-Object-Relationships]]
+**Dependencies:** [[PRD-Overview]]
+**Used By:** [[PRD-Backend-System]], [[PRD-Real-time-Analytics]], [[PRD-Events-Schema]]
 
 ---
 

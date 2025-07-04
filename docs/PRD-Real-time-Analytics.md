@@ -4,6 +4,11 @@
 **Version:** 1.0  
 **Date:** July 3, 2025  
 **Authors:** Product Team  
+**Tags:** #TMS-Analytics #real-time #status/implemented #priority/high #streaming
+**Related:** [[PRD-Overview]] | [[PRD-Events-Schema]] | [[PRD-Stream-Processing]] | [[PRD-Polyglot-Persistence]]
+**Dependencies:** [[PRD-Events-Schema]], [[PRD-Database-Schema]], [[PRD-Stream-Processing]]
+**Used By:** [[PRD-Dispatching-Interface]], [[PRD-Machine-Learning]]
+**Features:** Real-time dashboards, KPI monitoring, event analytics, time-series data
 
 ---
 

@@ -4,6 +4,10 @@
 **Version:** 1.0  
 **Date:** July 3, 2025  
 **Authors:** Product Team  
+**Tags:** #TMS-ML #TMS-Analytics #status/planned #priority/medium #route-optimization
+**Related:** [[PRD-Overview]] | [[PRD-Real-time-Analytics]] | [[Route-Optimization-Setup]] | [[PRD-Backend-System]]
+**Dependencies:** [[PRD-Database-Schema]], [[PRD-Real-time-Analytics]]
+**Features:** Predictive analytics, route optimization, demand forecasting, ML models
 
 ---
 

@@ -1,5 +1,11 @@
 # TMS Object Relationships & Design Architecture
 
+**Tags:** #TMS-Data #TMS-Core #status/implemented #priority/medium
+**Related:** [[PRD-Database-Schema]] | [[PRD-Overview]] | [[PRD-Backend-System]] | [[PRD-Polyglot-Persistence]]
+**Dependencies:** [[PRD-Database-Schema]]
+**Used By:** [[PRD-Backend-System]], [[PRD-Dispatching-Interface]]
+**Purpose:** Defines object model relationships and business logic architecture
+
 ## Core Business Objects
 
 ### 1. **Loads** - Independent Cargo Assignments

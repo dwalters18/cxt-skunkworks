@@ -1,5 +1,10 @@
 # Product Requirements Document: TMS Backend System
 
+**Tags:** #TMS-Backend #TMS-Core #status/implemented #priority/high #route-optimization
+**Related:** [[PRD-Overview]] | [[PRD-Database-Schema]] | [[PRD-Events-Schema]] | [[Route-Optimization-Setup]] | [[PRD-Polyglot-Persistence]]
+**Dependencies:** [[PRD-Database-Schema]], [[PRD-Events-Schema]]
+**Implements:** Backend services, API endpoints, route optimization, event streaming
+
 ## Executive Summary
 
 The TMS Backend System demonstrates a comprehensive, production-ready event-driven microservices architecture that serves as an excellent learning platform for modern distributed systems. Built on FastAPI with polyglot persistence and Kafka-based event streaming, the system provides a robust foundation for exploring advanced logistics operations, real-time processing, and scalable backend design patterns.

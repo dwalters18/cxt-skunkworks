@@ -4,6 +4,10 @@
 **Version:** 1.0  
 **Date:** July 2, 2025  
 **Authors:** Product Team  
+**Tags:** #TMS-Frontend #dispatching #status/implemented #priority/high #real-time
+**Related:** [[PRD-Overview]] | [[PRD-Backend-System]] | [[PRD-Events-Schema]] | [[Route-Optimization-Setup]]
+**Dependencies:** [[PRD-Backend-System]], [[PRD-Events-Schema]]
+**Features:** Google Maps integration, route optimization, real-time tracking, gamification
 
 ---
 
