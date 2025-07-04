@@ -229,125 +229,531 @@ CREATE INDEX idx_load_events_occurred_at ON load_events (occurred_at);
 
 ---
 
-## 4. Neo4j Graph Schema (Relationship Data)
+## 4. Neo4j Graph Schema (Relationship & Network Data)
 
-### 4.1 Node Types
+### 4.1 Graph Database Architecture Philosophy
 
-#### 4.1.1 Driver Nodes
+The Neo4j graph schema models the transportation network as a living, interconnected system where relationships between entities drive intelligent decision-making. This schema enables:
+
+- **Dynamic Route Optimization**: Real-time pathfinding considering traffic, vehicle constraints, and driver preferences
+- **Network Effect Analysis**: Understanding how changes in one part of the network impact the entire system
+- **Predictive Relationship Modeling**: ML-driven predictions based on historical relationship patterns
+- **Complex Constraint Satisfaction**: Multi-dimensional optimization considering time, cost, capacity, and compliance
+- **Supply Chain Network Visualization**: End-to-end visibility of goods movement across the network
+
+### 4.2 Core Node Types
+
+#### 4.2.1 Geographic Network Nodes
+
 ```cypher
-// Driver Node Structure
-(:Driver {
-    id: String,
-    driver_number: String,
-    name: String,
-    license_class: String,
-    experience_years: Integer,
-    rating: Float,
-    current_location: Point,
-    status: String,
-    specializations: [String]
-})
-```
-
-#### 4.1.2 Vehicle Nodes  
-```cypher
-// Vehicle Node Structure
-(:Vehicle {
-    id: String,
-    vehicle_number: String,
-    type: String,
-    capacity_weight: Float,
-    capacity_volume: Float,
-    fuel_efficiency: Float,
-    current_location: Point,
-    status: String,
-    features: [String]
-})
-```
-
-#### 4.1.3 Location Nodes
-```cypher
-// Location Node Structure
+// Physical Locations
 (:Location {
     id: String,
     name: String,
     address: String,
     coordinates: Point,
-    type: String, // 'PICKUP', 'DELIVERY', 'HUB', 'FUEL_STATION'
-    operating_hours: String,
-    dock_count: Integer
+    location_type: String, // 'CUSTOMER', 'WAREHOUSE', 'HUB', 'FUEL_STATION', 'WEIGH_STATION', 'REST_AREA'
+    operating_hours: Map, // {monday: "08:00-17:00", tuesday: "08:00-17:00", ...}
+    dock_count: Integer,
+    max_vehicle_length: Float,
+    weight_restrictions: [String],
+    hazmat_allowed: Boolean,
+    parking_spaces: Integer,
+    services_available: [String], // ['FUEL', 'MAINTENANCE', 'FOOD', 'SHOWER']
+    contact_info: Map,
+    timezone: String,
+    elevation: Float,
+    weather_zone: String
 })
-```
 
-#### 4.1.4 Route Network Nodes
-```cypher
-// Route Network Node Structure
+// Route Network Nodes (for pathfinding optimization)
 (:RouteNode {
     id: String,
     coordinates: Point,
-    type: String, // 'INTERSECTION', 'HIGHWAY_ENTRY', 'TOLL_BOOTH'
-    traffic_weight: Float,
-    restrictions: [String]
+    node_type: String, // 'INTERSECTION', 'HIGHWAY_ENTRY', 'EXIT_RAMP', 'TOLL_BOOTH', 'BRIDGE', 'TUNNEL'
+    traffic_weight_base: Float,
+    restrictions: [String], // ['NO_TRUCKS', 'HAZMAT_PROHIBITED', 'WEIGHT_LIMIT_40000']
+    speed_limit: Integer,
+    elevation: Float,
+    congestion_patterns: Map, // Historical traffic patterns by hour/day
+    weather_impact_factor: Float,
+    road_surface_type: String,
+    bridge_clearance: Float,
+    created_at: DateTime,
+    last_updated: DateTime
+})
+
+// Geographic Regions for Territory Management
+(:Region {
+    id: String,
+    name: String,
+    region_type: String, // 'STATE', 'CITY', 'COUNTY', 'POSTAL_CODE', 'CUSTOM_TERRITORY'
+    boundary: Polygon,
+    population: Integer,
+    economic_indicators: Map,
+    seasonal_demand_patterns: Map,
+    regulatory_requirements: [String]
 })
 ```
 
-### 4.2 Relationship Types
+#### 4.2.2 Business Entity Nodes
 
-#### 4.2.1 Driver-Vehicle Relationships
 ```cypher
-// Driver qualified to operate vehicle
+// Enhanced Driver Profiles
+(:Driver {
+    id: String,
+    driver_number: String,
+    first_name: String,
+    last_name: String,
+    license_class: [String], // ['CDL-A', 'CDL-B', 'HAZMAT']
+    certifications: [String],
+    experience_years: Integer,
+    preferred_routes: [String],
+    home_location: Point,
+    performance_score: Float,
+    on_time_percentage: Float,
+    safety_score: Float,
+    preferred_vehicle_types: [String],
+    languages: [String],
+    availability_schedule: Map,
+    max_hours_per_day: Integer,
+    rest_preferences: Map,
+    emergency_contact: Map,
+    hire_date: Date,
+    status: String // 'ACTIVE', 'ON_LEAVE', 'TERMINATED'
+})
+
+// Enhanced Vehicle Profiles  
+(:Vehicle {
+    id: String,
+    vehicle_number: String,
+    make: String,
+    model: String,
+    year: Integer,
+    vin: String,
+    vehicle_type: String, // 'DRY_VAN', 'REFRIGERATED', 'FLATBED', 'TANKER', 'CONTAINER'
+    capacity_weight: Float,
+    capacity_volume: Float,
+    fuel_type: String,
+    fuel_efficiency: Float, // miles per gallon
+    maintenance_schedule: Map,
+    last_maintenance: Date,
+    next_maintenance_due: Date,
+    equipment: [String], // ['LIFTGATE', 'CHAINS', 'STRAPS', 'TEMPERATURE_CONTROL']
+    restrictions: [String],
+    insurance_info: Map,
+    inspection_due: Date,
+    home_base: String, // Location ID
+    operating_cost_per_mile: Float,
+    status: String // 'AVAILABLE', 'IN_USE', 'MAINTENANCE', 'OUT_OF_SERVICE'
+})
+
+// Customer/Shipper Entities
+(:Customer {
+    id: String,
+    company_name: String,
+    customer_type: String, // 'SHIPPER', 'CONSIGNEE', 'BROKER', '3PL'
+    industry: String,
+    credit_rating: String,
+    payment_terms: Integer,
+    preferred_carriers: [String],
+    volume_commitments: Map,
+    service_requirements: [String],
+    contact_persons: [Map],
+    billing_address: Map,
+    seasonal_patterns: Map,
+    priority_level: String
+})
+
+// Carrier/Fleet Entities
+(:Carrier {
+    id: String,
+    company_name: String,
+    dot_number: String,
+    mc_number: String,
+    carrier_type: String, // 'ASSET', 'OWNER_OPERATOR', 'BROKER'
+    fleet_size: Integer,
+    service_areas: [String],
+    equipment_types: [String],
+    insurance_info: Map,
+    safety_rating: String,
+    preferred_lanes: [String],
+    capacity_commitment: Map,
+    performance_metrics: Map,
+    contract_terms: Map
+})
+
+// Load/Shipment Entities
+(:Load {
+    id: String,
+    load_number: String,
+    load_type: String, // 'FTL', 'LTL', 'PARTIAL'
+    commodity_type: String,
+    weight: Float,
+    volume: Float,
+    value: Float,
+    special_requirements: [String],
+    pickup_window: Map, // {start: DateTime, end: DateTime}
+    delivery_window: Map,
+    temperature_requirements: Map,
+    hazmat_class: String,
+    priority: String, // 'STANDARD', 'EXPEDITED', 'CRITICAL'
+    rate: Float,
+    fuel_surcharge: Float,
+    accessorial_charges: [Map],
+    status: String,
+    created_at: DateTime
+})
+```
+
+#### 4.2.3 Operational Entity Nodes
+
+```cypher
+// Route Plans/Templates
+(:Route {
+    id: String,
+    route_name: String,
+    route_type: String, // 'DEDICATED', 'REGULAR', 'SPOT', 'MILK_RUN'
+    total_distance: Float,
+    estimated_duration: Integer, // minutes
+    fuel_cost_estimate: Float,
+    toll_cost_estimate: Float,
+    difficulty_rating: Float,
+    seasonal_viability: Map,
+    preferred_vehicle_types: [String],
+    driver_skill_requirements: [String],
+    created_at: DateTime,
+    last_optimized: DateTime,
+    usage_count: Integer,
+    success_rate: Float
+})
+
+// Time Windows for Scheduling
+(:TimeWindow {
+    id: String,
+    window_type: String, // 'PICKUP', 'DELIVERY', 'BREAK', 'MAINTENANCE'
+    start_time: DateTime,
+    end_time: DateTime,
+    flexibility_minutes: Integer,
+    priority: String,
+    cost_per_hour_late: Float,
+    associated_entity_id: String,
+    recurring_pattern: String // 'DAILY', 'WEEKLY', 'MONTHLY'
+})
+
+// Optimization Scenarios
+(:OptimizationScenario {
+    id: String,
+    scenario_name: String,
+    objective_function: String, // 'MIN_COST', 'MIN_TIME', 'MAX_UTILIZATION', 'BALANCED'
+    constraints: Map,
+    parameters: Map,
+    created_at: DateTime,
+    executed_at: DateTime,
+    results: Map,
+    performance_metrics: Map
+})
+```
+
+### 4.3 Relationship Types
+
+#### 4.3.1 Network & Geographic Relationships
+
+```cypher
+// Route Network Connections
+(:RouteNode)-[:CONNECTS_TO {
+    distance: Float,
+    travel_time_base: Integer, // minutes in ideal conditions
+    road_type: String, // 'HIGHWAY', 'ARTERIAL', 'LOCAL', 'RURAL'
+    traffic_patterns: Map, // hourly traffic multipliers
+    weather_impact: Map, // weather condition multipliers
+    toll_cost: Float,
+    fuel_consumption_rate: Float,
+    restriction_flags: [String],
+    congestion_probability: Map, // probability by time of day
+    accident_frequency: Float,
+    construction_zones: [Map],
+    grade_percentage: Float, // for fuel calculations
+    curve_difficulty: Float,
+    last_updated: DateTime
+}]->(:RouteNode)
+
+// Location Network Relationships
+(:Location)-[:NEARBY_LOCATION {
+    distance: Float,
+    travel_time: Integer,
+    accessibility_score: Float,
+    service_compatibility: [String]
+}]->(:Location)
+
+// Regional Containment
+(:Location)-[:WITHIN_REGION {
+    administrative_level: String
+}]->(:Region)
+
+// Service Area Coverage
+(:Carrier)-[:SERVES_REGION {
+    service_level: String, // 'PRIMARY', 'SECONDARY', 'OCCASIONAL'
+    response_time_hours: Float,
+    capacity_allocation: Float,
+    rate_multiplier: Float
+}]->(:Region)
+```
+
+#### 4.3.2 Operational Relationships
+
+```cypher
+// Driver-Vehicle Compatibility & Assignment
 (:Driver)-[:QUALIFIED_FOR {
     certification_date: Date,
     expiry_date: Date,
-    training_completed: Boolean
+    proficiency_score: Float,
+    training_hours: Integer,
+    last_operated: Date
 }]->(:Vehicle)
 
-// Current assignment
 (:Driver)-[:CURRENTLY_ASSIGNED {
     assigned_at: DateTime,
-    expected_duration: Duration
+    expected_end: DateTime,
+    assignment_type: String, // 'DEDICATED', 'FLEXIBLE', 'TEMPORARY'
+    performance_target: Map
 }]->(:Vehicle)
-```
 
-#### 4.2.2 Route Network Relationships
-```cypher
-// Route connections
-(:RouteNode)-[:CONNECTS_TO {
-    distance: Float,
-    travel_time: Integer,
-    road_type: String,
-    traffic_factor: Float,
-    toll_cost: Float
-}]->(:RouteNode)
+(:Driver)-[:PREFERS_VEHICLE {
+    preference_score: Float,
+    reason: String,
+    performance_delta: Float
+}]->(:Vehicle)
 
-// Optimal paths
-(:Location)-[:OPTIMAL_ROUTE {
-    total_distance: Float,
-    total_time: Integer,
+// Load Assignment & Routing
+(:Load)-[:ASSIGNED_TO {
+    assigned_at: DateTime,
+    pickup_sequence: Integer,
+    delivery_sequence: Integer,
+    special_instructions: String,
+    estimated_pickup: DateTime,
+    estimated_delivery: DateTime
+}]->(:Vehicle)
+
+(:Load)-[:ORIGIN_LOCATION {
+    pickup_window_start: DateTime,
+    pickup_window_end: DateTime,
+    dock_requirements: [String],
+    special_equipment_needed: [String]
+}]->(:Location)
+
+(:Load)-[:DESTINATION_LOCATION {
+    delivery_window_start: DateTime,
+    delivery_window_end: DateTime,
+    unloading_time_minutes: Integer,
+    signature_required: Boolean
+}]->(:Location)
+
+// Route Optimization Relationships
+(:Route)-[:INCLUDES_STOP {
+    stop_sequence: Integer,
+    estimated_arrival: DateTime,
+    service_time_minutes: Integer,
+    stop_type: String, // 'PICKUP', 'DELIVERY', 'FUEL', 'REST'
+    coordinates: Point
+}]->(:Location)
+
+(:Route)-[:OPTIMIZED_FOR {
+    optimization_date: DateTime,
+    objective_achieved: Float, // percentage of optimal
+    constraints_satisfied: [String],
     total_cost: Float,
-    waypoints: [String],
-    calculated_at: DateTime
-}]->(:Location)
+    total_time: Integer,
+    fuel_consumption: Float,
+    utilization_rate: Float
+}]->(:OptimizationScenario)
+
+(:Vehicle)-[:FOLLOWS_ROUTE {
+    route_start: DateTime,
+    route_end: DateTime,
+    actual_vs_planned_variance: Map,
+    fuel_consumed: Float,
+    actual_distance: Float,
+    performance_score: Float
+}]->(:Route)
 ```
 
-#### 4.2.3 Service History Relationships
+#### 4.3.3 Performance & Historical Relationships
+
 ```cypher
-// Driver service history
+// Service History & Performance
 (:Driver)-[:HAS_SERVED {
-    route_id: String,
     service_date: Date,
-    performance_score: Float,
-    on_time_delivery: Boolean
+    load_id: String,
+    on_time_pickup: Boolean,
+    on_time_delivery: Boolean,
+    customer_rating: Float,
+    fuel_efficiency: Float,
+    hours_of_service_compliance: Boolean,
+    incidents: [String],
+    distance_driven: Float,
+    weather_conditions: String
 }]->(:Location)
 
-// Vehicle service history  
 (:Vehicle)-[:HAS_VISITED {
     visit_date: Date,
     load_id: String,
+    driver_id: String,
     fuel_consumed: Float,
-    mileage_added: Integer
+    mileage_added: Integer,
+    maintenance_needs_identified: [String],
+    performance_metrics: Map,
+    utilization_hours: Float
 }]->(:Location)
+
+// Customer Relationship History
+(:Customer)-[:HAS_SHIPPING_PATTERN {
+    frequency: String, // 'DAILY', 'WEEKLY', 'MONTHLY', 'SEASONAL'
+    volume_pattern: Map,
+    seasonal_variations: Map,
+    preferred_times: [String],
+    service_requirements: [String],
+    rate_sensitivity: Float,
+    loyalty_score: Float
+}]->(:Location)
+
+(:Customer)-[:PREFERS_CARRIER {
+    preference_score: Float,
+    historical_performance: Map,
+    contract_terms: Map,
+    volume_commitment: Float,
+    rate_agreement: Map
+}]->(:Carrier)
+
+// Network Effect Relationships  
+(:Location)-[:INFLUENCES_DEMAND {
+    influence_strength: Float,
+    seasonal_factor: Map,
+    economic_correlation: Float,
+    lag_days: Integer
+}]->(:Location)
+
+(:Route)-[:COMPETES_WITH {
+    overlap_percentage: Float,
+    cost_differential: Float,
+    time_differential: Integer,
+    service_differential: Map
+}]->(:Route)
 ```
+
+### 4.4 Advanced Graph Patterns for Optimization
+
+#### 4.4.1 Multi-Modal Transportation Networks
+
+```cypher
+// Intermodal Connections
+(:Location)-[:INTERMODAL_TRANSFER {
+    transfer_type: String, // 'RAIL_TO_TRUCK', 'PORT_TO_TRUCK', 'AIR_TO_TRUCK'
+    transfer_time_hours: Float,
+    transfer_cost: Float,
+    capacity_constraints: Map,
+    equipment_requirements: [String],
+    operating_schedule: Map
+}]->(:Location)
+
+// Load Consolidation Opportunities
+(:Load)-[:CAN_CONSOLIDATE_WITH {
+    compatibility_score: Float,
+    weight_utilization: Float,
+    volume_utilization: Float,
+    time_window_overlap: Float,
+    geographic_efficiency: Float,
+    cost_savings_potential: Float
+}]->(:Load)
+```
+
+#### 4.4.2 Dynamic Constraint Networks
+
+```cypher
+// Time-Based Constraints
+(:TimeWindow)-[:CONSTRAINS {
+    constraint_type: String, // 'HARD', 'SOFT', 'PREFERRED'
+    penalty_cost: Float,
+    flexibility_minutes: Integer
+}]->(:Load)
+
+// Capacity Constraints
+(:Vehicle)-[:CAPACITY_CONSTRAINT {
+    constraint_type: String, // 'WEIGHT', 'VOLUME', 'COUNT'
+    max_value: Float,
+    current_utilization: Float,
+    efficiency_threshold: Float
+}]->(:Load)
+
+// Driver Hours of Service
+(:Driver)-[:HOS_CONSTRAINT {
+    drive_time_remaining: Integer, // minutes
+    duty_time_remaining: Integer,
+    required_break_at: DateTime,
+    weekly_hours_used: Float,
+    reset_available: DateTime
+}]->(:TimeWindow)
+```
+
+### 4.5 Graph Algorithms & Use Cases
+
+#### 4.5.1 Route Optimization Queries
+
+```cypher
+// Find optimal multi-stop route
+MATCH (start:Location {id: $startId})
+MATCH (end:Location {id: $endId})  
+MATCH (stops:Location) WHERE stops.id IN $stopIds
+CALL apoc.algo.dijkstra(start, end, 'CONNECTS_TO', 'travel_time_base') 
+YIELD path, weight
+RETURN path, weight
+
+// Find best driver-vehicle-load combination
+MATCH (d:Driver)-[:QUALIFIED_FOR]->(v:Vehicle)
+MATCH (l:Load)-[:ORIGIN_LOCATION]->(origin:Location)
+MATCH (l)-[:DESTINATION_LOCATION]->(dest:Location)
+WHERE d.status = 'AVAILABLE' 
+  AND v.status = 'AVAILABLE'
+  AND l.status = 'UNASSIGNED'
+WITH d, v, l, origin, dest
+MATCH path = (origin)-[:CONNECTS_TO*]-(dest)
+RETURN d, v, l, 
+       reduce(totalTime = 0, rel in relationships(path) | totalTime + rel.travel_time_base) as routeTime,
+       (d.performance_score + v.fuel_efficiency) as combinedScore
+ORDER BY combinedScore DESC, routeTime ASC
+LIMIT 10
+```
+
+#### 4.5.2 Network Analysis Queries
+
+```cypher
+// Identify bottleneck locations
+MATCH (l:Location)<-[:INCLUDES_STOP]-(r:Route)
+WITH l, count(r) as route_frequency
+WHERE route_frequency > 10
+MATCH (l)-[:CONNECTS_TO]-(connected)
+RETURN l.name, route_frequency, count(connected) as connectivity_score
+ORDER BY route_frequency DESC, connectivity_score ASC
+
+// Find load consolidation opportunities
+MATCH (l1:Load), (l2:Load)
+WHERE l1.id <> l2.id 
+  AND l1.status = 'UNASSIGNED' 
+  AND l2.status = 'UNASSIGNED'
+MATCH (l1)-[:ORIGIN_LOCATION]->(o1:Location)
+MATCH (l1)-[:DESTINATION_LOCATION]->(d1:Location)  
+MATCH (l2)-[:ORIGIN_LOCATION]->(o2:Location)
+MATCH (l2)-[:DESTINATION_LOCATION]->(d2:Location)
+WHERE distance(o1.coordinates, o2.coordinates) < 50000 // 50km
+  AND distance(d1.coordinates, d2.coordinates) < 50000
+  AND l1.weight + l2.weight <= 40000 // max truck weight
+RETURN l1, l2, 
+       distance(o1.coordinates, o2.coordinates) as pickup_proximity,
+       distance(d1.coordinates, d2.coordinates) as delivery_proximity
+ORDER BY pickup_proximity + delivery_proximity
+```
+
+This comprehensive Neo4j schema transforms the TMS into an intelligent, relationship-driven system that can optimize operations across multiple dimensions simultaneously, enabling advanced use cases like dynamic routing, predictive maintenance, demand forecasting, and supply chain optimization.
 
 ---
 

@@ -33,6 +33,8 @@ services:
   # Kafka Infrastructure (KRaft Mode - No ZooKeeper)
   kafka:
     image: confluentinc/cp-kafka:7.6.1
+    restart: unless-stopped
+    pull_policy: missing
     ports:
       - "9092:9092"
     environment:
