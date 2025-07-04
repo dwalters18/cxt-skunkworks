@@ -3,7 +3,7 @@ import LoadManager from './LoadManager';
 import VehicleTracker from './VehicleTracker';
 import EventConsole from './EventConsole';
 import AnalyticsDashboard from './AnalyticsDashboard';
-import './TMSDashboard.css';
+
 
 const TMSDashboard = () => {
     const [activeTab, setActiveTab] = useState('loads');
@@ -57,55 +57,55 @@ const TMSDashboard = () => {
     };
 
     return (
-        <div className="tms-dashboard">
+        <div className="p-6 bg-gray-50 min-h-screen font-sans">
             {/* Dashboard Overview Cards */}
-            <div className="dashboard-overview">
-                <div className="overview-card">
-                    <div className="card-icon">📦</div>
-                    <div className="card-content">
-                        <h3>Total Loads</h3>
-                        <div className="card-value">{dashboardData.totalLoads}</div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+                <div className="bg-white p-6 rounded-lg shadow flex items-center space-x-4">
+                    <div className="text-3xl text-gray-500">📦</div>
+                    <div className="flex flex-col">
+                        <h3 className="text-gray-600 text-sm font-medium mb-1">Total Loads</h3>
+                        <div className="text-2xl font-bold text-gray-800">{dashboardData.totalLoads}</div>
                     </div>
                 </div>
-                <div className="overview-card">
-                    <div className="card-icon">🚀</div>
-                    <div className="card-content">
-                        <h3>Active Loads</h3>
-                        <div className="card-value">{dashboardData.activeLoads}</div>
+                <div className="bg-white p-6 rounded-lg shadow flex items-center space-x-4">
+                    <div className="text-3xl text-gray-500">🚀</div>
+                    <div className="flex flex-col">
+                        <h3 className="text-gray-600 text-sm font-medium mb-1">Active Loads</h3>
+                        <div className="text-2xl font-bold text-gray-800">{dashboardData.activeLoads}</div>
                     </div>
                 </div>
-                <div className="overview-card">
-                    <div className="card-icon">🚛</div>
-                    <div className="card-content">
-                        <h3>Total Vehicles</h3>
-                        <div className="card-value">{dashboardData.totalVehicles}</div>
+                <div className="bg-white p-6 rounded-lg shadow flex items-center space-x-4">
+                    <div className="text-3xl text-gray-500">🚛</div>
+                    <div className="flex flex-col">
+                        <h3 className="text-gray-600 text-sm font-medium mb-1">Total Vehicles</h3>
+                        <div className="text-2xl font-bold text-gray-800">{dashboardData.totalVehicles}</div>
                     </div>
                 </div>
-                <div className="overview-card">
-                    <div className="card-icon">📡</div>
-                    <div className="card-content">
-                        <h3>System Status</h3>
-                        <div className="card-value status-online">Online</div>
+                <div className="bg-white p-6 rounded-lg shadow flex items-center space-x-4">
+                    <div className="text-3xl text-gray-500">📡</div>
+                    <div className="flex flex-col">
+                        <h3 className="text-gray-600 text-sm font-medium mb-1">System Status</h3>
+                        <div className="text-green-500 font-bold">Online</div>
                     </div>
                 </div>
             </div>
 
             {/* Navigation Tabs */}
-            <div className="dashboard-tabs">
+            <div className="flex space-x-2 bg-white rounded-lg p-1 mb-6 shadow">
                 {tabs.map(tab => (
                     <button
                         key={tab.id}
-                        className={`tab-button ${activeTab === tab.id ? 'active' : ''}`}
+                        className={`${activeTab === tab.id ? 'bg-blue-500 text-white' : 'text-gray-700 hover:bg-gray-100'} flex items-center space-x-2 px-4 py-2 rounded cursor-pointer transition`}
                         onClick={() => setActiveTab(tab.id)}
                     >
-                        <span className="tab-icon">{tab.icon}</span>
-                        <span className="tab-label">{tab.label}</span>
+                        <span className="text-xl">{tab.icon}</span>
+                        <span className="font-medium">{tab.label}</span>
                     </button>
                 ))}
             </div>
 
             {/* Tab Content */}
-            <div className="dashboard-content">
+            <div className="bg-white p-6 rounded-lg shadow min-h-[600px]">
                 {renderTabContent()}
             </div>
         </div>

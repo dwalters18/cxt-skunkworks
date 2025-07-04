@@ -107,9 +107,9 @@ const LoadManager = ({ apiBase }) => {
     };
 
     return (
-        <div className="load-manager">
-            <div className="section-header">
-                <h2>Load Management</h2>
+        <div className="p-6 bg-gray-50 min-h-screen space-y-6">
+            <div className="flex items-center justify-between mb-4">
+                <h2 className="text-2xl font-bold text-gray-800">Load Management</h2>
                 <button 
                     className="btn-primary"
                     onClick={() => setShowCreateForm(true)}
@@ -119,7 +119,7 @@ const LoadManager = ({ apiBase }) => {
             </div>
 
             {/* Filters */}
-            <div className="filters">
+            <div className="flex items-center space-x-4 mb-4">
                 <select 
                     value={filters.status} 
                     onChange={(e) => setFilters({...filters, status: e.target.value})}
@@ -147,14 +147,14 @@ const LoadManager = ({ apiBase }) => {
 
             {/* Create Load Modal */}
             {showCreateForm && (
-                <div className="modal-overlay">
-                    <div className="modal">
-                        <div className="modal-header">
-                            <h3>Create New Load</h3>
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                    <div className="bg-white p-6 rounded-lg shadow-lg w-11/12 md:w-1/2">
+                        <div className="flex items-center justify-between mb-4">
+                            <h3 className="text-xl font-semibold">Create New Load</h3>
                             <button onClick={() => setShowCreateForm(false)}>✕</button>
                         </div>
-                        <div className="modal-body">
-                            <div className="form-group">
+                        <div className="space-y-4">
+                            <div className="flex flex-col space-y-1">
                                 <label>Load Number:</label>
                                 <input
                                     type="text"
@@ -162,7 +162,7 @@ const LoadManager = ({ apiBase }) => {
                                     onChange={(e) => setNewLoad({...newLoad, load_number: e.target.value})}
                                 />
                             </div>
-                            <div className="form-group">
+                            <div className="flex flex-col space-y-1">
                                 <label>Pickup Address:</label>
                                 <input
                                     type="text"
@@ -170,7 +170,7 @@ const LoadManager = ({ apiBase }) => {
                                     onChange={(e) => setNewLoad({...newLoad, pickup_address: e.target.value})}
                                 />
                             </div>
-                            <div className="form-group">
+                            <div className="flex flex-col space-y-1">
                                 <label>Delivery Address:</label>
                                 <input
                                     type="text"
@@ -178,8 +178,8 @@ const LoadManager = ({ apiBase }) => {
                                     onChange={(e) => setNewLoad({...newLoad, delivery_address: e.target.value})}
                                 />
                             </div>
-                            <div className="form-row">
-                                <div className="form-group">
+                            <div className="flex space-x-4">
+                                <div className="flex flex-col space-y-1">
                                     <label>Weight (lbs):</label>
                                     <input
                                         type="number"
@@ -187,7 +187,7 @@ const LoadManager = ({ apiBase }) => {
                                         onChange={(e) => setNewLoad({...newLoad, weight: e.target.value})}
                                     />
                                 </div>
-                                <div className="form-group">
+                                <div className="flex flex-col space-y-1">
                                     <label>Rate ($):</label>
                                     <input
                                         type="number"
@@ -196,8 +196,8 @@ const LoadManager = ({ apiBase }) => {
                                     />
                                 </div>
                             </div>
-                            <div className="form-row">
-                                <div className="form-group">
+                            <div className="flex space-x-4">
+                                <div className="flex flex-col space-y-1">
                                     <label>Pickup Date/Time:</label>
                                     <input
                                         type="datetime-local"
@@ -205,7 +205,7 @@ const LoadManager = ({ apiBase }) => {
                                         onChange={(e) => setNewLoad({...newLoad, pickup_datetime: e.target.value})}
                                     />
                                 </div>
-                                <div className="form-group">
+                                <div className="flex flex-col space-y-1">
                                     <label>Delivery Date/Time:</label>
                                     <input
                                         type="datetime-local"

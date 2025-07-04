@@ -93,7 +93,7 @@ const AnalyticsDashboard = ({ apiBase }) => {
     };
 
     const MetricCard = ({ title, value, subtitle, trend, color = '#2196f3' }) => (
-        <div className="metric-card">
+        <div className="bg-white p-4 rounded-lg shadow flex items-center justify-between">
             <div className="metric-header">
                 <h4>{title}</h4>
                 {trend && (
@@ -110,7 +110,7 @@ const AnalyticsDashboard = ({ apiBase }) => {
     );
 
     const BarChart = ({ data, dataKey, xKey, title }) => (
-        <div className="chart-container">
+        <div className="space-y-2">
             <h4>{title}</h4>
             <div className="bar-chart">
                 {(data || []).map((item, index) => {
@@ -135,10 +135,10 @@ const AnalyticsDashboard = ({ apiBase }) => {
     );
 
     return (
-        <div className="analytics-dashboard">
-            <div className="section-header">
-                <h2>Analytics Dashboard</h2>
-                <div className="dashboard-controls">
+        <div className="p-6 bg-white rounded-lg shadow space-y-6">
+            <div className="flex items-center justify-between mb-4">
+                <h2 className="text-2xl font-bold text-gray-800">Analytics Dashboard</h2>
+                <div className="flex items-center space-x-4">
                     <select
                         value={timeRange}
                         onChange={(e) => setTimeRange(e.target.value)}
@@ -148,16 +148,16 @@ const AnalyticsDashboard = ({ apiBase }) => {
                         <option value="7d">Last 7 Days</option>
                         <option value="30d">Last 30 Days</option>
                     </select>
-                    <button onClick={fetchAnalytics} className="btn-secondary">
+                    <button onClick={fetchAnalytics} className="bg-gray-500 hover:bg-gray-600 text-white py-2 px-4 rounded">
                         🔄 Refresh
                     </button>
                 </div>
             </div>
 
-            {loading && <div className="loading">Loading analytics...</div>}
+            {loading && <div className="text-center text-gray-500 py-4">Loading analytics...</div>}
 
             {/* Key Performance Indicators */}
-            <div className="kpi-grid">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                 <MetricCard
                     title="Load Delivery Rate"
                     value={`${loadMetrics.deliveryRate}%`}
@@ -189,7 +189,7 @@ const AnalyticsDashboard = ({ apiBase }) => {
             </div>
 
             {/* Status Breakdowns */}
-            <div className="status-breakdown">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                 <div className="breakdown-section">
                     <h3>Load Status Distribution</h3>
                     <div className="status-grid">

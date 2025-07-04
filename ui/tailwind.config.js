@@ -1,6 +1,10 @@
 module.exports = {
   content: ["./src/**/*.{html,js,ts,jsx,tsx}"],
   theme: {
+    fontFamily: {
+      sans: ['Roboto', 'sans-serif'],
+      heading: ['Montserrat', 'sans-serif'],
+    },
     extend: {
       colors: {
         neutral: {
@@ -38,6 +42,18 @@ module.exports = {
           500: "#2F7CAC",
           700: "#21587A",
         },
+        // Brand palette colors
+        'logo-green': '#75C158',
+        'logo-gray': '#646464',
+        'text-gray': '#444444',
+        'orange': '#C15701',
+        'light-blue': '#BFD6E5',
+        'secondary-green': '#63A44B',
+        'powder-blue': '#96A5B3',
+        'powder-green': '#ECF3E8',
+        'medium-blue': '#2B719D',
+        'ivory': '#F7F4E7',
+        'pastel-yellow': '#EEEADD',
       },
     },
   },

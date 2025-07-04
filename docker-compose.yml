@@ -5,11 +5,10 @@ services:
       context: ./ui
     ports:
       - "3000:80"
+    env_file:
+      - ./ui/.env
     depends_on:
       - tms-api
-    environment:
-      - REACT_APP_BACKEND_URL=http://localhost:8000
-      - REACT_APP_GOOGLE_MAPS_API_KEY=${REACT_APP_GOOGLE_MAPS_API_KEY}
     networks:
       - tms-network
 

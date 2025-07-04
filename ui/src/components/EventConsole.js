@@ -331,11 +331,11 @@ const EventConsole = ({ apiBase }) => {
     };
 
     return (
-        <div className="event-console">
-            <div className="section-header">
+        <div className="bg-white p-6 rounded-lg shadow space-y-6">
+            <div className="flex items-center justify-between mb-4">
                 <h2>Event Console</h2>
-                <div className="console-controls">
-                    <label className="auto-refresh-toggle">
+                <div className="flex items-center space-x-2">
+                    <label className="flex items-center space-x-2 text-sm text-gray-600">
                         <input
                             type="checkbox"
                             checked={isAutoRefresh}
@@ -345,41 +345,41 @@ const EventConsole = ({ apiBase }) => {
                     </label>
                     <button
                         onClick={() => setShowPublishForm(true)}
-                        className="btn-primary"
+                        className="bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded"
                     >
-                        📤 Publish Event
+                        Publish Event
                     </button>
                 </div>
             </div>
 
             {/* Event Statistics */}
-            <div className="event-stats">
-                <div className="stat-card">
-                    <div className="stat-value">{events.length}</div>
-                    <div className="stat-label">Total Events</div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                <div className="bg-gray-100 p-4 rounded-lg flex flex-col items-center">
+                    <div className="text-2xl font-bold text-gray-800">{events.length}</div>
+                    <div className="text-sm text-gray-500">Total Events</div>
                 </div>
-                <div className="stat-card">
-                    <div className="stat-value">{eventTopics.length}</div>
-                    <div className="stat-label">Active Topics</div>
+                <div className="bg-gray-100 p-4 rounded-lg flex flex-col items-center">
+                    <div className="text-2xl font-bold text-gray-800">{eventTopics.length}</div>
+                    <div className="text-sm text-gray-500">Active Topics</div>
                 </div>
-                <div className="stat-card">
-                    <div className="stat-value">
+                <div className="bg-gray-100 p-4 rounded-lg flex flex-col items-center">
+                    <div className="text-2xl font-bold text-gray-800">
                         {events.filter(e => new Date(e.timestamp) > new Date(Date.now() - 300000)).length}
                     </div>
-                    <div className="stat-label">Last 5 Minutes</div>
+                    <div className="text-sm text-gray-500">Last 5 Minutes</div>
                 </div>
-                <div className="stat-card">
-                    <div className={`stat-value connection-status ${isConnected ? 'connected' : 'disconnected'}`}>
+                <div className="bg-gray-100 p-4 rounded-lg flex flex-col items-center">
+                    <div className={`w-3 h-3 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'} animate-pulse`}>
                         {isConnected ? '🟢' : '🔴'}
                     </div>
-                    <div className="stat-label">
+                    <div className="text-sm text-gray-500">
                         WebSocket {isConnected ? 'Connected' : 'Disconnected'}
                     </div>
                 </div>
             </div>
 
             {/* Event Filters */}
-            <div className="event-filters">
+            <div className="flex items-center space-x-2 mb-4">
                 <select
                     value={selectedTopic}
                     onChange={(e) => setSelectedTopic(e.target.value)}
@@ -389,33 +389,33 @@ const EventConsole = ({ apiBase }) => {
                         <option key={type} value={type}>{type}</option>
                     ))}
                 </select>
-                <button onClick={() => setEvents([])} className="btn-secondary">
-                    🗑️ Clear Console
+                <button onClick={() => setEvents([])} className="bg-gray-500 hover:bg-gray-600 text-white py-2 px-4 rounded">
+                    Clear Console
                 </button>
             </div>
 
             {/* Event Stream */}
-            <div className="event-stream">
+            <div className="space-y-6">
                 <h3>Live Event Stream</h3>
-                <div className="events-container">
+                <div className="space-y-4 max-h-96 overflow-auto">
                     {events
                         .filter(event => !selectedTopic || event.event_type === selectedTopic)
                         .map((event, index) => (
-                        <div key={`${event.event_id}-${index}`} className="event-item">
-                            <div className="event-header">
+                        <div key={`${event.event_id}-${index}`} className="border border-gray-200 p-4 rounded-lg bg-white shadow">
+                            <div className="flex items-center space-x-2 mb-2">
                                 <span 
-                                    className="event-type"
+                                    className="text-sm font-semibold text-blue-600 uppercase"
                                     style={{ color: getEventTypeColor(event.event_type) }}
                                 >
                                     ● {event.event_type}
                                 </span>
-                                <span className="event-source">{event.source}</span>
-                                <span className="event-timestamp">
+                                <span className="text-sm text-gray-500">{event.source}</span>
+                                <span className="text-xs text-gray-400 ml-auto">
                                     {formatTimestamp(event.timestamp)}
                                 </span>
                             </div>
-                            <div className="event-id">ID: {event.event_id}</div>
-                            <div className="event-data">
+                            <div className="text-xs text-gray-400 mt-1">ID: {event.event_id}</div>
+                            <div className="mt-2 text-sm text-gray-700 font-mono">
                                 <details>
                                     <summary>Event Data</summary>
                                     <pre>{formatEventData(event.data)}</pre>
@@ -425,7 +425,7 @@ const EventConsole = ({ apiBase }) => {
                     ))}
                     
                     {events.length === 0 && (
-                        <div className="no-events">
+                        <div className="text-center text-gray-500 py-4">
                             <p>No events to display. Events will appear here in real-time.</p>
                             {!isAutoRefresh && (
                                 <p>Enable auto-refresh to see simulated events.</p>
@@ -437,14 +437,14 @@ const EventConsole = ({ apiBase }) => {
 
             {/* Publish Event Modal */}
             {showPublishForm && (
-                <div className="modal-overlay">
-                    <div className="modal large">
-                        <div className="modal-header">
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                    <div className="bg-white rounded-lg w-11/12 md:w-1/2 p-6">
+                        <div className="flex justify-between items-center mb-4">
                             <h3>Publish Event</h3>
                             <button onClick={() => setShowPublishForm(false)}>✕</button>
                         </div>
-                        <div className="modal-body">
-                            <div className="form-group">
+                        <div className="space-y-4 mb-4">
+                            <div className="flex flex-col space-y-1">
                                 <label>Event Type:</label>
                                 <select
                                     value={newEvent.event_type}
@@ -458,15 +458,15 @@ const EventConsole = ({ apiBase }) => {
                                 {newEvent.event_type && (
                                     <button
                                         onClick={() => fillSampleEventData(newEvent.event_type)}
-                                        className="btn-small btn-secondary"
+                                        className="bg-gray-500 hover:bg-gray-600 text-white py-1 px-2 rounded text-xs"
                                         style={{ marginTop: '5px' }}
                                     >
                                         Fill Sample Data
                                     </button>
                                 )}
                             </div>
-                            <div className="form-row">
-                                <div className="form-group">
+                            <div className="flex space-x-2">
+                                <div className="flex flex-col space-y-1">
                                     <label>Source:</label>
                                     <input
                                         type="text"
@@ -475,7 +475,7 @@ const EventConsole = ({ apiBase }) => {
                                         placeholder="manual, api, telematics, etc."
                                     />
                                 </div>
-                                <div className="form-group">
+                                <div className="flex flex-col space-y-1">
                                     <label>Correlation ID (optional):</label>
                                     <input
                                         type="text"
@@ -485,7 +485,7 @@ const EventConsole = ({ apiBase }) => {
                                     />
                                 </div>
                             </div>
-                            <div className="form-group">
+                            <div className="flex flex-col space-y-1">
                                 <label>Event Data (JSON):</label>
                                 <textarea
                                     value={newEvent.data}
@@ -497,10 +497,10 @@ const EventConsole = ({ apiBase }) => {
                             </div>
                         </div>
                         <div className="modal-footer">
-                            <button onClick={() => setShowPublishForm(false)} className="btn-secondary">
+                            <button onClick={() => setShowPublishForm(false)} className="bg-gray-500 hover:bg-gray-600 text-white py-2 px-4 rounded">
                                 Cancel
                             </button>
-                            <button onClick={publishEvent} className="btn-primary">
+                            <button onClick={publishEvent} className="bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded">
                                 Publish Event
                             </button>
                         </div>
@@ -509,12 +509,12 @@ const EventConsole = ({ apiBase }) => {
             )}
 
             {/* Available Topics */}
-            <div className="available-topics">
+            <div className="mt-6">
                 <h3>Available Event Topics</h3>
-                <div className="topics-grid">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     {eventTopics.map(topic => (
-                        <div key={topic} className="topic-card">
-                            <div className="topic-name">{topic}</div>
+                        <div key={topic} className="bg-gray-100 p-4 rounded-lg flex flex-col items-center">
+                            <div className="text-sm font-medium mb-2">{topic}</div>
                         </div>
                     ))}
                 </div>
