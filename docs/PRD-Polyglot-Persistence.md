@@ -222,8 +222,38 @@ Graph Algorithms:
 - **Compression**: Reduces storage costs for historical data
 - **Continuous Aggregates**: Pre-computed analytics for performance
 
-### 5.2 Use Cases
-#### 5.2.1 Vehicle Tracking Analytics
+### 5.2 Infrastructure Requirements
+
+#### 5.2.1 PostGIS Compatibility
+**CRITICAL:** TimescaleDB deployment **MUST** include PostGIS extension support for spatial data operations.
+
+**Docker Image Requirements:**
+- **Use:** `timescale/timescaledb-ha:pg16` (includes PostGIS)
+- **Avoid:** `timescale/timescaledb:latest-pg16` (PostGIS not included)
+
+**Rationale:**
+- Vehicle tracking data requires `GEOGRAPHY(POINT, 4326)` spatial types
+- Route analytics need spatial distance calculations
+- Performance metrics use geospatial aggregations
+- Standard TimescaleDB images lack PostGIS extension
+
+**Verification Commands:**
+```sql
+-- Verify both extensions are available
+SELECT extname FROM pg_extension WHERE extname IN ('timescaledb', 'postgis');
+-- Expected output: both 'timescaledb' and 'postgis' rows
+```
+
+**Deployment Configuration:**
+```yaml
+# docker-compose.yml - Correct Configuration
+timescaledb:
+  image: timescale/timescaledb-ha:pg16  # **Includes PostGIS**
+  # ... other configuration
+```
+
+### 5.3 Use Cases
+#### 5.3.1 Vehicle Tracking Analytics
 ```sql
 -- High-frequency location data
 CREATE TABLE vehicle_tracking (
@@ -238,7 +268,7 @@ CREATE TABLE vehicle_tracking (
 SELECT create_hypertable('vehicle_tracking', 'time');
 ```
 
-#### 5.2.2 Performance Metrics
+#### 5.3.2 Performance Metrics
 ```sql
 -- KPI calculations and trending
 CREATE TABLE performance_metrics (
@@ -253,7 +283,7 @@ CREATE TABLE performance_metrics (
 SELECT create_hypertable('performance_metrics', 'time');
 ```
 
-#### 5.2.3 Event Stream Storage
+#### 5.3.3 Event Stream Storage
 ```sql
 -- Historical event data for analytics
 CREATE TABLE event_history (
@@ -267,7 +297,7 @@ CREATE TABLE event_history (
 SELECT create_hypertable('event_history', 'time');
 ```
 
-### 5.3 Time-Series Optimizations
+### 5.4 Time-Series Optimizations
 ```sql
 -- Continuous aggregates for real-time dashboards
 CREATE MATERIALIZED VIEW hourly_vehicle_stats
@@ -288,7 +318,7 @@ SELECT add_compression_policy('vehicle_tracking', INTERVAL '7 days');
 SELECT add_retention_policy('vehicle_tracking', INTERVAL '90 days');
 ```
 
-### 5.4 Analytics Queries
+### 5.5 Analytics Queries
 ```sql
 -- Fleet utilization analysis
 SELECT 

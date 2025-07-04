@@ -229,13 +229,13 @@ async def assign_load(load_id: str, assignment: AssignLoadRequest, background_ta
                 "carrier_id": assignment.carrier_id,
                 "vehicle_id": assignment.vehicle_id,
                 "driver_id": assignment.driver_id,
-                "old_status": "pending",
-                "new_status": "assigned"
+                "old_status": "PENDING",
+                "new_status": "ASSIGNED"
             },
             EventType.LOAD_ASSIGNED
         )
         
-        return {"status": "assigned"}
+        return {"status": "ASSIGNED"}
         
     except Exception as e:
         logger.error(f"Error assigning load: {e}")
@@ -298,7 +298,7 @@ async def get_vehicles(carrier_id: Optional[str] = None, status: Optional[str] =
     try:
         vehicle_repo = await get_vehicle_repository()
         
-        if status == "available":
+        if status and status.upper() == "AVAILABLE":
             vehicles = await vehicle_repo.get_available_vehicles(carrier_id)
         else:
             # For now, just get available vehicles as example
@@ -415,18 +415,18 @@ async def get_recent_events(limit: int = 10):
             time,
             load_id,
             event_type,
-            event_description,
-            location_lat,
-            location_lng,
+            status,
+            ST_Y(location::geometry) as location_lat,
+            ST_X(location::geometry) as location_lng,
             driver_id,
             vehicle_id,
-            metadata
+            details
         FROM load_events 
         ORDER BY time DESC 
         LIMIT $1
         """
         
-        events = await timescale_repo.fetch_records(query, limit)
+        events = await timescale_repo.execute_query(query, limit)
         
         # Format events for UI consumption
         formatted_events = []
@@ -435,15 +435,15 @@ async def get_recent_events(limit: int = 10):
                 "id": f"load_event_{event['load_id']}_{int(event['time'].timestamp())}",
                 "timestamp": event['time'].isoformat(),
                 "type": event['event_type'],
-                "title": event['event_description'] or f"Load {event['event_type']}",
-                "description": event['event_description'] or f"Load {event['load_id']} status: {event['event_type']}",
+                "title": event['status'] or f"Load {event['event_type']}",
+                "description": event['status'] or f"Load {event['load_id']} status: {event['event_type']}",
                 "entity_type": "load",
                 "entity_id": str(event['load_id']),
                 "location": {
                     "lat": event['location_lat'],
                     "lng": event['location_lng']
                 } if event['location_lat'] and event['location_lng'] else None,
-                "metadata": event['metadata'] or {},
+                "metadata": event['details'] or {},
                 "driver_id": str(event['driver_id']) if event['driver_id'] else None,
                 "vehicle_id": str(event['vehicle_id']) if event['vehicle_id'] else None
             }
@@ -570,7 +570,7 @@ async def get_dashboard_data(time_range: str = "24h"):
         
         # Get load statistics
         total_loads = await load_repo.execute_query("SELECT COUNT(*) as count FROM loads")
-        active_loads = await load_repo.execute_query("SELECT COUNT(*) as count FROM loads WHERE status IN ('assigned', 'picked_up', 'in_transit')")
+        active_loads = await load_repo.execute_query("SELECT COUNT(*) as count FROM loads WHERE status IN ('ASSIGNED', 'PICKED_UP', 'IN_TRANSIT')")
         
         # Get loads by status
         loads_by_status = await load_repo.execute_query(
@@ -580,7 +580,7 @@ async def get_dashboard_data(time_range: str = "24h"):
         
         # Get vehicle statistics
         total_vehicles = await vehicle_repo.execute_query("SELECT COUNT(*) as count FROM vehicles")
-        active_vehicles = await vehicle_repo.execute_query("SELECT COUNT(*) as count FROM vehicles WHERE status = 'in_transit'")
+        active_vehicles = await vehicle_repo.execute_query("SELECT COUNT(*) as count FROM vehicles WHERE status = 'IN_TRANSIT'")
         
         # Get vehicles by status
         vehicles_by_status = await vehicle_repo.execute_query(
@@ -590,7 +590,7 @@ async def get_dashboard_data(time_range: str = "24h"):
         
         # Get recent events from TimescaleDB
         recent_events = await timescale_repo.execute_query(
-            "SELECT event_type, 'load' as source, time as timestamp, metadata as data FROM load_events ORDER BY time DESC LIMIT 50"
+            "SELECT event_type, 'load' as source, time as timestamp, details as data FROM load_events ORDER BY time DESC LIMIT 50"
         )
         
         # Get hourly load creation trend

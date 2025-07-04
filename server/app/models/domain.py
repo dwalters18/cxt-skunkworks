@@ -7,34 +7,35 @@ import uuid
 
 
 class EntityStatus(str, Enum):
-    ACTIVE = "active"
-    INACTIVE = "inactive"
-    SUSPENDED = "suspended"
+    ACTIVE = "ACTIVE"
+    INACTIVE = "INACTIVE"
+    SUSPENDED = "SUSPENDED"
 
 
 class LoadStatus(str, Enum):
-    PENDING = "pending"
-    ASSIGNED = "assigned"
-    PICKED_UP = "picked_up"
-    IN_TRANSIT = "in_transit"
-    DELIVERED = "delivered"
-    CANCELLED = "cancelled"
+    PENDING = "CREATED"
+    ASSIGNED = "ASSIGNED"
+    PICKED_UP = "PICKED_UP"
+    IN_TRANSIT = "IN_TRANSIT"
+    DELIVERED = "DELIVERED"
+    CANCELLED = "CANCELLED"
+    DELAYED = "DELAYED"
 
 
 class VehicleStatus(str, Enum):
-    AVAILABLE = "available"
-    ASSIGNED = "assigned"
-    IN_TRANSIT = "in_transit"
-    MAINTENANCE = "maintenance"
-    OUT_OF_SERVICE = "out_of_service"
+    AVAILABLE = "AVAILABLE"
+    ASSIGNED = "ASSIGNED"
+    IN_TRANSIT = "IN_TRANSIT"
+    MAINTENANCE = "MAINTENANCE"
+    OUT_OF_SERVICE = "OUT_OF_SERVICE"
 
 
 class DriverStatus(str, Enum):
-    AVAILABLE = "available"
-    DRIVING = "driving"
-    ON_DUTY = "on_duty"
-    OFF_DUTY = "off_duty"
-    SLEEPER_BERTH = "sleeper_berth"
+    AVAILABLE = "AVAILABLE"
+    DRIVING = "DRIVING"
+    ON_DUTY = "ON_DUTY"
+    OFF_DUTY = "OFF_DUTY"
+    SLEEPER_BERTH = "SLEEPER_BERTH"
 
 
 # Base Models

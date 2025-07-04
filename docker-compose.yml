@@ -151,7 +151,7 @@ services:
 
   # TimescaleDB for Time-Series Data
   timescaledb:
-    image: timescale/timescaledb:latest-pg16
+    image: timescale/timescaledb-ha:pg16
     ports:
       - "5433:5432"
     environment:

@@ -225,7 +225,7 @@ class LoadRepository(PostgresRepository):
         query = """
         UPDATE loads 
         SET carrier_id = $1, vehicle_id = $2, driver_id = $3, 
-            status = 'assigned', updated_at = CURRENT_TIMESTAMP 
+            status = 'ASSIGNED', updated_at = CURRENT_TIMESTAMP 
         WHERE id = $4
         """
         await self.execute_command(query, carrier_id, vehicle_id, driver_id, load_id)
@@ -282,10 +282,10 @@ class VehicleRepository(PostgresRepository):
     async def get_available_vehicles(self, carrier_id: Optional[str] = None):
         """Get available vehicles"""
         if carrier_id:
-            query = "SELECT * FROM vehicles WHERE status = 'available' AND carrier_id = $1"
+            query = "SELECT * FROM vehicles WHERE status = 'AVAILABLE' AND carrier_id = $1"
             return await self.execute_query(query, carrier_id)
         else:
-            query = "SELECT * FROM vehicles WHERE status = 'available'"
+            query = "SELECT * FROM vehicles WHERE status = 'AVAILABLE'"
             return await self.execute_query(query)
     
     async def update_vehicle_location(self, vehicle_id: str, latitude: float, longitude: float):

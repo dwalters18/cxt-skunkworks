@@ -66,7 +66,57 @@ The backend system serves as a comprehensive learning platform for:
 2. **TimescaleDB**: Time-series data (vehicle tracking, driver activity, load events)
 3. **Neo4j**: Graph relationships and route optimization queries
 
-## Supported Functionality
+#### Database Infrastructure Requirements
+
+**PostgreSQL + PostGIS:**
+- Standard `postgis/postgis:16-3.4` image provides both PostgreSQL and PostGIS
+- Required for spatial operations on pickup/delivery locations
+- Supports `GEOGRAPHY` and `GEOMETRY` data types
+
+**TimescaleDB + PostGIS:**
+- **CRITICAL:** Must use `timescale/timescaledb-ha:pg16` (includes PostGIS)
+- **DO NOT USE:** `timescale/timescaledb:latest-pg16` (lacks PostGIS extension)
+- Required for vehicle tracking spatial analysis and route analytics
+- Enables `GEOGRAPHY(POINT, 4326)` for GPS coordinates
+
+**Docker Compose Configuration:**
+```yaml
+# Correct TimescaleDB configuration
+timescaledb:
+  image: timescale/timescaledb-ha:pg16  # PostGIS included
+  environment:
+    POSTGRES_DB: tms_timeseries
+    POSTGRES_USER: timescale_user
+    POSTGRES_PASSWORD: timescale_password
+  # init.sql requires both TimescaleDB and PostGIS extensions
+
+# PostgreSQL configuration  
+postgres:
+  image: postgis/postgis:16-3.4  # PostGIS included
+  environment:
+    POSTGRES_DB: tms_oltp
+    POSTGRES_USER: tms_user
+    POSTGRES_PASSWORD: tms_password
+```
+
+**Extension Verification:**
+Both databases require these extensions to be available:
+- `timescaledb` (TimescaleDB only)
+- `postgis` (both databases)
+
+#### Troubleshooting PostGIS Issues
+
+**Common Error: "extension 'postgis' is not available"**
+- **Cause:** Using TimescaleDB image without PostGIS support
+- **Solution:** Switch to `timescale/timescaledb-ha:pg16`
+- **Verification:** `docker exec container_name psql -U user -d db -c "SELECT extname FROM pg_extension WHERE extname='postgis';"`
+
+**Container Startup Failures:**
+- Check logs: `docker logs container_name`
+- Verify image supports PostGIS before deployment
+- Ensure init.sql scripts don't reference unavailable extensions
+
+### Supported Functionality
 
 ### 1. Load Management API
 
@@ -124,14 +174,14 @@ The backend system serves as a comprehensive learning platform for:
 #### Vehicle Features
 - Real-time location tracking with PostGIS
 - Capacity management (weight/volume)
-- Status tracking (available, assigned, in_transit, maintenance)
+- Status tracking (AVAILABLE, ASSIGNED, IN_TRANSIT, MAINTENANCE)
 - Carrier association and fleet management
 - Telemetry data integration (fuel, odometer, engine hours)
 
 ### 3. Driver Management
 
 #### Capabilities
-- Driver status management (available, driving, on_duty, off_duty, sleeper_berth)
+- Driver status management (AVAILABLE, DRIVING, ON_DUTY, OFF_DUTY, SLEEPER_BERTH)
 - HOS (Hours of Service) compliance tracking
 - License validation and management
 - Real-time location updates
@@ -172,12 +222,12 @@ The backend system serves as a comprehensive learning platform for:
   - Consumer group management
 
 #### Event Types Supported
-- **Load Events**: created, assigned, picked_up, in_transit, delivered, cancelled
-- **Vehicle Events**: location_updated, status_changed, maintenance_due
-- **Driver Events**: status_changed, location_updated, hos_violation  
-- **Route Events**: optimized, deviation, completed
-- **Carrier Events**: performance_updated, capacity_changed
-- **System Events**: alerts, AI predictions
+- **Load Events**: CREATED, ASSIGNED, PICKED_UP, IN_TRANSIT, DELIVERED, CANCELLED, DELAYED
+- **Vehicle Events**: LOCATION_UPDATED, STATUS_CHANGED, MAINTENANCE_DUE
+- **Driver Events**: STATUS_CHANGED, LOCATION_UPDATED, HOS_VIOLATION  
+- **Route Events**: OPTIMIZED, DEVIATION, COMPLETED
+- **Carrier Events**: PERFORMANCE_UPDATED, CAPACITY_CHANGED
+- **System Events**: ALERTS, AI_PREDICTIONS
 
 #### Kafka Integration
 - **Topics**: tms.loads, tms.vehicles, tms.vehicles.tracking, tms.drivers, tms.routes, tms.carriers, tms.system.alerts, tms.ai.predictions
@@ -281,9 +331,34 @@ class Driver(BaseEntity):
 ```
 
 ### Status Enumerations
-- **LoadStatus**: pending, assigned, picked_up, in_transit, delivered, cancelled
-- **VehicleStatus**: available, assigned, in_transit, maintenance, out_of_service
-- **DriverStatus**: available, driving, on_duty, off_duty, sleeper_berth
+**CRITICAL NAMING CONVENTION:**
+All enum values MUST be UPPERCASE with underscores for separation (SCREAMING_SNAKE_CASE). This ensures consistency between Python code, database schemas, and API interfaces. Never use lowercase or camelCase for enum values.
+
+- **LoadStatus**: CREATED, ASSIGNED, PICKED_UP, IN_TRANSIT, DELIVERED, CANCELLED, DELAYED
+- **VehicleStatus**: AVAILABLE, ASSIGNED, IN_TRANSIT, MAINTENANCE, OUT_OF_SERVICE  
+- **DriverStatus**: AVAILABLE, DRIVING, ON_DUTY, OFF_DUTY, SLEEPER_BERTH
+
+**Examples:**
+```python
+# ✅ CORRECT - Uppercase enum values
+class VehicleStatus(str, Enum):
+    AVAILABLE = "AVAILABLE"
+    IN_TRANSIT = "IN_TRANSIT"
+
+# ❌ INCORRECT - Lowercase enum values
+class VehicleStatus(str, Enum):
+    available = "available"
+    in_transit = "in_transit"
+```
+
+**Database Schema Alignment:**
+```sql
+-- ✅ CORRECT - Database enums must match Python enums exactly
+CREATE TYPE vehicle_status_enum AS ENUM ('AVAILABLE', 'ASSIGNED', 'IN_TRANSIT', 'MAINTENANCE', 'OUT_OF_SERVICE');
+
+-- ❌ INCORRECT - Case mismatch causes runtime errors
+CREATE TYPE vehicle_status_enum AS ENUM ('available', 'assigned', 'in_transit');
+```
 
 ## API Design Principles
 

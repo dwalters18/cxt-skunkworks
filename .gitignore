@@ -8,7 +8,6 @@ ui/node_modules/
 ui/build/
 ui/coverage/
 ui/.env
-ui/.env.*
 ui/.cache/
 
 # Python (FastAPI Server)
@@ -16,7 +15,6 @@ server/.venv/
 server/venv/
 server/env/
 server/.env
-server/.env.*
 server/__pycache__/
 server/*.pyc
 server/app/.env
