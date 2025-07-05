@@ -317,6 +317,24 @@ REACT_APP_ENVIRONMENT=development|staging|production
 - Conflict resolution for concurrent edits
 - Offline capability (future requirement)
 
+#### 6.2.1 WebSocket Connection Stability (July 2025 Enhancement)
+**Issue Resolved:** Excessive connection attempts causing flooding and instability
+
+**Root Causes Identified:**
+- React StrictMode double execution in development mode
+- Unstable useCallback dependencies causing function recreation
+- Multiple useEffect hooks triggering simultaneous connections
+- Insufficient connection state guards
+
+**Solutions Implemented:**
+- **Connection State Management**: Added `isConnectingRef` to prevent concurrent connection attempts
+- **Component Lifecycle Tracking**: Added `mountedRef` to ensure event handlers only execute when component is mounted
+- **Dependency Stabilization**: Removed unstable dependencies from useCallback hooks
+- **Startup Delay**: 100ms delay to prevent React StrictMode double execution
+- **Enhanced Cleanup**: Proper cleanup of timers and connection state on unmount
+
+**Result:** Clean single connection establishment with reliable reconnection behavior
+
 ---
 
 ## 7. User Experience Requirements
