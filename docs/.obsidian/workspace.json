@@ -4,35 +4,21 @@
     "type": "split",
     "children": [
       {
-        "id": "e4fd9b0201ce4af8",
+        "id": "7e33c79cfd41cbe6",
         "type": "tabs",
         "children": [
           {
-            "id": "60647aeda462e080",
+            "id": "72ea8a054668365d",
             "type": "leaf",
             "state": {
               "type": "markdown",
               "state": {
-                "file": "PRD-Backend-System.md",
-                "mode": "preview",
+                "file": "SPEC-Backend-System.md",
+                "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "PRD-Backend-System"
-            }
-          },
-          {
-            "id": "setup-guide-tab",
-            "type": "leaf",
-            "state": {
-              "type": "markdown",
-              "state": {
-                "file": "PKM-Setup-Guide.md",
-                "mode": "preview",
-                "source": false
-              },
-              "icon": "lucide-file",
-              "title": "PKM-Setup-Guide"
+              "title": "SPEC-Backend-System"
             }
           }
         ]
@@ -126,7 +112,7 @@
         "type": "tabs",
         "children": [
           {
-            "id": "graph-panel",
+            "id": "d186902fd0e53590",
             "type": "leaf",
             "state": {
               "type": "graph",
@@ -141,7 +127,7 @@
             "state": {
               "type": "backlink",
               "state": {
-                "file": "TMS-PKM-Index.md",
+                "file": "SPEC-Backend-System.md",
                 "collapseAll": false,
                 "extraContext": false,
                 "sortOrder": "alphabetical",
@@ -150,8 +136,8 @@
                 "backlinkCollapsed": false,
                 "unlinkedCollapsed": true
               },
-              "icon": "lucide-link",
-              "title": "Backlinks"
+              "icon": "links-coming-in",
+              "title": "Backlinks for SPEC-Backend-System"
             }
           },
           {
@@ -160,10 +146,13 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "TMS-PKM-Index.md"
+                "file": "SPEC-Backend-System.md",
+                "followCursor": false,
+                "showSearch": false,
+                "searchQuery": ""
               },
               "icon": "lucide-list",
-              "title": "Outline"
+              "title": "Outline of SPEC-Backend-System"
             }
           },
           {
@@ -172,20 +161,19 @@
             "state": {
               "type": "outgoing-link",
               "state": {
-                "file": "PRD-Backend-System.md",
+                "file": "SPEC-Backend-System.md",
                 "linksCollapsed": false,
                 "unlinkedCollapsed": true
               },
               "icon": "links-going-out",
-              "title": "Outgoing links from PRD-Backend-System"
+              "title": "Outgoing links from SPEC-Backend-System"
             }
           }
         ]
       }
     ],
     "direction": "horizontal",
-    "width": 582.5,
-    "collapsed": true
+    "width": 552.5
   },
   "left-ribbon": {
     "hiddenItems": {
@@ -197,17 +185,23 @@
       "command-palette:Open command palette": false
     }
   },
-  "active": "60647aeda462e080",
+  "active": "72ea8a054668365d",
   "lastOpenFiles": [
+    "SPEC-Real-time-Analytics.md",
+    "SPEC-Backend-System.md",
+    "SPEC-Database-Schema.md",
+    "ROADMAP.md",
+    "PRD-Overview.md",
+    "2025-07-05.md",
+    "Untitled.canvas",
+    "PKM-Setup-Guide.md",
+    "SPEC-Events-Schema.md",
+    "TMS-PKM-Index.md",
     "PRD-Database-Schema.md",
     "TMS-Object-Relationships.md",
-    "TMS-PKM-Index.md",
-    "PKM-Setup-Guide.md",
-    "PRD-Overview.md",
     "PRD-Backend-System.md",
     "PRD-Events-Schema.md",
     "PRD-Dispatching-Interface.md",
-    "Route-Optimization-Setup.md",
-    "ROADMAP.md"
+    "Route-Optimization-Setup.md"
   ]
 }

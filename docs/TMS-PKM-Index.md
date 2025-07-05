@@ -2,41 +2,50 @@
 
 **Document Type:** PKM Index
 **Created:** 2025-01-03
+**Updated:** 2025-07-05
 **Tags:** #TMS-Core #PKM-index
 **Status:** #status/implemented
 
-## 📋 Core System Architecture
+---
 
-### Primary PRDs
-- [[PRD-Overview]] - System overview and high-level architecture #TMS-Core
-- [[PRD-Backend-System]] - Backend services and API architecture #TMS-Backend
-- [[PRD-Database-Schema]] - Data models and persistence layer #TMS-Data
-- [[PRD-Events-Schema]] - Event-driven architecture specification #TMS-Events
+## 📋 Product Requirements Documents (PRDs)
+*Business requirements, objectives, and product vision*
 
-## 🎯 User Interfaces & Experience
+### Core Business Requirements
+- [[PRD-Overview]] - System overview and high-level architecture #product-requirements #TMS-Core
+- [[PRD-Dispatching-Interface]] - Dispatch operations and user interface requirements #product-requirements #TMS-Frontend #dispatching
 
-### Frontend Components
-- [[PRD-Dispatching-Interface]] - Dispatch operations and UI #TMS-Frontend #dispatching
+---
 
-## 📊 Data & Analytics
+## 🔧 Technical Specifications (SPECs)
+*Implementation details, system design, and technical architecture*
 
-### Data Management
-- [[PRD-Polyglot-Persistence]] - Multi-database architecture #TMS-Data #polyglot-persistence
-- [[PRD-Real-time-Analytics]] - Analytics and reporting systems #TMS-Analytics #real-time
-- [[PRD-Stream-Processing]] - Event streaming and processing #TMS-Events #streaming
+### Backend & Infrastructure
+- [[SPEC-Backend-System]] - Backend services and API architecture #technical-spec #TMS-Backend
+- [[SPEC-Database-Schema]] - Data models and persistence layer #technical-spec #TMS-Data
+- [[SPEC-Polyglot-Persistence]] - Multi-database architecture #technical-spec #TMS-Data #polyglot-persistence
+- [[SPEC-Object-Relationships]] - Object model relationships #technical-spec #TMS-Data
 
-## 🤖 Intelligence & Optimization
+### Event-Driven Architecture
+- [[SPEC-Events-Schema]] - Event-driven architecture specification #technical-spec #TMS-Events
+- [[SPEC-Stream-Processing]] - Event streaming and processing #technical-spec #TMS-Events #streaming
+- [[SPEC-Real-time-Analytics]] - Analytics and reporting systems #technical-spec #TMS-Analytics #real-time
 
-### AI/ML Components
-- [[PRD-Machine-Learning]] - ML models and AI features #TMS-ML
-- [[Route-Optimization-Setup]] - Route optimization implementation #route-optimization #TMS-Backend
+### Frontend & User Experience
+- [[SPEC-Frontend-Application]] - Frontend application architecture #technical-spec #TMS-Frontend
+- [[SPEC-Route-Optimization-Setup]] - Route optimization implementation #technical-spec #route-optimization #TMS-Backend
 
-## 🔧 Implementation & Operations
+### AI & Machine Learning
+- [[SPEC-Machine-Learning]] - ML models and AI features #technical-spec #TMS-ML
 
-### Technical Documentation
-- [[TMS-Object-Relationships]] - Object model relationships #TMS-Data
+---
+
+## 📋 Project Management & Operations
+
+### Planning & Documentation
 - [[ROADMAP]] - Development roadmap and milestones #TMS-Core
 - [[DATABASE-UI-ACCESS]] - Database access and UI tools #TMS-Infrastructure
+- [[PKM-Setup-Guide]] - PKM system setup and usage guide #PKM-setup
 
 ## 📈 Development Status Overview
 
@@ -94,18 +103,18 @@ WHERE contains(file.name, "PRD")
 
 ### Core Dependencies
 ```
-PRD-Overview ──► PRD-Backend-System
-             ├─► PRD-Database-Schema  
-             └─► PRD-Events-Schema
+PRD-Overview ──► SPEC-Backend-System
+             ├─► SPEC-Database-Schema  
+             └─► SPEC-Events-Schema
 
-PRD-Backend-System ──► PRD-Polyglot-Persistence
-                   └─► Route-Optimization-Setup
+SPEC-Backend-System ──► SPEC-Polyglot-Persistence
+                   └─► SPEC-Route-Optimization-Setup
 
-PRD-Database-Schema ──► TMS-Object-Relationships
-                    └─► PRD-Real-time-Analytics
+SPEC-Database-Schema ──► SPEC-Object-Relationships
+                     └─► SPEC-Real-time-Analytics
 
-PRD-Events-Schema ──► PRD-Stream-Processing
-                  └─► PRD-Real-time-Analytics
+SPEC-Events-Schema ──► SPEC-Stream-Processing
+                   └─► SPEC-Real-time-Analytics
 ```
 
 ### Cross-Component Integration
@@ -116,10 +125,10 @@ PRD-Events-Schema ──► PRD-Stream-Processing
 ## 📚 Quick Navigation
 
 ### By Development Phase
-- **Architecture**: [[PRD-Overview]], [[PRD-Backend-System]], [[PRD-Database-Schema]]
-- **Data Layer**: [[PRD-Polyglot-Persistence]], [[PRD-Events-Schema]], [[TMS-Object-Relationships]]
-- **Processing**: [[PRD-Stream-Processing]], [[PRD-Real-time-Analytics]]
-- **Intelligence**: [[PRD-Machine-Learning]], [[Route-Optimization-Setup]]
+- **Architecture**: [[PRD-Overview]], [[SPEC-Backend-System]], [[SPEC-Database-Schema]]
+- **Data Layer**: [[SPEC-Polyglot-Persistence]], [[SPEC-Events-Schema]], [[SPEC-Object-Relationships]]
+- **Processing**: [[SPEC-Stream-Processing]], [[SPEC-Real-time-Analytics]]
+- **Intelligence**: [[SPEC-Machine-Learning]], [[SPEC-Route-Optimization-Setup]]
 - **User Experience**: [[PRD-Dispatching-Interface]]
 
 ### By Priority

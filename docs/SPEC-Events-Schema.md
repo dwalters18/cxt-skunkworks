@@ -1,13 +1,12 @@
-# Product Requirements Document (PRD)
-## TMS Events Schema
+# TMS Events Schema Technical Specification
 
 **Version:** 1.0  
-**Date:** July 3, 2025  
-**Authors:** Product Team  
-**Tags:** #TMS-Events #TMS-Core #status/implemented #priority/high #real-time #streaming
-**Related:** [[PRD-Overview]] | [[PRD-Backend-System]] | [[PRD-Stream-Processing]] | [[PRD-Real-time-Analytics]]
-**Dependencies:** [[PRD-Database-Schema]]
-**Used By:** [[PRD-Backend-System]], [[PRD-Stream-Processing]], [[PRD-Real-time-Analytics]]
+**Date:** July 5, 2025  
+**Authors:** Development Team  
+**Tags:** #technical-spec #TMS-Events #TMS-Core #status/implemented #priority/high #real-time #streaming
+**Related:** [[PRD-Overview]] | [[SPEC-Backend-System]] | [[SPEC-Stream-Processing]] | [[SPEC-Real-time-Analytics]]
+**Dependencies:** [[SPEC-Database-Schema]]
+**Used By:** [[SPEC-Backend-System]], [[SPEC-Stream-Processing]], [[SPEC-Real-time-Analytics]]
 
 ---
 

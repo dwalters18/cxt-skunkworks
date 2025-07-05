@@ -74,5 +74,13 @@
   "priority/low": {
     "color": "#10B981",
     "description": "Low priority items"
+  },
+  "product-requirements": {
+    "color": "#2563EB",
+    "description": "Product Requirements Documents - business requirements and objectives"
+  },
+  "technical-spec": {
+    "color": "#7C2D12",
+    "description": "Technical Specifications - implementation details and system design"
   }
 }

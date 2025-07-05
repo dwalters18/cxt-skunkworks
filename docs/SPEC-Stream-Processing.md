@@ -1,13 +1,12 @@
-# Product Requirements Document (PRD)
-## TMS Event Streaming & Stream Processing
+# TMS Event Streaming & Stream Processing Technical Specification
 
 **Version:** 1.0  
-**Date:** July 3, 2025  
-**Authors:** Product Team  
-**Tags:** #TMS-Events #streaming #real-time #status/implemented #priority/high
-**Related:** [[PRD-Overview]] | [[PRD-Events-Schema]] | [[PRD-Real-time-Analytics]] | [[PRD-Backend-System]]
-**Dependencies:** [[PRD-Events-Schema]], [[PRD-Polyglot-Persistence]]
-**Used By:** [[PRD-Real-time-Analytics]], [[PRD-Dispatching-Interface]]
+**Date:** July 5, 2025  
+**Authors:** Development Team  
+**Tags:** #technical-spec #TMS-Events #streaming #real-time #status/implemented #priority/high
+**Related:** [[PRD-Overview]] | [[SPEC-Events-Schema]] | [[SPEC-Real-time-Analytics]] | [[SPEC-Backend-System]]
+**Dependencies:** [[SPEC-Events-Schema]], [[SPEC-Polyglot-Persistence]]
+**Used By:** [[SPEC-Real-time-Analytics]], [[PRD-Dispatching-Interface]]
 **Technologies:** Kafka, Debezium, WebSockets, event sourcing
 
 ---

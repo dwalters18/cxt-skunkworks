@@ -30,6 +30,10 @@ The following plugins are configured and recommended:
 
 ## 🏷️ Tagging System
 
+### Document Type Tags
+- **#product-requirements** - Product Requirements Documents (PRDs) - business requirements and objectives
+- **#technical-spec** - Technical Specifications (SPECs) - implementation details and system design
+
 ### Primary Category Tags
 - **#TMS-Core** - Core system components and architecture
 - **#TMS-Backend** - Backend services, APIs, and system architecture  
@@ -60,9 +64,24 @@ The following plugins are configured and recommended:
 ## 🔗 Linking Conventions
 
 ### Document Headers
-Each PRD document includes:
+
+#### PRD Documents (Product Requirements)
 ```markdown
-**Tags:** #primary-category #feature-tags #status/current #priority/level
+**Version:** 1.0
+**Date:** YYYY-MM-DD
+**Authors:** Product Team
+**Tags:** #product-requirements #primary-category #feature-tags #status/current #priority/level
+**Related:** [[Document1]] | [[Document2]] | [[Document3]]
+**Dependencies:** [[Required-Doc1]], [[Required-Doc2]]
+**Used By:** [[Dependent-Doc1]], [[Dependent-Doc2]]
+```
+
+#### SPEC Documents (Technical Specifications)
+```markdown
+**Version:** 1.0
+**Date:** YYYY-MM-DD
+**Authors:** Development Team
+**Tags:** #technical-spec #primary-category #feature-tags #status/current #priority/level
 **Related:** [[Document1]] | [[Document2]] | [[Document3]]
 **Dependencies:** [[Required-Doc1]], [[Required-Doc2]]
 **Used By:** [[Dependent-Doc1]], [[Dependent-Doc2]]
@@ -85,11 +104,11 @@ Each PRD document includes:
 The following documents are starred for quick access:
 - 📋 [[TMS-PKM-Index]] - Central index
 - 🏗️ [[PRD-Overview]] - System overview
-- ⚙️ [[PRD-Backend-System]] - Backend architecture
-- 🗃️ [[PRD-Database-Schema]] - Data models
-- ⚡ [[PRD-Events-Schema]] - Event architecture
+- ⚙️ [[SPEC-Backend-System]] - Backend architecture
+- 🗃️ [[SPEC-Database-Schema]] - Data models
+- ⚡ [[SPEC-Events-Schema]] - Event architecture
 - 🎯 [[PRD-Dispatching-Interface]] - UI components
-- 🛣️ [[Route-Optimization-Setup]] - Route optimization
+- 🛣️ [[SPEC-Route-Optimization-Setup]] - Route optimization
 - 📈 [[ROADMAP]] - Development roadmap
 
 ## 🎨 Visual Features

@@ -1,12 +1,11 @@
-# Product Requirements Document (PRD)
-## TMS Machine Learning
+# TMS Machine Learning Technical Specification
 
 **Version:** 1.0  
-**Date:** July 3, 2025  
-**Authors:** Product Team  
-**Tags:** #TMS-ML #TMS-Analytics #status/planned #priority/medium #route-optimization
-**Related:** [[PRD-Overview]] | [[PRD-Real-time-Analytics]] | [[Route-Optimization-Setup]] | [[PRD-Backend-System]]
-**Dependencies:** [[PRD-Database-Schema]], [[PRD-Real-time-Analytics]]
+**Date:** July 5, 2025  
+**Authors:** Development Team  
+**Tags:** #technical-spec #TMS-ML #TMS-Analytics #status/planned #priority/medium #route-optimization
+**Related:** [[PRD-Overview]] | [[SPEC-Real-time-Analytics]] | [[SPEC-Route-Optimization-Setup]] | [[SPEC-Backend-System]]
+**Dependencies:** [[SPEC-Database-Schema]], [[SPEC-Real-time-Analytics]]
 **Features:** Predictive analytics, route optimization, demand forecasting, ML models
 
 ---

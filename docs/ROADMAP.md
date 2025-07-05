@@ -1,7 +1,7 @@
 # TMS Implementation Roadmap
 
 **Tags:** #TMS-Core #TMS-Infrastructure #status/in-progress #priority/high
-**Related:** [[PRD-Overview]] | [[TMS-PKM-Index]] | [[PRD-Backend-System]] | [[PRD-Dispatching-Interface]]
+**Related:** [[PRD-Overview]] | [[TMS-PKM-Index]] | [[SPEC-Backend-System]] | [[PRD-Dispatching-Interface]]
 **Dependencies:** All PRD documents
 **Purpose:** Development milestones, MVP delivery plan, feature prioritization
 **Timeline:** July - September 2025

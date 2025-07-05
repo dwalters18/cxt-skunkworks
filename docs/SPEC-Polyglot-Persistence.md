@@ -1,13 +1,12 @@
-# Product Requirements Document (PRD)
-## TMS Polyglot Persistence
+# TMS Polyglot Persistence Technical Specification
 
 **Version:** 1.0  
-**Date:** July 3, 2025  
-**Authors:** Product Team  
-**Tags:** #TMS-Data #TMS-Infrastructure #polyglot-persistence #status/implemented #priority/high
-**Related:** [[PRD-Overview]] | [[PRD-Database-Schema]] | [[PRD-Backend-System]] | [[PRD-Real-time-Analytics]]
-**Dependencies:** [[PRD-Database-Schema]]
-**Used By:** [[PRD-Backend-System]], [[PRD-Real-time-Analytics]], [[PRD-Stream-Processing]]
+**Date:** July 5, 2025  
+**Authors:** Development Team  
+**Tags:** #technical-spec #TMS-Data #TMS-Infrastructure #polyglot-persistence #status/implemented #priority/high
+**Related:** [[PRD-Overview]] | [[SPEC-Database-Schema]] | [[SPEC-Backend-System]] | [[SPEC-Real-time-Analytics]]
+**Dependencies:** [[SPEC-Database-Schema]]
+**Used By:** [[SPEC-Backend-System]], [[SPEC-Real-time-Analytics]], [[SPEC-Stream-Processing]]
 **Databases:** PostgreSQL, TimescaleDB, Neo4j, Redis
 
 ---

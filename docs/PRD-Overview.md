@@ -4,8 +4,8 @@
 **Version:** 1.0  
 **Date:** July 3, 2025  
 **Authors:** David Walters  
-**Tags:** #TMS-Core #PKM-index #status/implemented #priority/high
-**Related:** [[PRD-Backend-System]] | [[PRD-Database-Schema]] | [[PRD-Events-Schema]] | [[TMS-PKM-Index]]
+**Tags:** #product-requirements #TMS-Core #PKM-index #status/implemented #priority/high
+**Related:** [[SPEC-Backend-System]] | [[SPEC-Database-Schema]] | [[SPEC-Events-Schema]] | [[TMS-PKM-Index]]
 
 ---
 

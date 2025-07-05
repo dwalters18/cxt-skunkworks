@@ -1,12 +1,11 @@
-# Product Requirements Document (PRD)
-## TMS Frontend Application
+# TMS Frontend Application Technical Specification
 
 **Version:** 1.0  
-**Date:** July 4, 2025  
+**Date:** July 5, 2025  
 **Authors:** Development Team  
-**Tags:** #TMS-Frontend #UI-UX #route-optimization #status/active #priority/high #react
-**Related:** [[PRD-Dispatching-Interface]] | [[PRD-Backend-System]] | [[PRD-Events-Schema]]
-**Dependencies:** [[PRD-Backend-System]], Google Maps API, React ecosystem
+**Tags:** #technical-spec #TMS-Frontend #UI-UX #route-optimization #status/active #priority/high #react
+**Related:** [[PRD-Dispatching-Interface]] | [[SPEC-Backend-System]] | [[SPEC-Events-Schema]]
+**Dependencies:** [[SPEC-Backend-System]], Google Maps API, React ecosystem
 **Features:** Route optimization UI, Google Maps integration, component architecture, SaaS navigation
 
 ---

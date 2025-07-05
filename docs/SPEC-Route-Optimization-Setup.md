@@ -1,8 +1,8 @@
 # Route Optimization System Setup
 
-**Tags:** #route-optimization #TMS-Backend #status/implemented #priority/high #TMS-Frontend
-**Related:** [[PRD-Backend-System]] | [[PRD-Dispatching-Interface]] | [[PRD-Machine-Learning]] | [[PRD-Events-Schema]]
-**Dependencies:** [[PRD-Backend-System]], [[PRD-Database-Schema]]
+**Tags:** #technical-spec #route-optimization #TMS-Backend #status/implemented #priority/high #TMS-Frontend
+**Related:** [[SPEC-Backend-System]] | [[PRD-Dispatching-Interface]] | [[SPEC-Machine-Learning]] | [[SPEC-Events-Schema]]
+**Dependencies:** [[SPEC-Backend-System]], [[SPEC-Database-Schema]]
 **Used By:** [[PRD-Dispatching-Interface]]
 **Technologies:** Google Maps API, PostGIS, route optimization algorithms
 

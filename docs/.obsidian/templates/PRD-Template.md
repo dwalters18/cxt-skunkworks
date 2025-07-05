@@ -1,42 +1,100 @@
 # {{title}}
 
-**Document Type:** PRD (Product Requirements Document)
-**Created:** {{date}}
-**Status:** #status/planned
-**Priority:** #priority/medium
-**Category:** #TMS-Core
+**Version:** 1.0
+**Date:** {{date}}
+**Authors:** [Author Names]
+**Tags:** #product-requirements #TMS-Core
+**Related:** [[PRD-Overview]]
+**Dependencies:** [List dependent PRDs]
 
-## Overview
+---
 
-Brief description of the component/feature.
+## Executive Summary
 
-## Relationships
+### Project Vision
+[Brief vision statement for this feature/component]
 
-### Dependencies
-- [[PRD-Overview]] - Core system requirements
-- [[PRD-Database-Schema]] - Data model dependencies
+### Core Mission
+[What core problem does this solve for users?]
 
-### Related Documents
-- Link to related PRDs
+### Key Differentiators
+[What makes this solution unique or valuable?]
 
-### Implementation Status
-- [ ] Backend Implementation
-- [ ] Frontend Implementation  
-- [ ] Testing
-- [ ] Documentation
+---
 
-## Tags
+## Project Vision & Objectives
 
-Primary tags for this document:
-- Main category tag (e.g., #TMS-Backend, #TMS-Data, #TMS-Events)
-- Feature-specific tags (e.g., #route-optimization, #real-time)
-- Status tags (#status/implemented, #status/in-progress, #status/planned)
-- Priority tags (#priority/high, #priority/medium, #priority/low)
+### Vision Statement
+[Detailed vision for this feature/component]
+
+### Learning Objectives (High-Level)
+[What business/user value does this deliver?]
+
+### Core Problems Solved
+[List of primary problems this addresses for users]
+
+---
+
+## Goals & Success Metrics
+
+### Business Goals
+- [Goal 1 - business outcome focused]
+- [Goal 2 - user value focused]
+- [Goal 3 - operational efficiency focused]
+
+### Success Metrics
+- [Metric 1 - business KPI]
+- [Metric 2 - user satisfaction metric]
+- [Metric 3 - adoption/usage metric]
+
+---
+
+## User Personas & Use Cases
+
+### Primary Users
+- **[User Type 1]:** [Brief description of user needs]
+- **[User Type 2]:** [Brief description of user needs]
+
+### Key Use Cases
+1. **[Use Case 1]:** [User story format - As a [user], I want to [action] so that [benefit]]
+2. **[Use Case 2]:** [User story format]
+3. **[Use Case 3]:** [User story format]
+
+---
+
+## Functional Requirements
+
+### Core Features
+[High-level description of what the system must do from user perspective]
+
+### User Experience Requirements
+[Key UX/UI requirements that impact user workflows]
+
+### Business Rules
+[Important business logic that governs feature behavior]
+
+---
+
+## Future Roadmap
+
+### Phase 1: [Current Phase]
+[High-level features and capabilities]
+
+### Phase 2: [Next Phase]
+[Planned enhancements and expansions]
+
+### Phase 3: [Future Vision]
+[Long-term feature evolution]
+
+---
 
 ## Cross-References
 
-### Mentioned In
-*This section will be automatically populated by Obsidian's backlinks*
+### Related PRDs
+- [List related product requirement documents]
 
-### References
-*Documents this PRD references*
+### Technical Specifications
+- [List relevant SPEC documents that implement this PRD]
+
+### Dependencies
+- [List PRDs this document depends on]

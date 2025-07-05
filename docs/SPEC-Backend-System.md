@@ -1,23 +1,20 @@
-# Product Requirements Document: TMS Backend System
+# TMS Backend System Technical Specification
 
-**Tags:** #TMS-Backend #TMS-Core #status/implemented #priority/high #route-optimization
-**Related:** [[PRD-Overview]] | [[PRD-Database-Schema]] | [[PRD-Events-Schema]] | [[Route-Optimization-Setup]] | [[PRD-Polyglot-Persistence]]
-**Dependencies:** [[PRD-Database-Schema]], [[PRD-Events-Schema]]
-**Implements:** Backend services, API endpoints, route optimization, event streaming
+**Version:** 1.0
+**Date:** July 5, 2025
+**Authors:** Development Team
+**Tags:** #technical-spec #TMS-Backend #TMS-Core #status/implemented #priority/high #route-optimization
+**Related:** [[PRD-Overview]] | [[SPEC-Database-Schema]] | [[SPEC-Events-Schema]] | [[SPEC-Route-Optimization-Setup]] | [[SPEC-Polyglot-Persistence]]
+**Dependencies:** [[SPEC-Database-Schema]], [[SPEC-Events-Schema]]
+**Used By:** [[PRD-Dispatching-Interface]], Frontend Applications
+
+---
 
 ## Executive Summary
 
-The TMS Backend System demonstrates a comprehensive, production-ready event-driven microservices architecture that serves as an excellent learning platform for modern distributed systems. Built on FastAPI with polyglot persistence and Kafka-based event streaming, the system provides a robust foundation for exploring advanced logistics operations, real-time processing, and scalable backend design patterns.
+Comprehensive FastAPI-based backend system implementing event-driven microservices architecture with polyglot persistence (PostgreSQL, TimescaleDB, Neo4j) and Kafka-based event streaming. Features async operations, WebSocket real-time communication, and Google Maps API integration for route optimization.
 
-## Learning Objectives
-
-The backend system serves as a comprehensive learning platform for:
-- **Event-Driven Architecture**: Master Kafka integration and event-driven design patterns
-- **Polyglot Persistence**: Explore specialized database usage (PostgreSQL, TimescaleDB, Neo4j)
-- **API Design**: Implement modern REST APIs with FastAPI and Pydantic
-- **Real-time Systems**: Build WebSocket-based real-time communication
-- **Database Integration**: Learn async database operations and connection management
-- **Microservices Patterns**: Understand service decomposition and integration
+---
 
 ## Implementation Status
 

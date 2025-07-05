@@ -1,13 +1,12 @@
-# Product Requirements Document (PRD)
-## TMS Real-time Analytics
+# TMS Real-time Analytics Technical Specification
 
 **Version:** 1.0  
-**Date:** July 3, 2025  
-**Authors:** Product Team  
-**Tags:** #TMS-Analytics #real-time #status/implemented #priority/high #streaming
-**Related:** [[PRD-Overview]] | [[PRD-Events-Schema]] | [[PRD-Stream-Processing]] | [[PRD-Polyglot-Persistence]]
-**Dependencies:** [[PRD-Events-Schema]], [[PRD-Database-Schema]], [[PRD-Stream-Processing]]
-**Used By:** [[PRD-Dispatching-Interface]], [[PRD-Machine-Learning]]
+**Date:** July 5, 2025  
+**Authors:** Development Team  
+**Tags:** #technical-spec #TMS-Analytics #real-time #status/implemented #priority/high #streaming
+**Related:** [[PRD-Overview]] | [[SPEC-Events-Schema]] | [[SPEC-Stream-Processing]] | [[SPEC-Polyglot-Persistence]]
+**Dependencies:** [[SPEC-Events-Schema]], [[SPEC-Database-Schema]], [[SPEC-Stream-Processing]]
+**Used By:** [[PRD-Dispatching-Interface]], [[SPEC-Machine-Learning]]
 **Features:** Real-time dashboards, KPI monitoring, event analytics, time-series data
 
 ---
