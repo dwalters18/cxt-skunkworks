@@ -8,6 +8,7 @@ from database.connections import get_db_manager as get_database_manager, Databas
 from repositories import (
     LoadRepository,
     VehicleRepository,
+    DriverRepository,
     AuditRepository,
     Neo4jRepository,
     TimescaleRepository
@@ -46,6 +47,12 @@ async def get_neo4j_repo():
     """Get Neo4j repository instance"""
     db_manager = await get_database_manager()
     return Neo4jRepository(db_manager)
+
+
+async def get_driver_repo():
+    """Get driver repository instance"""
+    db_manager = await get_database_manager()
+    return DriverRepository(db_manager)
 
 
 async def get_timescale_repo():

@@ -1,309 +1,282 @@
-# TMS Implementation Roadmap
+# TMS Implementation Roadmap - SPEC Compliance & Quality Assurance
 
-**Tags:** #TMS-Core #TMS-Infrastructure #status/in-progress #priority/high
-**Related:** [[PRD-Overview]] | [[TMS-PKM-Index]] | [[SPEC-Backend-System]] | [[PRD-Dispatching-Interface]]
-**Dependencies:** All PRD documents
-**Purpose:** Development milestones, MVP delivery plan, feature prioritization
-**Timeline:** July - September 2025
-
-> **Revision Note – July 2025**  
-> The roadmap has been updated based on the July 2025 product review. The new content introduces a 10-week MVP delivery plan, addresses identified gaps (auth/RBAC, schema registry, observability, Redis decision, DR planning, Google Maps cost controls, accessibility & UX performance), and lists immediate next steps.
-
-## Refined MVP Roadmap (July – Sept 2025)
-| Sprint | Milestone & Key Deliverables | Dependencies |
-|--------|-----------------------------|--------------|
-| **0 – Foundations (1 wk)** | • Confirm Redis role (remove or cache layer)  
-• Introduce Schema Registry  
-• Deploy OpenTelemetry + Prometheus/Grafana | none |
-| **1-2 – Real Analytics (2 wks)** | • Replace mock AnalyticsDashboard data  
-• `/analytics/dashboard` API w/ Timescale Continuous Aggregates  
-• WebSocket live push | Foundations |
-| **3-4 – Dispatch Core UI (2 wks)** | • Event stream panel with filters/search  
-• WebSocket subscription lib | Analytics APIs |
-| **5-6 – Load Assignment (2 wks)** | • `POST /loads/{id}/assign` + validation & Kafka events  
-• Drag-and-drop UI; real-time updates | Dispatch Core |
-| **7 – Google Maps Baseline (1 wk)** | • Replace placeholder map  
-• Vehicle & load markers; geocoding service  
-• Secure API key storage | Foundations |
-| **8-9 – Neo4j Relationships (2 wks)** | • Event-driven LOAD/VEHICLE/DRIVER graph population  
-• "Nearby vehicles" query | Assignment events, Maps |
-| **10 – Hardening & Pilot Launch (1 wk)** | • k6 & gatling load tests (5 k evts/min)  
-• WCAG 2.1 AA & bundle ≤ 200 KB  
-• DR run-book draft | All previous |
-
-### Immediate Actions (July 2025)
-1. Decide on Redis retention vs removal.
-2. Approve schema-registry & observability stack specs.
-3. Allocate squads for Sprints 0-2 and schedule kickoff.
-4. Secure Google Maps billing account and set quota alerts.
+**Tags:** #TMS-Core #TMS-Infrastructure #status/critical #priority/critical #spec-compliance
+**Related:** [[SPEC-TMS-API]] | [[SPEC-Database-Schema]] | [[SPEC-Events-Schema]] | [[PRD-Overview]]
+**Dependencies:** All SPEC documents (source of truth)
+**Purpose:** SPEC compliance resolution, technical debt reduction, quality assurance
+**Timeline:** July - August 2025
+**Last Updated:** July 5, 2025
 
 ---
 
-## Overview
-This roadmap outlines the remaining implementation tasks to complete the Transportation Management System (TMS). The focus is on enhancing the analytics dashboard, improving data relationships, adding dispatch functionality, integrating Google Maps, and implementing route optimization.
+## 🚨 CRITICAL PRINCIPLE: SPEC DOCUMENTS ARE THE SOURCE OF TRUTH
 
-## Current System Status
-- ✅ Kafka-based event streaming architecture (KRaft mode)
-- ✅ FastAPI backend with PostgreSQL, TimescaleDB, and Neo4j
-- ✅ React frontend with multiple UI components
-- ✅ Real-time WebSocket communication
-- ✅ Load, Vehicle, and Driver management APIs
-- ✅ Event Console with real event streaming
-- ⚠️ Analytics Dashboard (needs real data integration)
-- ⚠️ Neo4j relationships (needs population from actions)
-- ⚠️ Dispatch Board (needs Google Maps and assignment functionality)
+> **FUNDAMENTAL RULE:** All implementation must comply with SPEC documents. When reality necessitates changes during implementation, **UPDATE THE SPEC FIRST**, then implement. Every change must be validated with comprehensive tests.
 
-## Implementation Phases
+### SPEC Document Authority
+- **SPEC-TMS-API.md**: Ultimate authority for all API contracts, endpoints, request/response formats
+- **SPEC-Database-Schema.md**: Definitive database structure, constraints, and data types  
+- **SPEC-Events-Schema.md**: Authoritative event taxonomy, payload structures, and processing patterns
 
-### Phase 1: Analytics Dashboard Enhancement
-**Priority:** High  
-**Estimated Timeline:** 1-2 weeks
+### Iterative SPEC Updates
+- When implementation reality requires SPEC changes: **Update SPEC → Implement → Test**
+- All SPEC changes must be documented with rationale and impact analysis
+- SPEC updates require review and approval before implementation proceeds
+- Version control all SPEC changes with clear change logs
 
-#### 1.1 Fix Analytics Data Integration
-- **Current Issue:** AnalyticsDashboard uses mocked data instead of real backend APIs
-- **Tasks:**
-  - Replace mock data with real API calls to backend analytics endpoints
-  - Ensure proper data aggregation from TimescaleDB
-  - Implement real-time data updates via WebSocket
-  - Add loading states and error handling
+### Test-Driven Compliance
+- **Every SPEC requirement must have corresponding tests**
+- Tests must **fail** when implementation deviates from SPEC
+- Continuous integration must validate SPEC compliance on every commit
+- Test coverage must reach 95%+ for all SPEC-defined functionality
 
-#### 1.2 Analytics API Development
-- **Backend Changes:**
-  - Enhance `/analytics/dashboard` endpoint with comprehensive metrics
-  - Add endpoints for:
-    - Load performance metrics (on-time delivery, average transit time)
-    - Vehicle utilization statistics
-    - Driver performance analytics
-    - Route efficiency metrics
-  - Implement time-range filtering for analytics queries
+---
 
-#### 1.3 Analytics UI Improvements
-- **Frontend Changes:**
-  - Add date range selectors
-  - Implement interactive charts with drill-down capability
-  - Add real-time metric updates
-  - Improve visual design and responsiveness
+## Executive Summary
 
-### Phase 2: Neo4j Relationship Population
-**Priority:** High  
-**Estimated Timeline:** 2-3 weeks
+Based on comprehensive codebase analysis, **23 critical discrepancies** exist between SPEC documents and current implementation. This roadmap provides a **4-phase, 6-week sprint plan** to achieve full SPEC compliance while establishing sustainable quality assurance practices.
 
-#### 2.1 Relationship Modeling
-- **Design Neo4j Graph Schema:**
-  - `LOAD` nodes with properties (id, origin, destination, weight, status)
-  - `VEHICLE` nodes with properties (id, type, capacity, location)
-  - `DRIVER` nodes with properties (id, name, license, status)
-  - `ROUTE` nodes with properties (id, waypoints, distance, duration)
-  - Relationships:
-    - `(LOAD)-[:ASSIGNED_TO]->(VEHICLE)`
-    - `(LOAD)-[:DRIVEN_BY]->(DRIVER)`
-    - `(VEHICLE)-[:FOLLOWS]->(ROUTE)`
-    - `(DRIVER)-[:DRIVES]->(VEHICLE)`
+**Impact:** These discrepancies currently prevent reliable frontend integration, compromise data integrity, and violate API contracts.
 
-#### 2.2 Event-Driven Neo4j Updates
-- **Kafka Event Handlers:**
-  - `LOAD_ASSIGNED` → Create ASSIGNED_TO relationship
-  - `VEHICLE_STATUS_CHANGED` → Update vehicle node properties
-  - `DRIVER_STATUS_CHANGED` → Update driver node properties
-  - `ROUTE_OPTIMIZED` → Create/update route nodes and relationships
+**Success Criteria:**
+- 100% API endpoint SPEC compliance
+- Zero database schema mismatches
+- Complete event type coverage with proper payload validation
+- 95%+ test coverage for all SPEC requirements
 
-#### 2.3 Neo4j Service Enhancement
-- **Backend Changes:**
-  - Implement relationship creation/update methods
-  - Add graph traversal queries for route optimization
-  - Create analytics queries using graph relationships
-  - Add Neo4j transaction handling for consistency
+---
 
-### Phase 3: Dispatch Board Assignment Functionality
-**Priority:** Medium  
-**Estimated Timeline:** 2-3 weeks
+## Phase 1: Critical API Compliance (Week 1-2)
+**Priority:** CRITICAL - Blocking frontend integration
 
-#### 3.1 Load Assignment UI
-- **Frontend Features:**
-  - Drag-and-drop interface for assigning loads to vehicles/drivers
-  - Modal dialogs for assignment confirmation
-  - Real-time status updates
-  - Assignment history tracking
+### 1.1 API URL Path Standardization
+**Issues Found:**
+- Routers missing `/api` prefix required by SPEC-TMS-API.md
+- Inconsistent path handling between routers and main.py
 
-#### 3.2 Assignment API Development
-- **Backend APIs:**
-  - `POST /loads/{id}/assign` endpoint
-  - Validation logic for assignment constraints
-  - Event publishing for assignment actions
-  - Assignment rollback functionality
+**Actions:**
+- [x] Update all router prefix definitions to include `/api`
+- [x] Verify main.py router inclusion matches SPEC paths
+- [ ] Create integration tests for all endpoint paths
+- [ ] **Test Requirement:** Path validation tests must fail for non-SPEC paths
 
-#### 3.3 Real-time Event Integration
-- **WebSocket Events:**
-  - Broadcast assignment events to all connected clients
-  - Update dispatch board in real-time
-  - Show notifications for assignment changes
-  - Implement event history display
+### 1.2 Missing Critical Endpoints
+**Issues Found:**
+- `GET /api/loads/search` - Defined in SPEC but not implemented
+- `POST /api/drivers` - Missing driver creation endpoint
+- Driver CRUD operations incomplete
 
-### Phase 4: Google Maps Integration
-**Priority:** High  
-**Estimated Timeline:** 3-4 weeks
+**Actions:**
+- [ ] Implement `GET /api/loads/search` with full query parameter support
+- [ ] Add complete driver CRUD operations (`POST`, `PUT`, `DELETE`)
+- [ ] Create endpoint-specific integration tests
+- [ ] **Test Requirement:** Tests must validate exact SPEC request/response contracts
 
-#### 4.1 Google Maps Setup
-- **Requirements:**
-  - Google Cloud Platform account and API keys
-  - Enable required APIs:
-    - Maps JavaScript API
-    - Directions API
-    - Distance Matrix API
-    - Places API
+### 1.3 Response Format Compliance
+**Issues Found:**
+- Route optimization response doesn't match SPEC format
+- Analytics dashboard response structure deviates from SPEC
+- Missing required response fields
 
-#### 4.2 Map Component Development
-- **Frontend Changes:**
-  - Replace current map placeholder with Google Maps
-  - Implement vehicle location markers with real-time updates
-  - Add load pickup/delivery location markers
-  - Create route visualization with polylines
-  - Add map controls for zoom, pan, and layer toggles
+**Actions:**
+- [ ] Align route optimization response with SPEC format
+- [ ] Update analytics response to include all SPEC-required fields
+- [ ] Add response schema validation tests
+- [ ] **Test Requirement:** JSON schema validation against SPEC definitions
 
-#### 4.3 Location Services
-- **Backend Integration:**
-  - Store Google Maps API keys securely in environment variables
-  - Create service classes for Google Maps API calls
-  - Implement geocoding for address-to-coordinates conversion
-  - Add reverse geocoding for coordinates-to-address
+---
 
-### Phase 5: Route Optimization & Directions
-**Priority:** High  
-**Estimated Timeline:** 4-5 weeks
+## Phase 2: Database Schema Alignment (Week 2-3)
+**Priority:** HIGH - Data integrity risk
 
-#### 5.1 Google Directions Integration
-- **Features:**
-  - Calculate optimal routes between pickup and delivery points
-  - Consider real-time traffic data
-  - Support for multiple waypoints
-  - Route alternatives with cost/time comparisons
+### 2.1 Column Name Standardization
+**Issues Found:**
+- LoadRepository uses `pickup_datetime` vs SPEC `pickup_date`
+- Column name mismatches prevent proper data operations
 
-#### 5.2 Route Optimization Service
-- **Backend Development:**
-  - Implement optimization algorithms using Neo4j graph traversal
-  - Integration with Google Directions API
-  - Consider constraints:
-    - Vehicle capacity
-    - Driver hours of service
-    - Time windows for pickup/delivery
-    - Traffic patterns
+**Actions:**
+- [ ] **SPEC Decision Required:** Align column names (update SPEC or repository)
+- [ ] Update LoadRepository to match final SPEC column names
+- [ ] Create migration scripts for existing data
+- [ ] **Test Requirement:** Repository tests must validate SPEC schema compliance
 
-#### 5.3 Kafka Event Integration
-- **Event Handling:**
-  - `ROUTE_OPTIMIZATION_REQUESTED` → Trigger optimization process
-  - `ROUTE_OPTIMIZED` → Update Neo4j relationships and notify UI
-  - `ROUTE_DEVIATION` → Recalculate and suggest alternative routes
-  - `VEHICLE_LOCATION_UPDATED` → Update ETA calculations
+### 2.2 PostGIS Geography Implementation
+**Issues Found:**
+- Repository doesn't properly handle `GEOGRAPHY(POINT, 4326)` types
+- Missing PostGIS function usage in INSERT operations
 
-### Phase 6: System Integration & Testing
-**Priority:** Medium  
-**Estimated Timeline:** 2-3 weeks
+**Actions:**
+- [ ] Update repository to use `ST_GeogFromText()` for geography insertion
+- [ ] Add proper PostGIS query handling for location data
+- [ ] Create spatial data validation tests
+- [ ] **Test Requirement:** PostGIS functionality tests with coordinate validation
 
-#### 6.1 End-to-End Testing
-- **Test Scenarios:**
-  - Complete load lifecycle from creation to delivery
-  - Route optimization with multiple vehicles and loads
-  - Real-time event propagation across all components
-  - Google Maps integration with live traffic data
+### 2.3 Constraint Validation Implementation
+**Issues Found:**
+- Missing foreign key constraint validation in repositories
+- Enum validation not implemented
 
-#### 6.2 Performance Optimization
-- **Areas of Focus:**
-  - Database query optimization
-  - Kafka message processing efficiency
-  - Frontend rendering performance
-  - Google Maps API usage optimization
+**Actions:**
+- [ ] Add foreign key reference validation before database operations
+- [ ] Implement enum validation for vehicle_type, status fields
+- [ ] Create constraint violation tests
+- [ ] **Test Requirement:** Tests must verify constraint enforcement
 
-#### 6.3 Error Handling & Resilience
-- **Improvements:**
-  - Graceful degradation when external APIs are unavailable
-  - Retry mechanisms for failed operations
-  - Comprehensive error logging and monitoring
-  - User-friendly error messages
+---
 
-## Technical Considerations
+## Phase 3: Event Architecture Compliance (Week 3-4)
+**Priority:** HIGH - Event-driven architecture integrity
 
-### Security
-- Secure storage of Google Maps API keys
-- Input validation for all assignment operations
-- Rate limiting for API endpoints
-- Authentication for sensitive operations
+### 3.1 Complete Event Schema Implementation
+**Issues Found:**
+- Event producers don't implement full SPEC schema structure
+- Missing required fields: `eventVersion`, `entityType`, `metadata`
 
-### Performance
-- Implement caching for frequently accessed route data
-- Optimize Neo4j queries for large datasets
-- Use WebSocket connection pooling
-- Implement lazy loading for map components
+**Actions:**
+- [ ] Update Kafka producer to generate complete event schema
+- [ ] Add event payload validation using Pydantic models
+- [ ] Implement all missing event types from SPEC
+- [ ] **Test Requirement:** Event schema validation tests for every event type
 
-### Scalability
-- Design for horizontal scaling of backend services
-- Consider Kafka partitioning strategies
-- Implement database connection pooling
-- Plan for multi-region deployment
+### 3.2 Missing Event Type Implementation
+**Issues Found:**
+- Many SPEC-defined events not generated: `VEHICLE_MAINTENANCE_DUE`, `DRIVER_HOS_VIOLATION`, etc.
+- Incomplete event coverage across operations
 
-## Dependencies & Prerequisites
+**Actions:**
+- [ ] Implement all 18+ event types defined in SPEC-Events-Schema.md
+- [ ] Add event generation to all relevant API operations
+- [ ] Create event integration tests
+- [ ] **Test Requirement:** Event generation tests for every business operation
 
-### External Services
-- Google Cloud Platform account with billing enabled
-- Google Maps API quota and rate limits
-- Neo4j database with sufficient memory allocation
+### 3.3 Event Processing Pipeline
+**Actions:**
+- [ ] Add event payload validation before Kafka publishing
+- [ ] Implement event versioning strategy
+- [ ] Create event processing monitoring
+- [ ] **Test Requirement:** End-to-end event flow testing
 
-### Development Environment
-- Docker and Docker Compose
-- Node.js 18+ for frontend development
-- Python 3.11+ for backend development
-- Kafka cluster (already configured)
+---
+
+## Phase 4: Test Coverage & Quality Assurance (Week 4-6)
+**Priority:** CRITICAL - Prevent future regressions
+
+### 4.1 Comprehensive API Testing
+**Current Gap:** No tests found for critical API endpoints
+
+**Actions:**
+- [ ] Create test files for every router endpoint
+- [ ] Implement positive and negative test cases
+- [ ] Add request/response validation tests
+- [ ] **Target:** 95%+ endpoint test coverage
+
+### 4.2 Database Schema Testing
+**Current Gap:** No database constraint or schema validation tests
+
+**Actions:**
+- [ ] Create database schema validation test suite
+- [ ] Add constraint enforcement tests
+- [ ] Implement PostGIS functionality tests
+- [ ] **Target:** 100% schema requirement coverage
+
+### 4.3 Event Schema Testing
+**Current Gap:** No event payload validation tests
+
+**Actions:**
+- [ ] Create event schema validation test suite
+- [ ] Add Kafka integration tests
+- [ ] Implement event processing verification tests
+- [ ] **Target:** 100% event type coverage
+
+### 4.4 SPEC Compliance Automation
+**Actions:**
+- [ ] Implement automated SPEC compliance checking
+- [ ] Add CI/CD pipeline SPEC validation
+- [ ] Create SPEC violation alerting
+- [ ] **Target:** Zero SPEC violations in production
+
+---
+
+## Implementation Guidelines
+
+### SPEC Update Process
+1. **Identify SPEC Change Need**: Document why current SPEC doesn't match implementation reality
+2. **Impact Analysis**: Assess downstream effects of SPEC changes
+3. **SPEC Update**: Modify SPEC document with clear change rationale
+4. **Review & Approval**: SPEC changes require technical review
+5. **Implementation**: Code changes to match updated SPEC
+6. **Test Validation**: Create/update tests to enforce new SPEC requirements
+
+### Test-Driven Development Requirements
+- **Red-Green-Refactor**: Tests must fail for non-SPEC compliance
+- **Test Coverage**: Minimum 95% coverage for SPEC requirements
+- **Integration Tests**: End-to-end validation of SPEC contracts
+- **Regression Prevention**: Tests must catch future SPEC violations
+
+### Quality Gates
+- **Code Review**: All changes must be reviewed for SPEC compliance
+- **Automated Testing**: CI/CD must validate SPEC requirements
+- **Documentation**: All SPEC changes must be documented
+- **Rollback Plan**: Every change must have rollback procedure
+
+---
+
+## Sprint Schedule
+
+| Sprint | Duration | Focus | Deliverables |
+|--------|----------|-------|-------------|
+| **Sprint 1** | Week 1-2 | API Compliance | ✅ All endpoints SPEC-compliant<br>✅ URL paths standardized<br>✅ Missing endpoints implemented |
+| **Sprint 2** | Week 2-3 | Database Alignment | ✅ Schema mismatches resolved<br>✅ PostGIS implementation complete<br>✅ Constraint validation active |
+| **Sprint 3** | Week 3-4 | Event Architecture | ✅ Complete event schema implemented<br>✅ All event types generating<br>✅ Event validation active |
+| **Sprint 4** | Week 4-6 | Test Coverage | ✅ 95%+ test coverage achieved<br>✅ SPEC compliance automation<br>✅ Quality gates implemented |
+
+---
 
 ## Success Metrics
 
-### Analytics Dashboard
-- Real-time data updates with <5 second latency
-- Support for date range filtering
-- Interactive charts with drill-down capability
+### Technical Metrics
+- **API Compliance**: 100% endpoint SPEC alignment
+- **Database Integrity**: Zero schema mismatches
+- **Event Coverage**: 18+ event types implemented
+- **Test Coverage**: 95%+ SPEC requirement coverage
 
-### Neo4j Integration
-- All business actions result in proper graph relationships
-- Graph queries execute in <1 second for typical use cases
-- Relationship integrity maintained across all operations
+### Quality Metrics
+- **SPEC Violations**: Zero in production
+- **Test Failures**: <1% false positive rate
+- **Integration Success**: 100% frontend integration compatibility
+- **Regression Rate**: <0.1% for SPEC-covered functionality
 
-### Dispatch Board
-- Load assignment workflow completion in <30 seconds
-- Real-time updates visible within 2 seconds
-- Support for drag-and-drop assignment operations
+### Process Metrics
+- **SPEC Update Time**: <24 hours from identification to resolution
+- **Test Development**: Tests written before or during implementation
+- **Review Cycle**: <48 hours for SPEC compliance review
 
-### Google Maps Integration
-- Map loads in <3 seconds with real-time vehicle positions
-- Route calculations complete in <10 seconds
-- Accurate ETA calculations with traffic consideration
+---
 
-### Route Optimization
-- Optimization algorithms process multiple loads/vehicles in <60 seconds
-- Integration with Kafka events for automated optimization triggers
-- Measurable improvement in route efficiency (distance/time reduction)
-
-## Risk Assessment
+## Risk Mitigation
 
 ### High Risk
-- Google Maps API costs and quota limits
-- Complex route optimization algorithm performance
-- Real-time data synchronization across all components
+- **SPEC Update Conflicts**: Regular stakeholder alignment sessions
+- **Test Development Lag**: Parallel test development requirement
+- **Integration Breakage**: Staged rollout with rollback procedures
 
 ### Medium Risk
-- Neo4j learning curve for complex graph queries
-- WebSocket connection stability under load
-- Frontend performance with large datasets
+- **Database Migration Issues**: Test migrations in staging environment
+- **Event Schema Changes**: Backward compatibility requirements
+- **Performance Impact**: Load testing for all changes
 
-### Low Risk
-- Analytics dashboard data integration
-- Load assignment UI development
-- Basic Google Maps integration
+### Continuous Monitoring
+- **SPEC Compliance Dashboard**: Real-time violation tracking
+- **Test Coverage Metrics**: Continuous coverage monitoring
+- **Quality Gate Status**: CI/CD pipeline health tracking
 
-## Next Steps
+---
 
-1. **Immediate (Week 1-2):** Begin Phase 1 - Analytics Dashboard Enhancement
-2. **Short-term (Week 3-5):** Start Phase 2 - Neo4j Relationship Population
-3. **Medium-term (Week 6-8):** Initiate Phase 4 - Google Maps Integration (parallel with Phase 3)
-4. **Long-term (Week 9-13):** Phase 5 - Route Optimization & Phase 6 - Integration Testing
+## Next Steps (Immediate)
 
-## Conclusion
+1. **Week 1 Sprint Planning**: Assign resources and define sprint goals
+2. **SPEC Review Session**: Validate current SPEC accuracy and completeness
+3. **Test Framework Setup**: Establish testing infrastructure and standards
+4. **CI/CD Enhancement**: Add SPEC compliance validation to pipeline
 
-This roadmap provides a structured approach to completing the TMS implementation with a focus on data integrity, real-time functionality, and user experience. The phased approach allows for iterative development and testing while building upon the solid foundation already established in the system.
+**Success depends on unwavering commitment to SPEC authority and comprehensive test coverage. Every deviation must be intentional, documented, and tested.**

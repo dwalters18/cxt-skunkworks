@@ -283,31 +283,80 @@ Future authentication and authorization will include [3]:
 
 ### 4.3 Driver Management API
 
-#### 4.3.1 Create Driver
+#### 4.3.1 Get All Drivers
+- **Purpose**: Retrieve paginated list of drivers with optional filtering [3]
+- **HTTP Method & Path**: `GET /api/drivers` [3]
+- **Query Parameters**:
+  - `limit`: Maximum number of results (default: 50)
+  - `offset`: Number of results to skip (default: 0)
+  - `status`: Filter by driver status (AVAILABLE, DRIVING, ON_DUTY, OFF_DUTY, SLEEPER, ON_BREAK)
+  - `available_only`: Boolean to show only available drivers
+- **Response Body** (Success 200):
+  ```json
+  {
+    "drivers": [
+      {
+        "id": "uuid",
+        "carrier_id": "uuid",
+        "driver_number": "string",
+        "first_name": "string",
+        "last_name": "string",
+        "email": "string",
+        "phone": "string",
+        "license_number": "string",
+        "license_class": "string",
+        "license_expiry": "date",
+        "date_of_birth": "date",
+        "hire_date": "date",
+        "current_location": "geography",
+        "current_address": "string",
+        "status": "enum",
+        "hours_of_service_remaining": "decimal",
+        "last_hos_reset": "timestamp",
+        "created_at": "timestamp",
+        "updated_at": "timestamp"
+      }
+    ],
+    "total": "integer",
+    "limit": "integer",
+    "offset": "integer",
+    "has_more": "boolean"
+  }
+  ```
+- **Database Interactions**: Queries PostgreSQL drivers table with optional filtering and pagination [3,4]
+- **Performance**: Optimized with proper indexing on status and driver_number columns [3]
+
+#### 4.3.2 Create Driver
 - **Purpose**: Register new driver in the TMS system [3]
 - **HTTP Method & Path**: `POST /api/drivers` [3]
 - **Request Body**:
   ```json
   {
-    "driver_number": "string (required, unique)",
-    "first_name": "string (required)",
-    "last_name": "string (required)",
-    "phone": "string (required)",
-    "email": "string (required, email format)",
-    "cdl_number": "string (required, unique)",
-    "cdl_expiry": "date (required)",
+    "driver_number": "string (required, unique, max 50 chars)",
+    "first_name": "string (required, max 100 chars)",
+    "last_name": "string (required, max 100 chars)",
+    "phone": "string (required, max 20 chars)",
+    "email": "string (required, email format, max 255 chars)",
+    "license_number": "string (required, unique, max 50 chars)",
+    "license_class": "string (required, max 10 chars)",
+    "license_expiry": "date (required)",
+    "date_of_birth": "date (required)",
     "hire_date": "date (required)",
+    "carrier_id": "uuid (optional)",
     "current_location": {
       "latitude": "decimal (required)",
       "longitude": "decimal (required)"
-    }
+    },
+    "current_address": "string (optional)",
+    "status": "enum (optional, default: AVAILABLE)"
   }
   ```
 - **Response Body** (Success 201): Complete driver details with system-generated UUID [3]
+- **Validation**: Comprehensive field validation using Pydantic with business rule enforcement [3]
 - **Database Interactions**: Stores driver data in PostgreSQL drivers table with PostGIS GEOGRAPHY for location tracking [3,4,6]
 - **Events Published**: `DRIVER_CREATED` event published to `tms.drivers` topic [3,5]
 
-#### 4.3.2 Update Driver Status
+#### 4.3.3 Update Driver Status
 - **Purpose**: Update driver duty status for Hours of Service compliance [3]
 - **HTTP Method & Path**: `PUT /api/drivers/{driver_id}/status` [3]
 - **Request Body**:

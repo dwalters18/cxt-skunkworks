@@ -205,12 +205,16 @@ async def optimize_load_route(
             raise HTTPException(status_code=404, detail="Load not found")
         
         # Use route optimization service to calculate optimal route
-        optimized_route = await route_optimizer.optimize_load_route(
-            load.pickup_address,
-            load.delivery_address,
-            request.vehicle_id,
-            request.driver_id,
-            request.priority
+        from uuid import UUID
+        
+        load_id = UUID(request.load_id)
+        vehicle_id = UUID(request.vehicle_id)
+        driver_id = UUID(request.driver_id) if request.driver_id else None
+        
+        optimized_route = await route_optimizer.optimize_route(
+            load_id=load_id,
+            vehicle_id=vehicle_id,
+            driver_id=driver_id
         )
         
         # Broadcast optimization result

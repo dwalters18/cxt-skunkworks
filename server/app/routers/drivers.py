@@ -1,13 +1,62 @@
 """Driver management endpoints for TMS API."""
-from fastapi import APIRouter, HTTPException, Depends
-from typing import Optional
+from fastapi import APIRouter, HTTPException, Depends, BackgroundTasks
+from typing import Optional, Dict, Any
+from datetime import datetime
+from pydantic import BaseModel, Field
 import logging
 
-from dependencies import get_load_repo
+from dependencies import get_driver_repo, get_load_repo
+from models.domain import Location, DriverStatus, CreateDriverRequest
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/drivers", tags=["drivers"])
+
+
+
+
+
+@router.post("/")
+async def create_driver(
+    driver_request: CreateDriverRequest,
+    background_tasks: BackgroundTasks,
+    driver_repo=Depends(get_driver_repo)
+):
+    """Create a new driver as per SPEC requirements."""
+    try:
+        # Prepare driver data for database insertion
+        driver_data = {
+            "carrier_id": driver_request.carrier_id,
+            "driver_number": driver_request.driver_number,
+            "first_name": driver_request.first_name,
+            "last_name": driver_request.last_name,
+            "email": driver_request.email,
+            "phone": driver_request.phone,
+            "license_number": driver_request.license_number,
+            "license_class": driver_request.license_class,
+            "license_expiry": driver_request.license_expiry.date(),
+            "date_of_birth": driver_request.date_of_birth.date(),
+            "hire_date": driver_request.hire_date.date(),
+            "latitude": driver_request.current_location.latitude,
+            "longitude": driver_request.current_location.longitude,
+            "current_address": driver_request.current_address,
+            "status": driver_request.status.value
+        }
+        
+        # Create driver in database
+        new_driver = await driver_repo.create_driver(driver_data)
+        if not new_driver:
+            raise HTTPException(status_code=500, detail="Failed to create driver")
+        
+        # TODO: Publish DRIVER_CREATED event to Kafka as per SPEC
+        # background_tasks.add_task(publish_driver_event, "DRIVER_CREATED", new_driver)
+        
+        return new_driver
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error creating driver: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to create driver: {str(e)}")
 
 
 @router.get("/")
@@ -16,7 +65,7 @@ async def get_drivers(
     available_only: bool = False,
     limit: int = 50,
     offset: int = 0,
-    load_repo=Depends(get_load_repo)
+    driver_repo=Depends(get_driver_repo)
 ):
     """Get drivers with optional filtering for assignment workflows."""
     try:
@@ -32,30 +81,14 @@ async def get_drivers(
             conditions.append("status = %s")
             params.append("AVAILABLE")
         
-        where_clause = f"WHERE {' AND '.join(conditions)}" if conditions else ""
-        
-        # Get drivers with pagination
-        query = f"""
-            SELECT 
-                id, carrier_id, license_number, name, phone, email, 
-                status, current_location, hours_remaining, created_at, updated_at
-            FROM drivers 
-            {where_clause}
-            ORDER BY name
-            LIMIT %s OFFSET %s
-        """
-        params.extend([limit, offset])
-        
-        drivers = await load_repo.execute_query(query, params)
+        # Get drivers using the proper driver repository
+        drivers = await driver_repo.get_drivers(conditions, params, limit, offset)
         
         # Get total count
-        count_query = f"SELECT COUNT(*) as total FROM drivers {where_clause}"
-        count_params = params[:-2]  # Remove limit and offset
-        count_result = await load_repo.execute_single(count_query, count_params)
-        total_count = count_result['total'] if count_result else 0
+        total_count = await driver_repo.count_drivers(conditions, params)
         
         return {
-            "drivers": drivers,
+            "drivers": drivers or [],
             "total": total_count,
             "limit": limit,
             "offset": offset,
@@ -69,19 +102,13 @@ async def get_drivers(
 @router.get("/{driver_id}")
 async def get_driver(
     driver_id: str,
+    driver_repo=Depends(get_driver_repo),
     load_repo=Depends(get_load_repo)
 ):
     """Get detailed driver information."""
     try:
-        # Get driver details
-        driver_query = """
-            SELECT 
-                id, carrier_id, license_number, name, phone, email, 
-                status, current_location, hours_remaining, created_at, updated_at
-            FROM drivers 
-            WHERE id = %s
-        """
-        driver = await load_repo.execute_single(driver_query, [driver_id])
+        # Get driver details using the proper driver repository
+        driver = await driver_repo.get_driver_by_id(driver_id)
         
         if not driver:
             raise HTTPException(status_code=404, detail="Driver not found")

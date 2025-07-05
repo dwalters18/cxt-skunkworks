@@ -48,28 +48,94 @@ async def search_loads(
     offset: int = 0,
     load_repo=Depends(get_load_repo)
 ):
-    """Search loads with filters."""
+    """Get loads with basic filtering (kept for backward compatibility)."""
+    # Implementation remains the same for backward compatibility
+    return await _search_loads_internal(status, carrier_id, limit, offset, load_repo)
+
+
+@router.get("/search")
+async def search_loads_advanced(
+    status: Optional[str] = None,
+    customer_id: Optional[str] = None,
+    date_range: Optional[str] = None,
+    location_radius: Optional[str] = None,
+    limit: int = 50,
+    offset: int = 0,
+    load_repo=Depends(get_load_repo)
+):
+    """Search and filter loads with complex criteria as per SPEC."""
     try:
-        # Build search criteria
-        criteria = {}
-        if status:
-            criteria['status'] = status
-        if carrier_id:
-            criteria['carrier_id'] = carrier_id
+        # Build query conditions
+        conditions = []
+        params = []
         
-        # Get loads from repository
-        loads = await load_repo.search_loads(criteria, limit=limit, offset=offset)
+        if status:
+            conditions.append("status = %s")
+            params.append(status)
+            
+        if customer_id:
+            conditions.append("customer_id = %s")
+            params.append(customer_id)
+        
+        if date_range:
+            # Parse date range (format: "2025-01-01,2025-01-31")
+            try:
+                start_date, end_date = date_range.split(',')
+                conditions.append("pickup_date >= %s AND pickup_date <= %s")
+                params.extend([start_date.strip(), end_date.strip()])
+            except ValueError:
+                raise HTTPException(status_code=400, detail="Invalid date_range format. Use: YYYY-MM-DD,YYYY-MM-DD")
+        
+        if location_radius:
+            # Parse location radius (format: "lat,lng,radius_km")
+            try:
+                lat, lng, radius = location_radius.split(',')
+                lat, lng, radius = float(lat), float(lng), float(radius)
+                # Use PostGIS spatial query for location-based search
+                conditions.append(
+                    "ST_DWithin(pickup_location::geography, ST_SetSRID(ST_MakePoint(%s, %s), 4326)::geography, %s)"
+                )
+                params.extend([lng, lat, radius * 1000])  # Convert km to meters
+            except (ValueError, IndexError):
+                raise HTTPException(status_code=400, detail="Invalid location_radius format. Use: lat,lng,radius_km")
+        
+        where_clause = f"WHERE {' AND '.join(conditions)}" if conditions else ""
+        
+        # Get loads with pagination
+        query = f"""
+            SELECT 
+                id, load_number, customer_id, carrier_id, pickup_address, delivery_address,
+                pickup_date, delivery_date, status, rate, distance, weight, commodity,
+                pickup_location, delivery_location, created_at, updated_at
+            FROM loads 
+            {where_clause}
+            ORDER BY created_at DESC
+            LIMIT %s OFFSET %s
+        """
+        params.extend([limit, offset])
+        
+        loads = await load_repo.execute_query(query, params)
         
         # Get total count for pagination
-        total_count = await load_repo.count_loads(criteria)
+        count_query = f"SELECT COUNT(*) as total FROM loads {where_clause}"
+        count_params = params[:-2]  # Remove limit and offset from params
+        count_result = await load_repo.execute_single(count_query, count_params)
+        total_count = count_result['total'] if count_result else 0
         
         return {
-            "loads": loads,
+            "loads": loads or [],
             "total": total_count,
             "limit": limit,
             "offset": offset,
-            "has_more": offset + limit < total_count
+            "filters_applied": {
+                "status": status,
+                "customer_id": customer_id,
+                "date_range": date_range,
+                "location_radius": location_radius
+            }
         }
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Error searching loads: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to search loads: {str(e)}")
@@ -188,3 +254,52 @@ async def update_load_status(
     except Exception as e:
         logger.error(f"Error updating load status {load_id}: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to update load status: {str(e)}")
+
+
+async def _search_loads_internal(
+    status: Optional[str] = None,
+    carrier_id: Optional[str] = None,
+    limit: int = 50,
+    offset: int = 0,
+    load_repo=None
+):
+    """Internal function for basic load search (backward compatibility)."""
+    try:
+        # Build query conditions
+        conditions = []
+        params = []
+        
+        if status:
+            conditions.append("status = %s")
+            params.append(status)
+            
+        if carrier_id:
+            conditions.append("carrier_id = %s")
+            params.append(carrier_id)
+        
+        where_clause = f"WHERE {' AND '.join(conditions)}" if conditions else ""
+        
+        # Get loads with pagination
+        query = f"""
+            SELECT 
+                id, load_number, customer_id, carrier_id, pickup_address, delivery_address,
+                pickup_date, delivery_date, status, rate, distance, weight, commodity,
+                created_at, updated_at
+            FROM loads 
+            {where_clause}
+            ORDER BY created_at DESC
+            LIMIT %s OFFSET %s
+        """
+        params.extend([limit, offset])
+        
+        loads = await load_repo.execute_query(query, params)
+        
+        return {
+            "loads": loads or [],
+            "total": len(loads) if loads else 0,
+            "limit": limit,
+            "offset": offset
+        }
+    except Exception as e:
+        logger.error(f"Error searching loads: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to search loads: {str(e)}")

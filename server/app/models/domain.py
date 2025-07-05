@@ -279,3 +279,22 @@ class DriverResponse(BaseModel):
     hours_remaining: Optional[float] = None
     created_at: datetime
     updated_at: datetime
+
+
+# Driver Request Models
+class CreateDriverRequest(BaseModel):
+    """Request model for creating a new driver as per SPEC."""
+    driver_number: str = Field(..., min_length=1, max_length=50)
+    first_name: str = Field(..., min_length=1, max_length=100)
+    last_name: str = Field(..., min_length=1, max_length=100)
+    phone: str = Field(..., min_length=1, max_length=20)
+    email: str = Field(..., min_length=1, max_length=255)
+    license_number: str = Field(..., min_length=1, max_length=50, description="CDL number as per SPEC")
+    license_class: str = Field(..., min_length=1, max_length=10)
+    license_expiry: datetime = Field(..., description="CDL expiry date as per SPEC")
+    date_of_birth: datetime
+    hire_date: datetime
+    carrier_id: Optional[str] = None
+    current_location: Location = Field(..., description="Current location with latitude/longitude")
+    current_address: Optional[str] = None
+    status: DriverStatus = DriverStatus.AVAILABLE
