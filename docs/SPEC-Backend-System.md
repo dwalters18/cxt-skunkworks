@@ -52,11 +52,52 @@ The TMS Backend System provides the foundational architecture for a Transportati
 
 ### Implementation Patterns
 
-**Repository Pattern**: Database abstraction with domain-specific repositories
+**Repository Pattern**: Clean separation of data access logic from business logic with domain-specific repositories
 **Event Sourcing**: Complete audit trail through comprehensive event logging
 **CQRS (Command Query Responsibility Segregation)**: Optimized read/write operations
 **Circuit Breaker**: Resilient external service integration
 **Dependency Injection**: Loosely coupled components with testable interfaces
+
+## Repository Architecture Implementation
+
+### Repository Pattern Benefits
+The TMS backend implements a clean **Repository Pattern** that provides significant architectural benefits:
+
+- **Separation of Concerns**: Database connection management is completely separated from domain-specific data access logic
+- **Maintainability**: Each repository has its own dedicated file, making code easier to navigate, understand, and maintain
+- **Testability**: Repository classes can be easily mocked and unit tested independently from database connections
+- **Scalability**: New repository methods can be added without cluttering connection management code
+- **Domain Organization**: Repositories are organized by business domain (loads, vehicles, drivers, etc.)
+
+### Application Directory Structure
+The backend application is organized into the following directories, each serving a specific architectural purpose:
+
+**`/repositories/` - Data Access Layer**
+- `base.py`: Base repository classes providing common database interaction patterns for PostgreSQL, TimescaleDB, and Neo4j
+- `load_repository.py`: LoadRepository class handling all load-related database operations (CRUD, search, counting)
+- `vehicle_repository.py`: VehicleRepository class managing vehicle tracking, location updates, and availability queries
+- `audit_repository.py`: AuditRepository class for compliance logging and audit trail management
+- `timescale_repository.py`: TimescaleRepository class for time-series data operations and analytics queries
+- `neo4j_repository.py`: Neo4jRepository class for graph database operations, route optimization, and relationship queries
+
+**`/database/` - Connection Management Layer**
+- `connections.py`: DatabaseManager class that handles connection pooling, session management, and connection lifecycle for all databases (PostgreSQL, TimescaleDB, Neo4j)
+
+**`/models/` - Data Model Layer**
+- `domain.py`: Core business entity models using Pydantic V2 (Load, Vehicle, Driver, Route, etc.) with validation rules
+- `events.py`: Event schema models for Kafka messaging with comprehensive event type definitions
+
+**`/kafka/` - Event Streaming Layer**
+- `producer.py`: Kafka event publishing logic with retry mechanisms and error handling
+- `consumer.py`: Kafka event consumption, processing, and WebSocket broadcasting logic
+
+**`/services/` - Business Logic Layer**
+- `route_optimization.py`: Route calculation services, Google Maps API integration, and optimization algorithms
+
+**Root Application Files:**
+- `dependencies.py`: FastAPI dependency injection layer that imports repositories and provides async factory functions for endpoint injection
+- `main.py`: FastAPI application initialization, router registration, and startup/shutdown lifecycle management
+- `websocket_manager.py`: WebSocket connection management for real-time communication and event broadcasting
 
 ## Backend System Design Goals
 

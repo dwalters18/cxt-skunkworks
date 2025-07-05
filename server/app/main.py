@@ -1,6 +1,5 @@
 # server/app/main.py
 from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 import asyncio
 import logging
@@ -23,7 +22,10 @@ from routers import (
 from kafka.consumer import get_consumer, TMSEventConsumer
 
 # Configure logging
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
 logger = logging.getLogger(__name__)
 
 # Global instances
@@ -34,57 +36,82 @@ consumer_task: Optional[asyncio.Task] = None
 async def lifespan(app: FastAPI):
     """Manage application lifecycle."""
     global consumer_task
-    logger.info("Starting TMS Event-Driven API...")
+    logger.info("=== STARTING TMS EVENT-DRIVEN API ===")
     
     # Start Kafka consumer in background
     try:
-        consumer = get_consumer()
-        event_consumer = TMSEventConsumer(consumer)
-        consumer_task = asyncio.create_task(event_consumer.start_consuming())
-        logger.info("Kafka consumer started")
+        logger.info("Step 1: Initializing Kafka consumer...")
+        consumer = await get_consumer()
+        logger.info("Step 2: Kafka consumer instance created successfully")
+        
+        logger.info("Step 3: Starting Kafka consumer background task...")
+        consumer_task = asyncio.create_task(consumer.start())
+        logger.info("Step 4: Kafka consumer background task created")
+        
+        # Give it a moment to start
+        await asyncio.sleep(1)
+        logger.info("Step 5: Initial startup delay completed")
+        
+        logger.info("=== KAFKA CONSUMER STARTUP COMPLETED ===")
     except Exception as e:
-        logger.error(f"Failed to start Kafka consumer: {e}")
+        logger.error(f"ERROR: Failed to start Kafka consumer: {e}")
+        logger.exception("Full exception details:")
+        # Don't fail the entire app if Kafka consumer fails
+        logger.warning("Continuing without Kafka consumer...")
     
+    logger.info("=== API STARTUP COMPLETED - READY TO SERVE REQUESTS ===")
     yield
     
     # Cleanup
-    logger.info("Shutting down TMS Event-Driven API...")
+    logger.info("=== SHUTTING DOWN TMS EVENT-DRIVEN API ===")
     if consumer_task:
+        logger.info("Cancelling Kafka consumer task...")
         consumer_task.cancel()
         try:
             await consumer_task
         except asyncio.CancelledError:
-            logger.info("Kafka consumer stopped")
+            logger.info("Kafka consumer stopped gracefully")
     
-    logger.info("Shutdown complete")
+    logger.info("=== SHUTDOWN COMPLETE ===")
 
 
 # Initialize FastAPI app
+logger.info("Initializing FastAPI application...")
 app = FastAPI(
     title="TMS Event-Driven API",
     description="Transportation Management System with Event-Driven Architecture",
     version="1.0.0",
     lifespan=lifespan
 )
+logger.info("FastAPI application initialized")
 
-# CORS middleware
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+# CORS middleware removed for POC - not needed for local testing
 
-# Register routers
-app.include_router(health.router)
-app.include_router(loads.router)
-app.include_router(drivers.router)
-app.include_router(vehicles.router)
-app.include_router(routes.router)
-app.include_router(events.router)
-app.include_router(analytics.router)
-app.include_router(websocket.router)
+# Register routers with /api prefix
+logger.info("Registering API routers...")
+try:
+    logger.info("- Adding health router")
+    app.include_router(health.router, prefix="/api")
+    logger.info("- Adding loads router")
+    app.include_router(loads.router, prefix="/api")
+    logger.info("- Adding drivers router")
+    app.include_router(drivers.router, prefix="/api")
+    logger.info("- Adding vehicles router")
+    app.include_router(vehicles.router, prefix="/api")
+    logger.info("- Adding routes router")
+    app.include_router(routes.router, prefix="/api")
+    logger.info("- Adding events router")
+    app.include_router(events.router, prefix="/api")
+    logger.info("- Adding analytics router")
+    app.include_router(analytics.router, prefix="/api")
+    logger.info("- Adding websocket router")
+    # WebSocket router doesn't need /api prefix
+    app.include_router(websocket.router)
+    logger.info("All routers registered successfully")
+except Exception as e:
+    logger.error(f"ERROR: Failed to register routers: {e}")
+    logger.exception("Router registration error details:")
+    raise
 
 
 if __name__ == "__main__":

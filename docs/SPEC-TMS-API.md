@@ -37,6 +37,36 @@ The TMS API is organized into modular, domain-specific routers:
 - **Analytics Router** (`/analytics`): Dashboard and performance analytics
 - **WebSocket Router** (`/ws`): Real-time communication endpoints
 
+### 1.5 Backend Repository Architecture
+The TMS API implements a clean **Repository Pattern** for data access layer separation, providing improved maintainability, testability, and separation of concerns:
+
+**Repository Pattern Benefits:**
+- **Separation of Concerns**: Database connection management separated from domain-specific data access logic
+- **Maintainability**: Each repository has dedicated files making code easier to navigate and maintain
+- **Testability**: Repository classes can be easily mocked and tested independently
+- **Scalability**: New repository methods can be added without cluttering connection management code
+
+**Application Structure:**
+- **`/repositories/`**: Domain-specific data access layer with dedicated repository classes
+  - `load_repository.py`: LoadRepository for load CRUD operations and search functionality
+  - `vehicle_repository.py`: VehicleRepository for vehicle tracking and management
+  - `audit_repository.py`: AuditRepository for audit logging and compliance tracking
+  - `timescale_repository.py`: TimescaleRepository for time-series data operations
+  - `neo4j_repository.py`: Neo4jRepository for graph database operations and route optimization
+  - `base.py`: Base repository classes for PostgreSQL, TimescaleDB, and Neo4j
+- **`/database/`**: Database connection management and pooling
+  - `connections.py`: DatabaseManager class handling connection pools for all databases
+- **`/dependencies.py`**: FastAPI dependency injection layer importing repositories for endpoint injection
+- **`/models/`**: Pydantic data models and validation schemas
+  - `domain.py`: Core business entity models (Load, Vehicle, Driver, etc.)
+  - `events.py`: Event schema models for Kafka messaging
+- **`/kafka/`**: Event streaming infrastructure
+  - `producer.py`: Kafka event publishing logic
+  - `consumer.py`: Kafka event consumption and processing
+- **`/services/`**: Business logic layer
+  - `route_optimization.py`: Route calculation and optimization services
+- **`/websocket_manager.py`**: WebSocket connection management for real-time communication
+
 ---
 
 ## 2. Core API Principles

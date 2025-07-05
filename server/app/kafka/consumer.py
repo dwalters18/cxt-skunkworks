@@ -46,10 +46,18 @@ class TMSEventConsumer:
     
     async def start(self):
         """Start the Kafka consumer"""
+        logger.info("=== TMSEventConsumer.start() BEGIN ===")
+        
         if self._running:
+            logger.info("Consumer already running, skipping start")
             return
         
         try:
+            logger.info(f"Creating AIOKafkaConsumer with:")
+            logger.info(f"  - bootstrap_servers: {self.bootstrap_servers}")
+            logger.info(f"  - group_id: {self.group_id}")
+            logger.info(f"  - topics: {self.topics}")
+            
             self.consumer = AIOKafkaConsumer(
                 *self.topics,
                 bootstrap_servers=self.bootstrap_servers,
@@ -62,13 +70,18 @@ class TMSEventConsumer:
                 session_timeout_ms=30000,
                 heartbeat_interval_ms=10000,
             )
+            logger.info("AIOKafkaConsumer instance created successfully")
             
+            logger.info("Attempting to connect to Kafka (this may take a moment)...")
             await self.consumer.start()
+            logger.info("Successfully connected to Kafka broker!")
+            
             self._running = True
-            logger.info(f"TMS Event Consumer started for topics: {self.topics}")
+            logger.info(f"=== TMS Event Consumer FULLY STARTED for topics: {self.topics} ===")
             
         except Exception as e:
-            logger.error(f"Failed to start TMS Event Consumer: {e}")
+            logger.error(f"ERROR: Failed to start TMS Event Consumer: {e}")
+            logger.exception("Full exception details:")
             raise
     
     async def stop(self):
@@ -251,17 +264,34 @@ _consumer: Optional[TMSEventConsumer] = None
 async def get_consumer(group_id: str = "tms-api-group") -> TMSEventConsumer:
     """Get the global consumer instance"""
     global _consumer
+    logger.info(f"=== KAFKA CONSUMER INITIALIZATION START ===")
+    
     if _consumer is None:
         import os
         bootstrap_servers = os.getenv("KAFKA_BOOTSTRAP_SERVERS", "localhost:9092")
+        logger.info(f"Consumer Config: bootstrap_servers={bootstrap_servers}, group_id={group_id}")
+        
+        logger.info("Creating TMSEventConsumer instance...")
         _consumer = TMSEventConsumer(bootstrap_servers, group_id)
+        logger.info("TMSEventConsumer instance created successfully")
         
         # Register default handlers
+        logger.info("Registering default event handlers...")
         handlers = TMSEventHandlers()
+        logger.info("- Registering LOAD_CREATED handler")
         _consumer.register_handler(EventType.LOAD_CREATED, handlers.handle_load_created)
+        logger.info("- Registering LOAD_ASSIGNED handler")
         _consumer.register_handler(EventType.LOAD_ASSIGNED, handlers.handle_load_assigned)
+        logger.info("- Registering VEHICLE_LOCATION_UPDATED handler")
         _consumer.register_handler(EventType.VEHICLE_LOCATION_UPDATED, handlers.handle_vehicle_location_update)
+        logger.info("- Registering ROUTE_DEVIATION handler")
         _consumer.register_handler(EventType.ROUTE_DEVIATION, handlers.handle_route_deviation)
+        logger.info("- Registering AI_PREDICTION handler")
         _consumer.register_handler(EventType.AI_PREDICTION, handlers.handle_ai_prediction)
+        logger.info("All event handlers registered successfully")
         
+    else:
+        logger.info("Using existing consumer instance")
+    
+    logger.info(f"=== KAFKA CONSUMER INITIALIZATION COMPLETE ===")
     return _consumer

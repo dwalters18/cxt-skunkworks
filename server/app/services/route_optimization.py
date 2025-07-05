@@ -8,7 +8,7 @@ import logging
 from typing import List, Dict, Optional, Tuple
 from decimal import Decimal
 import googlemaps
-from database.connections import get_load_repository
+from dependencies import get_load_repo
 from models.events import EventType, RouteOptimizedEvent
 from kafka.producer import get_producer
 from uuid import UUID
@@ -34,7 +34,7 @@ class RouteOptimizationService:
         Optimize route for a load assignment to a vehicle
         Driver assignment is optional since route optimization is primarily about the vehicle and load
         """
-        load_repository = await get_load_repository()
+        load_repository = await get_load_repo()
         
         try:
             # Get load details
