@@ -163,8 +163,8 @@ const DispatchMapView = ({ onTransitionToManagement }) => {
                         selectedLoad={selectedLoad}
                         selectedVehicleForOptimization={selectedVehicleForOptimization}
                         activeFilters={activeFilters}
-                        onVehicleClick={handleVehicleClick}
-                        onLoadClick={handleLoadClick}
+                        onVehicleSelect={handleVehicleClick}
+                        onLoadSelect={handleLoadClick}
                         onVehicleSelectionChange={setSelectedVehicleForOptimization}
                         onRouteOptimization={optimizeLoadRoute}
                         isOptimizing={isOptimizing}

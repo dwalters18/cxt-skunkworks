@@ -8,6 +8,37 @@ const MapMarker = ({
     onClick, 
     isSelected = false 
 }) => {
+    // Convert position data to Google Maps LatLngLiteral format
+    const getValidPosition = (pos) => {
+        if (!pos) return null;
+        
+        // Handle backend Location format {latitude, longitude}
+        if (pos.latitude !== undefined && pos.longitude !== undefined) {
+            return {
+                lat: parseFloat(pos.latitude),
+                lng: parseFloat(pos.longitude)
+            };
+        }
+        
+        // Handle Google Maps format {lat, lng}
+        if (pos.lat !== undefined && pos.lng !== undefined) {
+            return {
+                lat: parseFloat(pos.lat),
+                lng: parseFloat(pos.lng)
+            };
+        }
+        
+        // Invalid position data
+        console.warn('Invalid position data for marker:', pos);
+        return null;
+    };
+    
+    const validPosition = getValidPosition(position);
+    
+    // Don't render marker if position is invalid
+    if (!validPosition) {
+        return null;
+    }
     // Define marker icons and colors based on type
     const getMarkerOptions = () => {
         switch (type) {
@@ -88,7 +119,7 @@ const MapMarker = ({
 
     return (
         <Marker
-            position={position}
+            position={validPosition}
             icon={markerOptions}
             onClick={handleClick}
             title={getMarkerTitle()}

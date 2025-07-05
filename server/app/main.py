@@ -180,7 +180,39 @@ async def search_loads(
             filters['carrier_id'] = carrier_id
         
         loads = await load_repo.search_loads(filters, limit, offset)
-        return [dict(load) for load in loads]
+        
+        # Properly serialize loads with location data
+        serialized_loads = []
+        for load in loads:
+            load_dict = dict(load)
+            
+            # Convert pickup location coordinates to Location object
+            if 'pickup_latitude' in load_dict and 'pickup_longitude' in load_dict and load_dict['pickup_latitude'] is not None and load_dict['pickup_longitude'] is not None:
+                load_dict['pickup_location'] = {
+                    'latitude': float(load_dict['pickup_latitude']),
+                    'longitude': float(load_dict['pickup_longitude'])
+                }
+                # Remove the raw extracted coordinates
+                load_dict.pop('pickup_latitude', None)
+                load_dict.pop('pickup_longitude', None)
+            else:
+                load_dict['pickup_location'] = None
+            
+            # Convert delivery location coordinates to Location object
+            if 'delivery_latitude' in load_dict and 'delivery_longitude' in load_dict and load_dict['delivery_latitude'] is not None and load_dict['delivery_longitude'] is not None:
+                load_dict['delivery_location'] = {
+                    'latitude': float(load_dict['delivery_latitude']),
+                    'longitude': float(load_dict['delivery_longitude'])
+                }
+                # Remove the raw extracted coordinates
+                load_dict.pop('delivery_latitude', None)
+                load_dict.pop('delivery_longitude', None)
+            else:
+                load_dict['delivery_location'] = None
+            
+            serialized_loads.append(load_dict)
+        
+        return serialized_loads
         
     except Exception as e:
         logger.error(f"Error searching loads: {e}")
@@ -306,7 +338,27 @@ async def get_vehicles(carrier_id: Optional[str] = None, status: Optional[str] =
             # For now, just get available vehicles as example
             vehicles = await vehicle_repo.get_available_vehicles(carrier_id)
         
-        return [dict(vehicle) for vehicle in vehicles]
+        # Properly serialize vehicles with location data
+        serialized_vehicles = []
+        for vehicle in vehicles:
+            vehicle_dict = dict(vehicle)
+            
+            # Convert PostGIS geometry to Location object if coordinates are available
+            if 'latitude' in vehicle_dict and 'longitude' in vehicle_dict and vehicle_dict['latitude'] is not None and vehicle_dict['longitude'] is not None:
+                vehicle_dict['current_location'] = {
+                    'latitude': float(vehicle_dict['latitude']),
+                    'longitude': float(vehicle_dict['longitude'])
+                }
+                # Remove the raw extracted coordinates
+                vehicle_dict.pop('latitude', None)
+                vehicle_dict.pop('longitude', None)
+            else:
+                # Set current_location to None if no coordinates available
+                vehicle_dict['current_location'] = None
+            
+            serialized_vehicles.append(vehicle_dict)
+        
+        return serialized_vehicles
         
     except Exception as e:
         logger.error(f"Error getting vehicles: {e}")

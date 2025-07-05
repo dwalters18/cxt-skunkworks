@@ -4,7 +4,7 @@ import MapMarker from './MapMarker';
 import LoadInfoWindow from './LoadInfoWindow';
 import RoutePolyline from './RoutePolyline';
 
-const GOOGLE_MAPS_LIBRARIES = ['geometry', 'drawing'];
+const GOOGLE_MAPS_LIBRARIES = ['geometry', 'drawing', 'marker'];
 
 const MapContainer = ({ 
     vehicles, 
