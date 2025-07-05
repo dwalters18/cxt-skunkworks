@@ -3,85 +3,109 @@
 **Version:** 1.0
 **Date:** July 5, 2025
 **Authors:** Development Team
-**Tags:** #technical-spec #TMS-Backend #TMS-Core #status/implemented #priority/high #route-optimization
-**Related:** [[PRD-Overview]] | [[SPEC-Database-Schema]] | [[SPEC-Events-Schema]] | [[SPEC-Route-Optimization-Setup]] | [[SPEC-Polyglot-Persistence]]
+**Tags:** #technical-spec #TMS-Backend #TMS-Core #status/implemented #priority/high #backend-architecture
+**Related:** [[PRD-Overview]] | [[SPEC-TMS-API]] | [[SPEC-Database-Schema]] | [[SPEC-Events-Schema]] | [[SPEC-Polyglot-Persistence]]
 **Dependencies:** [[SPEC-Database-Schema]], [[SPEC-Events-Schema]]
-**Used By:** [[PRD-Dispatching-Interface]], Frontend Applications
+**Used By:** [[SPEC-TMS-API]], [[PRD-Dispatching-Interface]], Frontend Applications
 
 ---
 
 ## Executive Summary
 
-Comprehensive FastAPI-based backend system implementing event-driven microservices architecture with polyglot persistence (PostgreSQL, TimescaleDB, Neo4j) and Kafka-based event streaming. Features async operations, WebSocket real-time communication, and Google Maps API integration for route optimization.
+The TMS Backend System provides the foundational architecture for a Transportation Management System built on event-driven microservices principles. This specification covers the system architecture, implementation patterns, infrastructure design, and operational considerations that enable scalable, real-time transportation operations management.
+
+**Key Architectural Highlights:**
+- **Modular Router Architecture**: Domain-specific FastAPI routers for maintainable code organization
+- **Event-Driven Design**: Kafka-based event streaming with comprehensive event taxonomy
+- **Polyglot Persistence**: Specialized databases optimized for different data patterns
+- **Async-First Implementation**: Non-blocking operations with WebSocket real-time capabilities
+- **Spatial Processing**: PostGIS integration for advanced geospatial operations
 
 ---
 
-## Implementation Status
+## System Architecture Overview
 
-**Currently Implemented ✅:**
-- **FastAPI Framework**: Complete REST API with async operations
-- **Polyglot Persistence**: PostgreSQL, TimescaleDB, and Neo4j integrations
-- **Event Streaming**: Full Kafka producer/consumer implementation
-- **Real-time Communication**: WebSocket support for live updates
-- **CRUD Operations**: Comprehensive load, vehicle, and driver management
-- **Route Optimization**: Google Maps API integration with PostGIS storage
-- **Analytics Endpoints**: Dashboard data and metrics APIs
-- **Data Validation**: Pydantic V2 models with comprehensive validation
-- **Spatial Data Processing**: PostGIS LINESTRING route geometry storage
-- **Comprehensive Testing**: 100% test pass rate (49/49 tests) with full API compatibility validation
-- **Google Maps API Integration**: Coordinate validation compatible with Maps API standards
-- **Financial Precision**: Decimal type usage for accurate monetary calculations
-- **UUID Validation**: Pydantic V2-compatible UUID pattern validation
-- **Request/Response Models**: Complete API model coverage with LoadResponse, VehicleResponse, DriverResponse
+### Core Backend Components
 
-**Testing & Quality Assurance ✅:**
-- **49/49 Tests Passing**: Complete test suite validation in Docker environment
-- **API Compatibility Tests**: Request/response model validation
-- **Schema Validation Tests**: Database schema alignment verification
-- **Cross-layer Compatibility**: End-to-end workflow validation
-- **Coordinate Validation**: Google Maps API-compatible lat/lon validation
-- **Event Model Tests**: Complete event schema validation
-- **PRD Alignment Tests**: Model compliance with PRD specifications
+**Application Layer ✅**
+- **Modular Router Architecture**: Domain-specific FastAPI routers organized by business capability
+- **Dependency Injection**: Centralized dependencies for database connections and shared services
+- **Lifecycle Management**: Graceful startup/shutdown with Kafka consumer lifecycle handling
+- **Async Operations**: Non-blocking request handling with proper async/await patterns
 
-**Areas for Enhancement 🔄:**
-- **Advanced ML Integration**: MLserver API integration (planned)
-- **Caching Strategy**: Redis utilization for performance optimization
-- **Advanced Security**: Authentication and authorization implementation
-- **Performance Optimization**: Database query optimization and indexing
+**Data Layer ✅**
+- **Polyglot Persistence**: Multi-database strategy with specialized data stores
+- **Connection Management**: Async database connection pooling and optimization
+- **Transaction Handling**: ACID compliance with proper rollback mechanisms
+- **Data Validation**: Pydantic V2 models with comprehensive schema enforcement
 
-## Goals and Success Metrics
+**Event Processing Layer ✅**
+- **Kafka Integration**: Producer/consumer implementation with KRaft mode (no ZooKeeper)
+- **Event Taxonomy**: 18+ event types across 8 specialized Kafka topics
+- **Real-time Broadcasting**: WebSocket integration with event stream forwarding
+- **Consumer Lifecycle**: Background task management with graceful shutdown
 
-### Primary Goals
-- **Operational Efficiency**: Streamline load assignment, vehicle tracking, and driver management
-- **Real-time Visibility**: Provide instant updates on operational status across all entities
-- **Scalability**: Support growing transaction volumes and concurrent users
-- **Data Integrity**: Maintain consistent data across multiple databases and systems
-- **System Reliability**: Ensure 99.9% uptime with robust error handling and recovery
+**Integration Layer ✅**
+- **Google Maps API**: Route optimization with traffic-aware calculations
+- **Spatial Processing**: PostGIS integration for advanced geospatial operations
+- **External Services**: Configurable API integrations with proper error handling
 
-### Success Metrics
-- API response times < 200ms for 95% of requests
-- Event processing latency < 100ms
-- Zero data loss during event streaming
-- 99.9% API uptime
-- Support for 10,000+ concurrent WebSocket connections
+### Implementation Patterns
 
-## Current System Architecture
+**Repository Pattern**: Database abstraction with domain-specific repositories
+**Event Sourcing**: Complete audit trail through comprehensive event logging
+**CQRS (Command Query Responsibility Segregation)**: Optimized read/write operations
+**Circuit Breaker**: Resilient external service integration
+**Dependency Injection**: Loosely coupled components with testable interfaces
 
-### Technology Stack
-- **API Framework**: FastAPI (Python)
-- **Event Streaming**: Apache Kafka (KRaft mode)
-- **Databases**:
-  - PostgreSQL (OLTP operations, core entities, uses PostGIS for geospatial data support)
-  - TimescaleDB (time-series data, tracking)
-  - Neo4j (graph operations, route optimization)
-- **Caching**: Redis (TBD, currently unused)
-- **Real-time**: WebSocket connections
-- **Containerization**: Docker with docker-compose
+## Backend System Design Goals
 
-### Database Architecture
-1. **PostgreSQL**: Core business entities (loads, vehicles, drivers, carriers)
-2. **TimescaleDB**: Time-series data (vehicle tracking, driver activity, load events)
-3. **Neo4j**: Graph relationships and route optimization queries
+### Architectural Principles
+- **Domain-Driven Design**: Code organization reflects business domains and capabilities
+- **Event-First Architecture**: All state changes generate events for system transparency
+- **Polyglot Persistence**: Right database for the right data pattern
+- **Async by Default**: Non-blocking operations for optimal resource utilization
+- **Testability**: Dependency injection and clear separation of concerns
+
+### Performance & Scalability Targets
+- **Throughput**: Support 10,000+ concurrent connections and 1000+ req/sec
+- **Latency**: < 100ms event processing, < 200ms API response times (95th percentile)
+- **Reliability**: 99.9% uptime with graceful degradation patterns
+- **Data Consistency**: ACID compliance with eventual consistency for analytics
+
+## Infrastructure Architecture
+
+### Application Architecture
+```
+┌─────────────────────────────────────────────────────────────┐
+│                     FastAPI Application                     │
+├─────────────────────────────────────────────────────────────┤
+│  Router Layer (Domain-Specific)                            │
+│  ├─ health.py     ├─ loads.py      ├─ drivers.py          │
+│  ├─ vehicles.py   ├─ routes.py     ├─ events.py           │
+│  ├─ analytics.py  └─ websocket.py                         │
+├─────────────────────────────────────────────────────────────┤
+│  Dependencies Layer                                         │
+│  ├─ Database Repositories  ├─ Kafka Producer/Consumer      │
+│  ├─ WebSocket Manager     └─ External Service Clients      │
+├─────────────────────────────────────────────────────────────┤
+│  Domain Models & Event Schemas                             │
+│  ├─ Pydantic V2 Models   ├─ Event Taxonomy               │
+│  └─ Validation Rules     └─ Schema Definitions            │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Data Storage Strategy
+**PostgreSQL + PostGIS**: OLTP operations, core business entities, spatial queries
+**TimescaleDB + PostGIS**: Time-series data, tracking events, analytics aggregation
+**Neo4j**: Graph relationships, route optimization, network analysis
+**Redis**: Session management, caching layer (future implementation)
+
+### Event Streaming Architecture
+**Kafka KRaft Mode**: Simplified deployment without ZooKeeper dependency
+**Topic Strategy**: Domain-specific topics for event segregation and processing
+**Consumer Groups**: Scalable event processing with load balancing
+**Event Sourcing**: Complete system state reconstruction capability
 
 #### Database Infrastructure Requirements
 
@@ -133,47 +157,37 @@ Both databases require these extensions to be available:
 - Verify image supports PostGIS before deployment
 - Ensure init.sql scripts don't reference unavailable extensions
 
-### Supported Functionality
+## Implementation Deep Dive
 
-### 1. Load Management API
+### Domain Service Architecture
 
-#### Core Operations
-- **Create Load** (`POST /api/loads`)
-  - Generate new load records with pickup/delivery details
-  - Support for weight, volume, rate specifications
-  - Automatic load number generation and validation
+#### Load Management Service
+**Repository Pattern**: `LoadRepository` abstracts database operations with async methods
+**Event Integration**: Every load state change publishes events to `tms.loads` Kafka topic
+**Transaction Management**: ACID compliance with rollback on event publishing failures
+**Validation Pipeline**: Multi-stage validation (schema → business rules → database constraints)
 
-- **Assign Load** (`POST /api/loads/{load_id}/assign`)
-  - Assign carriers, vehicles, and drivers to loads
-  - Validation of entity availability and compatibility
-  - Automatic status transitions and event emission
+```python
+class LoadService:
+    async def create_load(self, request: CreateLoadRequest) -> LoadResponse:
+        # 1. Validate request schema (Pydantic)
+        # 2. Apply business rules validation
+        # 3. Begin database transaction
+        # 4. Create load record
+        # 5. Publish LOAD_CREATED event
+        # 6. Commit transaction or rollback on failure
+```
 
-- **Update Load Status** (`PUT /api/loads/{load_id}/status`)
-  - Status progression (pending → assigned → picked_up → in_transit → delivered)
-  - Automatic event generation for status changes
-  - Integration with tracking and analytics systems
+#### Vehicle Management Service
+**Location Tracking**: Integration with TimescaleDB for high-frequency GPS updates
+**Status Management**: State machine pattern for vehicle status transitions
+**Spatial Queries**: PostGIS integration for location-based vehicle searches
+**Real-time Updates**: WebSocket broadcasting for live vehicle tracking
 
-- **Search Loads** (`GET /api/loads/search`)
-  - Advanced filtering by status, carrier, location, date ranges
-  - Pagination support (limit/offset)
-  - Full-text search capabilities
-
-- **Load Details** (`GET /api/loads/{load_id}`)
-  - Complete load information including assignments
-  - Related entity details (carrier, vehicle, driver)
-  - Status history and tracking information
-
-#### Data Model Features
-- UUID-based primary keys
-- PostGIS geography support for locations
-- JSONB fields for flexible metadata
-- Audit trail with created/updated timestamps
-- Status enum validation
-
-### 2. Vehicle Management API
-
-#### Core Operations
-- **Get Vehicles** (`GET /api/vehicles`)
+#### Driver Management Service
+**HOS Compliance**: Hours of Service validation and violation detection
+**Assignment Logic**: Availability checking with regulation compliance
+**Performance Tracking**: Integration with analytics for driver scorecards
   - Filter by carrier, status, availability
   - Location-based queries using PostGIS
   - Capacity and capability filtering
