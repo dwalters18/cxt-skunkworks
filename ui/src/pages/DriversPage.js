@@ -19,7 +19,7 @@ const DriversPage = () => {
                 params.append('available_only', 'true');
             }
             
-            const response = await fetch(`${process.env.REACT_APP_API_BASE_URL}/api/drivers?${params}`);
+            const response = await fetch(`${process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000'}/api/drivers?${params}`);
             if (!response.ok) throw new Error('Failed to fetch drivers');
             
             const data = await response.json();
@@ -33,7 +33,7 @@ const DriversPage = () => {
 
     const fetchDriverDetails = async (driverId) => {
         try {
-            const response = await fetch(`${process.env.REACT_APP_API_BASE_URL}/api/drivers/${driverId}`);
+            const response = await fetch(`${process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000'}/api/drivers/${driverId}`);
             if (!response.ok) throw new Error('Failed to fetch driver details');
             
             const driver = await response.json();

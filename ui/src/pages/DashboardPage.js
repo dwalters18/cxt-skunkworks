@@ -8,19 +8,21 @@ const DashboardPage = () => {
     const [error, setError] = useState(null);
     const navigate = useNavigate();
 
+    const API_BASE = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
+
     const fetchDashboardData = async () => {
         try {
             setLoading(true);
             setError(null);
             
             // Fetch dashboard summary
-            const dashboardResponse = await fetch(`${process.env.REACT_APP_API_BASE_URL}/api/dashboard`);
+            const dashboardResponse = await fetch(`${API_BASE}/api/dashboard`);
             if (!dashboardResponse.ok) throw new Error('Failed to fetch dashboard data');
             const dashboardData = await dashboardResponse.json();
             setDashboardData(dashboardData);
             
             // Fetch recent loads for activity feed
-            const loadsResponse = await fetch(`${process.env.REACT_APP_API_BASE_URL}/api/loads?limit=5`);
+            const loadsResponse = await fetch(`${API_BASE}/api/loads?limit=5`);
             if (loadsResponse.ok) {
                 const loadsData = await loadsResponse.json();
                 setRecentLoads(loadsData.loads || []);

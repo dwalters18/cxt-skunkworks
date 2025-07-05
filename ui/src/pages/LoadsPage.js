@@ -19,12 +19,12 @@ const LoadsPage = () => {
     const fetchLoads = async () => {
         try {
             setLoading(true);
-            let url = `${process.env.REACT_APP_API_BASE_URL}/api/loads`;
+            let url = `${process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000'}/api/loads`;
             
             if (showUnassignedOnly) {
-                url = `${process.env.REACT_APP_API_BASE_URL}/api/loads/unassigned`;
+                url = `${process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000'}/api/loads/unassigned`;
             } else if (statusFilter !== 'all') {
-                url = `${process.env.REACT_APP_API_BASE_URL}/api/loads/by-status/${statusFilter.toUpperCase()}`;
+                url = `${process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000'}/api/loads/by-status/${statusFilter.toUpperCase()}`;
             }
             
             const response = await fetch(url);
@@ -45,8 +45,8 @@ const LoadsPage = () => {
     const fetchLoadCounts = async () => {
         try {
             const [unassignedResponse, allResponse] = await Promise.all([
-                fetch(`${process.env.REACT_APP_API_BASE_URL}/api/loads/unassigned`),
-                fetch(`${process.env.REACT_APP_API_BASE_URL}/api/loads`)
+                fetch(`${process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000'}/api/loads/unassigned`),
+                fetch(`${process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000'}/api/loads`)
             ]);
             
             const unassignedData = await unassignedResponse.json();
@@ -73,7 +73,7 @@ const LoadsPage = () => {
 
     const assignDriver = async (loadId, driverId) => {
         try {
-            const response = await fetch(`${process.env.REACT_APP_API_BASE_URL}/api/loads/${loadId}/assign`, {
+            const response = await fetch(`${process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000'}/api/loads/${loadId}/assign`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ driver_id: driverId })

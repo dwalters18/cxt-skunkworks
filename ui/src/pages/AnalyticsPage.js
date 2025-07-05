@@ -7,9 +7,11 @@ const AnalyticsPage = () => {
     const [error, setError] = useState(null);
     const [timeFilter, setTimeFilter] = useState('7d');
 
+    const API_BASE = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
+
     const fetchDashboardData = async () => {
         try {
-            const response = await fetch(`${process.env.REACT_APP_API_BASE_URL}/api/dashboard`);
+            const response = await fetch(`${API_BASE}/api/dashboard`);
             if (!response.ok) throw new Error('Failed to fetch dashboard data');
             
             const data = await response.json();
@@ -21,7 +23,7 @@ const AnalyticsPage = () => {
 
     const fetchPerformanceData = async () => {
         try {
-            const response = await fetch(`${process.env.REACT_APP_API_BASE_URL}/api/performance?period=${timeFilter}`);
+            const response = await fetch(`${API_BASE}/api/performance?period=${timeFilter}`);
             if (!response.ok) throw new Error('Failed to fetch performance data');
             
             const data = await response.json();

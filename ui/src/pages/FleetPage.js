@@ -13,11 +13,12 @@ const FleetPage = () => {
         maintenance: 0,
         out_of_service: 0
     });
+    const API_BASE = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 
     const fetchVehicles = async () => {
         try {
             setLoading(true);
-            const response = await fetch(`${process.env.REACT_APP_API_BASE_URL}/api/vehicles`);
+            const response = await fetch(`${API_BASE}/api/vehicles`);
             if (!response.ok) throw new Error('Failed to fetch vehicles');
             
             const data = await response.json();
@@ -55,7 +56,7 @@ const FleetPage = () => {
 
     const fetchVehicleDetails = async (vehicleId) => {
         try {
-            const response = await fetch(`${process.env.REACT_APP_API_BASE_URL}/api/vehicles/${vehicleId}`);
+            const response = await fetch(`${API_BASE}/api/vehicles/${vehicleId}`);
             if (!response.ok) throw new Error('Failed to fetch vehicle details');
             
             const vehicle = await response.json();
@@ -67,7 +68,7 @@ const FleetPage = () => {
 
     const updateVehicleStatus = async (vehicleId, newStatus) => {
         try {
-            const response = await fetch(`${process.env.REACT_APP_API_BASE_URL}/api/vehicles/${vehicleId}/status`, {
+            const response = await fetch(`${API_BASE}/api/vehicles/${vehicleId}/status`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ status: newStatus })

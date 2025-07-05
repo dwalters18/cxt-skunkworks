@@ -6,25 +6,26 @@ const DispatchPage = () => {
     const [performance, setPerformance] = useState(null);
     const [routesOptimized, setRoutesOptimized] = useState(0);
     const [loading, setLoading] = useState(true);
+    const API_BASE = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 
     const fetchDispatchStats = async () => {
         try {
             // Fetch dashboard data for active loads
-            const dashboardResponse = await fetch(`${process.env.REACT_APP_API_BASE_URL}/api/dashboard`);
+            const dashboardResponse = await fetch(`${API_BASE}/api/dashboard`);
             if (dashboardResponse.ok) {
                 const data = await dashboardResponse.json();
                 setDashboardData(data);
             }
 
             // Fetch performance data for route optimization stats
-            const performanceResponse = await fetch(`${process.env.REACT_APP_API_BASE_URL}/api/performance?days=1`);
+            const performanceResponse = await fetch(`${API_BASE}/api/performance?days=1`);
             if (performanceResponse.ok) {
                 const data = await performanceResponse.json();
                 setPerformance(data);
             }
 
             // Calculate routes optimized from routes data
-            const routesResponse = await fetch(`${process.env.REACT_APP_API_BASE_URL}/api/routes`);
+            const routesResponse = await fetch(`${API_BASE}/api/routes`);
             if (routesResponse.ok) {
                 const data = await routesResponse.json();
                 const optimizedToday = data.routes?.filter(route => {
