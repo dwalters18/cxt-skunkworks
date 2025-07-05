@@ -437,7 +437,9 @@ async def get_route_details(route_id: str):
         load_repository = await get_load_repository()
         
         query = """
-        SELECT r.*, l.load_number, d.name as driver_name, v.make, v.model
+        SELECT r.*, l.load_number, 
+               CONCAT(d.first_name, ' ', d.last_name) as driver_name, 
+               v.make, v.model
         FROM routes r
         JOIN loads l ON r.load_id = l.id
         LEFT JOIN drivers d ON r.driver_id = d.id

@@ -59,7 +59,12 @@ export const WebSocketProvider = ({ children }) => {
             };
             
             wsRef.current.onclose = (event) => {
-                console.log('WebSocket disconnected', event.code, event.reason);
+                console.log('WebSocket disconnected:', {
+                    code: event.code,
+                    reason: event.reason || 'No reason provided',
+                    wasClean: event.wasClean,
+                    url: wsUrl
+                });
                 setIsConnected(false);
                 
                 // Only attempt reconnection if not manually closed
@@ -69,7 +74,13 @@ export const WebSocketProvider = ({ children }) => {
             };
             
             wsRef.current.onerror = (error) => {
-                console.error('WebSocket error:', error);
+                console.error('WebSocket error details:', {
+                    type: error.type,
+                    target: error.target?.readyState,
+                    url: error.target?.url,
+                    isTrusted: error.isTrusted,
+                    message: error.message || 'Connection failed'
+                });
                 setIsConnected(false);
             };
         } catch (error) {
