@@ -76,6 +76,8 @@ CREATE TABLE loads (
     
     CONSTRAINT fk_loads_driver FOREIGN KEY (assigned_driver_id) REFERENCES drivers(id),
     CONSTRAINT fk_loads_vehicle FOREIGN KEY (assigned_vehicle_id) REFERENCES vehicles(id)
+    -- assigned_driver_id must reference a valid UUID in the drivers table
+    -- null is allowed for unassigned loads
 );
 
 CREATE TYPE load_status_enum AS ENUM (

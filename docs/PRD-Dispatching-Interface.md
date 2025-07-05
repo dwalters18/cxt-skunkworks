@@ -31,10 +31,16 @@ The TMS Dispatching Interface serves as a learning platform for building modern,
 - **Event Console**: Live event streaming with categorization and filtering
 - **WebSocket Integration**: Real-time data flow from backend to UI
 
+**🚨 CRITICAL PRIORITY - ROUTE VISUALIZATION 🚨:**
+- **Street-Level Route Geometry**: MUST display optimized routes with precise street-level geometry
+- **Real-Time Route Updates**: Live route modifications based on traffic and conditions
+- **Interactive Route Elements**: Clickable routes with detailed information overlays
+- **Multiple Route Display**: Simultaneous visualization of multiple active routes
+- **Route Performance Metrics**: Visual indicators for efficiency, delays, and optimization scores
+
 **Planned Development 📋:**
 - **Google Maps Integration**: Interactive mapping with vehicle/load visualization
-- **Gamification Features**: Points, achievements, and engagement mechanics
-- **Advanced Route Visualization**: Real-time route optimization and traffic integration
+- **Gamification Features**: Points, achievements, and engagement mechanics  
 - **Mobile-Responsive Design**: Tablet and mobile dispatcher interfaces
 - **Advanced Assignment Logic**: AI-powered load-to-vehicle matching
 

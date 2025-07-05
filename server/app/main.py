@@ -325,6 +325,158 @@ async def update_load_status(load_id: str, status_update: Dict[str, str], backgr
         raise HTTPException(status_code=500, detail=str(e))
 
 
+# Driver Management Endpoints
+@app.get("/api/drivers")
+async def get_drivers(
+    status: Optional[str] = None,
+    available_only: bool = False,
+    limit: int = 50,
+    offset: int = 0
+):
+    """Get drivers with optional filtering for assignment workflows"""
+    try:
+        load_repository = await get_load_repository()
+        
+        # Build query with optional filters
+        where_conditions = []
+        params = []
+        param_count = 0
+        
+        if status:
+            param_count += 1
+            where_conditions.append(f"d.status = ${param_count}")
+            params.append(status)
+            
+        if available_only:
+            param_count += 1
+            where_conditions.append(f"d.status = ${param_count}")
+            params.append('AVAILABLE')
+        
+        where_clause = " AND ".join(where_conditions) if where_conditions else "1=1"
+        
+        query = f"""
+        SELECT d.id, d.first_name, d.last_name, d.license_number,
+               d.phone, d.email, d.status, d.hours_driven_today,
+               d.hours_remaining_today, d.current_latitude, d.current_longitude,
+               d.last_location_update, d.carrier_id,
+               c.name as carrier_name,
+               COUNT(l.id) as active_loads
+        FROM drivers d
+        LEFT JOIN carriers c ON d.carrier_id = c.id
+        LEFT JOIN loads l ON l.assigned_driver_id = d.id AND l.status IN ('ASSIGNED', 'IN_TRANSIT')
+        WHERE {where_clause}
+        GROUP BY d.id, c.name
+        ORDER BY d.last_name, d.first_name
+        LIMIT ${param_count + 1} OFFSET ${param_count + 2}
+        """
+        
+        params.extend([limit, offset])
+        results = await load_repository.execute_query(query, *params)
+        
+        drivers = []
+        for row in results:
+            drivers.append({
+                "driver_id": str(row['id']),
+                "name": f"{row['first_name']} {row['last_name']}",
+                "first_name": row['first_name'],
+                "last_name": row['last_name'],
+                "license_number": row['license_number'],
+                "phone": row['phone'],
+                "email": row['email'],
+                "status": row['status'],
+                "carrier_id": str(row['carrier_id']) if row['carrier_id'] else None,
+                "carrier_name": row['carrier_name'],
+                "hours_driven_today": float(row['hours_driven_today'] or 0),
+                "hours_remaining_today": float(row['hours_remaining_today'] or 0),
+                "current_location": {
+                    "latitude": float(row['current_latitude']) if row['current_latitude'] else None,
+                    "longitude": float(row['current_longitude']) if row['current_longitude'] else None
+                },
+                "last_location_update": row['last_location_update'].isoformat() if row['last_location_update'] else None,
+                "active_loads": row['active_loads']
+            })
+        
+        return {
+            "drivers": drivers,
+            "total": len(drivers),
+            "limit": limit,
+            "offset": offset
+        }
+        
+    except Exception as e:
+        logger.error(f"Error fetching drivers: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/drivers/{driver_id}")
+async def get_driver(driver_id: str):
+    """Get detailed driver information"""
+    try:
+        load_repository = await get_load_repository()
+        
+        query = """
+        SELECT d.*, c.name as carrier_name,
+               COUNT(l.id) as total_loads,
+               COUNT(CASE WHEN l.status = 'DELIVERED' THEN 1 END) as completed_loads,
+               AVG(CASE WHEN l.status = 'DELIVERED' THEN 
+                   EXTRACT(EPOCH FROM (l.delivered_at - l.picked_up_at))/3600 
+               END) as avg_delivery_hours
+        FROM drivers d
+        LEFT JOIN carriers c ON d.carrier_id = c.id
+        LEFT JOIN loads l ON l.assigned_driver_id = d.id
+        WHERE d.id = $1
+        GROUP BY d.id, c.name
+        """
+        
+        result = await load_repository.execute_single(query, driver_id)
+        
+        if not result:
+            raise HTTPException(status_code=404, detail="Driver not found")
+        
+        return {
+            "driver_id": str(result['id']),
+            "name": f"{result['first_name']} {result['last_name']}",
+            "first_name": result['first_name'],
+            "last_name": result['last_name'],
+            "license_number": result['license_number'],
+            "phone": result['phone'],
+            "email": result['email'],
+            "status": result['status'],
+            "carrier_id": str(result['carrier_id']) if result['carrier_id'] else None,
+            "carrier_name": result['carrier_name'],
+            "hours_driven_today": float(result['hours_driven_today'] or 0),
+            "hours_remaining_today": float(result['hours_remaining_today'] or 0),
+            "current_location": {
+                "latitude": float(result['current_latitude']) if result['current_latitude'] else None,
+                "longitude": float(result['current_longitude']) if result['current_longitude'] else None
+            },
+            "last_location_update": result['last_location_update'].isoformat() if result['last_location_update'] else None,
+            "performance": {
+                "total_loads": result['total_loads'],
+                "completed_loads": result['completed_loads'],
+                "completion_rate": float(result['completed_loads'] / result['total_loads']) if result['total_loads'] > 0 else 0,
+                "avg_delivery_hours": float(result['avg_delivery_hours'] or 0)
+            }
+        }
+        
+    except Exception as e:
+        logger.error(f"Error fetching driver details: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+# Enhanced Load Management Endpoints
+@app.get("/api/loads/unassigned")
+async def get_unassigned_loads(limit: int = 50, offset: int = 0):
+    """Get unassigned loads for dispatcher assignment workflows"""
+    return await search_loads(status="PENDING", limit=limit, offset=offset)
+
+@app.get("/api/loads/by-status/{status}")
+async def get_loads_by_status(status: str, limit: int = 50, offset: int = 0):
+    """Get loads filtered by specific status"""
+    valid_statuses = ['PENDING', 'ASSIGNED', 'PICKED_UP', 'IN_TRANSIT', 'DELIVERED', 'CANCELLED']
+    if status.upper() not in valid_statuses:
+        raise HTTPException(status_code=400, detail=f"Invalid status. Must be one of: {', '.join(valid_statuses)}")
+    
+    return await search_loads(status=status.upper(), limit=limit, offset=offset)
+
 # Vehicle Management Endpoints
 @app.get("/api/vehicles")
 async def get_vehicles(carrier_id: Optional[str] = None, status: Optional[str] = None):
@@ -427,6 +579,208 @@ async def get_vehicle_tracking(vehicle_id: str, hours: int = 24):
         logger.error(f"Error getting vehicle tracking: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+
+# Route Management Endpoints
+@app.get("/api/routes")
+async def get_routes(
+    status: Optional[str] = None,
+    active_only: bool = False,
+    limit: int = 50,
+    offset: int = 0
+):
+    """Get routes with optional filtering for map display and management"""
+    try:
+        load_repository = await get_load_repository()
+        
+        # Build query with optional filters
+        where_conditions = []
+        params = []
+        param_count = 0
+        
+        if status:
+            param_count += 1
+            where_conditions.append(f"r.status = ${param_count}")
+            params.append(status)
+            
+        if active_only:
+            param_count += 1
+            where_conditions.append(f"r.status = ${param_count}")
+            params.append('ACTIVE')
+        
+        where_clause = " AND ".join(where_conditions) if where_conditions else "1=1"
+        
+        query = f"""
+        SELECT r.id, r.load_id, r.driver_id, r.vehicle_id, r.status,
+               r.planned_distance_miles, r.planned_duration_minutes, 
+               r.optimization_score, r.fuel_estimate, r.toll_estimate,
+               r.estimated_arrival, r.created_at,
+               l.load_number, l.pickup_address, l.delivery_address,
+               CONCAT(d.first_name, ' ', d.last_name) as driver_name,
+               CONCAT(v.make, ' ', v.model) as vehicle_info,
+               ST_AsGeoJSON(r.route_geometry) as route_geojson,
+               ST_AsGeoJSON(r.origin_location) as origin_geojson,
+               ST_AsGeoJSON(r.destination_location) as destination_geojson
+        FROM routes r
+        JOIN loads l ON r.load_id = l.id
+        LEFT JOIN drivers d ON r.driver_id = d.id
+        LEFT JOIN vehicles v ON r.vehicle_id = v.id
+        WHERE {where_clause}
+        ORDER BY r.created_at DESC
+        LIMIT ${param_count + 1} OFFSET ${param_count + 2}
+        """
+        
+        params.extend([limit, offset])
+        results = await load_repository.execute_query(query, *params)
+        
+        routes = []
+        for row in results:
+            # Parse geometry data for frontend
+            route_coords = []
+            origin_coords = None
+            dest_coords = None
+            
+            if row['route_geojson']:
+                import json
+                geojson = json.loads(row['route_geojson'])
+                route_coords = geojson.get('coordinates', [])
+                
+            if row['origin_geojson']:
+                import json
+                origin_geojson = json.loads(row['origin_geojson'])
+                origin_coords = origin_geojson.get('coordinates')
+                
+            if row['destination_geojson']:
+                import json
+                dest_geojson = json.loads(row['destination_geojson'])
+                dest_coords = dest_geojson.get('coordinates')
+            
+            routes.append({
+                "route_id": str(row['id']),
+                "load_id": str(row['load_id']),
+                "load_number": row['load_number'],
+                "driver_id": str(row['driver_id']) if row['driver_id'] else None,
+                "driver_name": row['driver_name'],
+                "vehicle_id": str(row['vehicle_id']) if row['vehicle_id'] else None,
+                "vehicle_info": row['vehicle_info'],
+                "status": row['status'],
+                "pickup_address": row['pickup_address'],
+                "delivery_address": row['delivery_address'],
+                "distance_miles": float(row['planned_distance_miles'] or 0),
+                "duration_minutes": row['planned_duration_minutes'],
+                "optimization_score": float(row['optimization_score'] or 0),
+                "fuel_estimate": float(row['fuel_estimate'] or 0),
+                "toll_estimate": float(row['toll_estimate'] or 0),
+                "estimated_arrival": row['estimated_arrival'].isoformat() if row['estimated_arrival'] else None,
+                "route_coordinates": route_coords,
+                "origin_coordinates": origin_coords,
+                "destination_coordinates": dest_coords,
+                "created_at": row['created_at'].isoformat() if row['created_at'] else None
+            })
+        
+        return {
+            "routes": routes,
+            "total": len(routes),
+            "limit": limit,
+            "offset": offset
+        }
+        
+    except Exception as e:
+        logger.error(f"Error fetching routes: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/routes/active")
+async def get_active_routes():
+    """Get all active routes with geometry for real-time map display"""
+    return await get_routes(status="ACTIVE", active_only=True)
+
+@app.get("/api/routes/performance")
+async def get_route_performance(time_range: str = "24h"):
+    """Get route performance metrics and analytics"""
+    try:
+        load_repository = await get_load_repository()
+        
+        # Calculate time filter based on range
+        time_filter = {
+            "1h": "1 HOUR",
+            "24h": "1 DAY", 
+            "7d": "7 DAYS",
+            "30d": "30 DAYS"
+        }.get(time_range, "1 DAY")
+        
+        query = f"""
+        SELECT 
+            COUNT(*) as total_routes,
+            COUNT(CASE WHEN r.status = 'ACTIVE' THEN 1 END) as active_routes,
+            COUNT(CASE WHEN r.status = 'COMPLETED' THEN 1 END) as completed_routes,
+            COUNT(CASE WHEN r.status = 'DELAYED' THEN 1 END) as delayed_routes,
+            AVG(r.optimization_score) as avg_optimization_score,
+            AVG(r.planned_distance_miles) as avg_distance_miles,
+            AVG(r.planned_duration_minutes) as avg_duration_minutes,
+            AVG(r.fuel_estimate) as avg_fuel_estimate,
+            SUM(r.fuel_estimate) as total_fuel_estimate,
+            SUM(r.toll_estimate) as total_toll_estimate,
+            COUNT(CASE WHEN r.optimization_score >= 0.8 THEN 1 END) as high_efficiency_routes,
+            COUNT(CASE WHEN r.optimization_score < 0.6 THEN 1 END) as low_efficiency_routes
+        FROM routes r
+        WHERE r.created_at >= NOW() - INTERVAL '{time_filter}'
+        """
+        
+        result = await load_repository.execute_single(query)
+        
+        if not result:
+            return {
+                "performance_metrics": {
+                    "total_routes": 0,
+                    "active_routes": 0,
+                    "completed_routes": 0,
+                    "delayed_routes": 0,
+                    "completion_rate": 0,
+                    "avg_optimization_score": 0,
+                    "avg_distance_miles": 0,
+                    "avg_duration_minutes": 0,
+                    "avg_fuel_estimate": 0,
+                    "total_fuel_estimate": 0,
+                    "total_toll_estimate": 0,
+                    "efficiency_distribution": {
+                        "high_efficiency": 0,
+                        "medium_efficiency": 0,
+                        "low_efficiency": 0
+                    }
+                },
+                "time_range": time_range
+            }
+        
+        total_routes = result['total_routes'] or 0
+        completed_routes = result['completed_routes'] or 0
+        high_efficiency = result['high_efficiency_routes'] or 0
+        low_efficiency = result['low_efficiency_routes'] or 0
+        medium_efficiency = total_routes - high_efficiency - low_efficiency
+        
+        return {
+            "performance_metrics": {
+                "total_routes": total_routes,
+                "active_routes": result['active_routes'] or 0,
+                "completed_routes": completed_routes,
+                "delayed_routes": result['delayed_routes'] or 0,
+                "completion_rate": float(completed_routes / total_routes) if total_routes > 0 else 0,
+                "avg_optimization_score": float(result['avg_optimization_score'] or 0),
+                "avg_distance_miles": float(result['avg_distance_miles'] or 0),
+                "avg_duration_minutes": float(result['avg_duration_minutes'] or 0),
+                "avg_fuel_estimate": float(result['avg_fuel_estimate'] or 0),
+                "total_fuel_estimate": float(result['total_fuel_estimate'] or 0),
+                "total_toll_estimate": float(result['total_toll_estimate'] or 0),
+                "efficiency_distribution": {
+                    "high_efficiency": high_efficiency,
+                    "medium_efficiency": medium_efficiency,
+                    "low_efficiency": low_efficiency
+                }
+            },
+            "time_range": time_range
+        }
+        
+    except Exception as e:
+        logger.error(f"Error fetching route performance: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 # Route Optimization Endpoints
 @app.post("/api/routes/optimize")

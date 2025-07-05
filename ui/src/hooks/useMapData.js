@@ -7,6 +7,7 @@ export const useMapData = () => {
     const [vehicles, setVehicles] = useState([]);
     const [loads, setLoads] = useState([]);
     const [drivers, setDrivers] = useState([]);
+    const [routes, setRoutes] = useState([]);
     const [dashboardData, setDashboardData] = useState({});
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -18,31 +19,29 @@ export const useMapData = () => {
         
         try {
             // Updated API endpoints to match backend
-            const [eventsRes, vehiclesRes, loadsRes, dashboardRes] = await Promise.all([
+            const [eventsRes, vehiclesRes, loadsRes, routesRes, driversRes, dashboardRes] = await Promise.all([
                 fetch(`${API_BASE}/api/events/recent`),
                 fetch(`${API_BASE}/api/vehicles`),
                 fetch(`${API_BASE}/api/loads`),
-                fetch(`${API_BASE}/api/analytics/dashboard`)
+                fetch(`${API_BASE}/api/routes`),
+                fetch(`${API_BASE}/api/drivers`),
+                fetch(`${API_BASE}/api/dashboard`)
             ]);
 
-            // Check for failed requests
-            if (!eventsRes.ok) throw new Error(`Events API failed: ${eventsRes.status}`);
-            if (!vehiclesRes.ok) throw new Error(`Vehicles API failed: ${vehiclesRes.status}`);
-            if (!loadsRes.ok) throw new Error(`Loads API failed: ${loadsRes.status}`);
-            if (!dashboardRes.ok) throw new Error(`Dashboard API failed: ${dashboardRes.status}`);
+            // Handle different response formats and check for successful responses
+            const eventsData = eventsRes.ok ? await eventsRes.json() : [];
+            const vehiclesData = vehiclesRes.ok ? await vehiclesRes.json() : [];
+            const loadsData = loadsRes.ok ? await loadsRes.json() : [];
+            const routesData = routesRes.ok ? await routesRes.json() : [];
+            const driversData = driversRes.ok ? await driversRes.json() : [];
+            const dashboardDataRes = dashboardRes.ok ? await dashboardRes.json() : {};
 
-            const [eventsData, vehiclesData, loadsData, dashboardDataRes] = await Promise.all([
-                eventsRes.json(),
-                vehiclesRes.json(),
-                loadsRes.json(),
-                dashboardRes.json()
-            ]);
-
-            // Handle different response formats
+            // Set state with proper data extraction
             setEvents(eventsData?.events || eventsData || []);
-            setVehicles(vehiclesData || []);
-            setLoads(loadsData || []);
-            setDrivers([]); // No drivers endpoint available yet
+            setVehicles(vehiclesData?.vehicles || vehiclesData || []);
+            setLoads(loadsData?.loads || loadsData || []);
+            setRoutes(routesData?.routes || routesData || []);
+            setDrivers(driversData?.drivers || driversData || []);
             setDashboardData(dashboardDataRes || {});
         } catch (err) {
             console.error('Error fetching map data:', err);
@@ -90,12 +89,26 @@ export const useMapData = () => {
         fetchMapData();
     }, [fetchMapData]);
 
+    // Fetch routes
+    const fetchRoutes = useCallback(async () => {
+        try {
+            const response = await fetch(`${API_BASE}/api/routes`);
+            if (response.ok) {
+                const data = await response.json();
+                setRoutes(data?.routes || data || []);
+            }
+        } catch (err) {
+            console.error('Error fetching routes:', err);
+        }
+    }, []);
+
     return {
         // Data
         events,
         vehicles,
         loads,
         drivers,
+        routes,
         dashboardData,
         
         // State
@@ -107,9 +120,11 @@ export const useMapData = () => {
         fetchEvents,
         fetchVehicles,
         fetchLoads,
+        fetchRoutes,
         setEvents,
         setVehicles,
         setLoads,
-        setDrivers
+        setDrivers,
+        setRoutes
     };
 };
