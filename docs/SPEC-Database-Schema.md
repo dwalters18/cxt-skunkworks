@@ -235,21 +235,64 @@ CREATE INDEX idx_load_events_occurred_at ON load_events (occurred_at);
 
 ---
 
-## 4. Neo4j Graph Schema (Relationship & Network Data)
+## 4. Neo4j Schema (Graph Data)
 
-### 4.1 Graph Database Architecture Philosophy
-
-The Neo4j graph schema models the transportation network as a living, interconnected system where relationships between entities drive intelligent decision-making. This schema enables:
-
-- **Dynamic Route Optimization**: Real-time pathfinding considering traffic, vehicle constraints, and driver preferences
-- **Network Effect Analysis**: Understanding how changes in one part of the network impact the entire system
-- **Predictive Relationship Modeling**: ML-driven predictions based on historical relationship patterns
-- **Complex Constraint Satisfaction**: Multi-dimensional optimization considering time, cost, capacity, and compliance
+### 4.1 Graph Purpose and Applications
+The Neo4j graph database serves as the relationship and network optimization layer of the TMS, enabling:
+- **Route Optimization**: Advanced pathfinding algorithms for efficient route planning
+- **Driver-Vehicle Matching**: Intelligent pairing based on proximity, capacity, and compatibility
+- **Network Analysis**: Identification of bottlenecks, hub locations, and optimization opportunities
 - **Supply Chain Network Visualization**: End-to-end visibility of goods movement across the network
 
-### 4.2 Core Node Types
+### 4.2 Event-Driven Graph Synchronization
 
-#### 4.2.1 Geographic Network Nodes
+#### 4.2.1 Real-Time Graph Population
+The Neo4j graph database is kept synchronized with PostgreSQL operational data through **event-driven synchronization** using Kafka events:
+
+**Synchronization Architecture:**
+- **Event Source**: Kafka topics (`tms.loads`, `tms.vehicles`, `tms.drivers`, `tms.routes`)
+- **Sync Service**: `GraphSyncService` processes Kafka events and updates Neo4j
+- **Integration Point**: Kafka consumer pipeline automatically invokes graph sync for all relevant events
+- **Consistency Model**: Eventually consistent - graph updates occur within seconds of operational data changes
+
+**Supported Event Types:**
+```yaml
+Load Events:
+  - LOAD_CREATED: Creates Load node with pickup/delivery locations
+  - LOAD_ASSIGNED: Creates ASSIGNED_TO relationship (Driver-Load)
+  - LOAD_PICKED_UP: Updates Load status and creates location relationships
+  - LOAD_DELIVERED: Updates Load status and delivery timestamp
+  - LOAD_CANCELLED: Updates Load status and removes active relationships
+
+Vehicle Events:
+  - VEHICLE_LOCATION_UPDATED: Updates Vehicle location and creates VISITED relationships
+  - VEHICLE_STATUS_CHANGED: Updates Vehicle availability status
+
+Driver Events:
+  - DRIVER_LOCATION_UPDATED: Updates Driver location for proximity queries
+  - DRIVER_STATUS_CHANGED: Updates Driver availability status
+
+Route Events:
+  - ROUTE_OPTIMIZED: Creates Route node with optimized path geometry
+  - ROUTE_STARTED: Creates EXECUTING relationship (Driver-Route)
+  - ROUTE_COMPLETED: Updates Route completion status
+```
+
+**Graph Update Operations:**
+- **Node Creation**: Automatic creation of missing nodes with MERGE operations
+- **Relationship Management**: Dynamic creation/removal of relationships based on business events
+- **Status Updates**: Real-time status synchronization for availability queries
+- **Location Tracking**: Continuous location updates for proximity-based optimization
+
+#### 4.2.2 Data Consistency and Error Handling
+- **Idempotent Operations**: All graph updates use MERGE operations to prevent duplicates
+- **Error Recovery**: Failed sync operations are logged with retry capability
+- **Data Validation**: Event data validated before graph updates
+- **Monitoring**: Comprehensive logging of sync operations and errors
+
+### 4.3 Core Node Types
+
+#### 4.3.1 Geographic Network Nodes
 
 ```cypher
 // Physical Locations
@@ -302,7 +345,7 @@ The Neo4j graph schema models the transportation network as a living, interconne
 })
 ```
 
-#### 4.2.2 Business Entity Nodes
+#### 4.3.2 Business Entity Nodes
 
 ```cypher
 // Enhanced Driver Profiles
@@ -412,7 +455,7 @@ The Neo4j graph schema models the transportation network as a living, interconne
 })
 ```
 
-#### 4.2.3 Operational Entity Nodes
+#### 4.3.3 Operational Entity Nodes
 
 ```cypher
 // Route Plans/Templates
@@ -461,9 +504,9 @@ The Neo4j graph schema models the transportation network as a living, interconne
 })
 ```
 
-### 4.3 Relationship Types
+### 4.4 Relationship Types
 
-#### 4.3.1 Network & Geographic Relationships
+#### 4.4.1 Network & Geographic Relationships
 
 ```cypher
 // Route Network Connections
@@ -506,7 +549,7 @@ The Neo4j graph schema models the transportation network as a living, interconne
 }]->(:Region)
 ```
 
-#### 4.3.2 Operational Relationships
+#### 4.4.2 Operational Relationships
 
 ```cypher
 // Driver-Vehicle Compatibility & Assignment
@@ -584,7 +627,7 @@ The Neo4j graph schema models the transportation network as a living, interconne
 }]->(:Route)
 ```
 
-#### 4.3.3 Performance & Historical Relationships
+#### 4.4.3 Performance & Historical Relationships
 
 ```cypher
 // Service History & Performance
@@ -647,9 +690,9 @@ The Neo4j graph schema models the transportation network as a living, interconne
 }]->(:Route)
 ```
 
-### 4.4 Advanced Graph Patterns for Optimization
+### 4.5 Advanced Graph Patterns for Optimization
 
-#### 4.4.1 Multi-Modal Transportation Networks
+#### 4.5.1 Multi-Modal Transportation Networks
 
 ```cypher
 // Intermodal Connections
@@ -673,7 +716,7 @@ The Neo4j graph schema models the transportation network as a living, interconne
 }]->(:Load)
 ```
 
-#### 4.4.2 Dynamic Constraint Networks
+#### 4.5.2 Dynamic Constraint Networks
 
 ```cypher
 // Time-Based Constraints
@@ -701,9 +744,9 @@ The Neo4j graph schema models the transportation network as a living, interconne
 }]->(:TimeWindow)
 ```
 
-### 4.5 Graph Algorithms & Use Cases
+### 4.6 Graph Algorithms & Use Cases
 
-#### 4.5.1 Route Optimization Queries
+#### 4.6.1 Route Optimization Queries
 
 ```cypher
 // Find optimal multi-stop route
@@ -730,7 +773,7 @@ ORDER BY combinedScore DESC, routeTime ASC
 LIMIT 10
 ```
 
-#### 4.5.2 Network Analysis Queries
+#### 4.6.2 Network Analysis Queries
 
 ```cypher
 // Identify bottleneck locations
@@ -1051,4 +1094,3 @@ The schema includes comprehensive attributes for operational excellence:
 - Load datetime validation ensures pickup before delivery
 - Vehicle capacity constraints prevent overloading
 - Driver hours-of-service validation maintains compliance
-

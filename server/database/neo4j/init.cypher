@@ -1,8 +1,12 @@
 // Neo4j initialization for TMS graph data
-// Create constraints and indexes
+// Create constraints for unique identifiers
 CREATE CONSTRAINT carrier_id IF NOT EXISTS FOR (c:Carrier) REQUIRE c.id IS UNIQUE;
-CREATE CONSTRAINT location_id IF NOT EXISTS FOR (l:Location) REQUIRE l.id IS UNIQUE;
+CREATE CONSTRAINT driver_id IF NOT EXISTS FOR (d:Driver) REQUIRE d.id IS UNIQUE;
+CREATE CONSTRAINT vehicle_id IF NOT EXISTS FOR (v:Vehicle) REQUIRE v.id IS UNIQUE;
+CREATE CONSTRAINT customer_id IF NOT EXISTS FOR (c:Customer) REQUIRE c.id IS UNIQUE;
+CREATE CONSTRAINT load_id IF NOT EXISTS FOR (l:Load) REQUIRE l.id IS UNIQUE;
 CREATE CONSTRAINT route_id IF NOT EXISTS FOR (r:Route) REQUIRE r.id IS UNIQUE;
+CREATE CONSTRAINT location_id IF NOT EXISTS FOR (l:Location) REQUIRE l.id IS UNIQUE;
 CREATE CONSTRAINT hub_id IF NOT EXISTS FOR (h:Hub) REQUIRE h.id IS UNIQUE;
 CREATE CONSTRAINT driver_id IF NOT EXISTS FOR (d:Driver) REQUIRE d.id IS UNIQUE;
 CREATE CONSTRAINT vehicle_id IF NOT EXISTS FOR (v:Vehicle) REQUIRE v.id IS UNIQUE;
@@ -10,10 +14,79 @@ CREATE CONSTRAINT customer_id IF NOT EXISTS FOR (cu:Customer) REQUIRE cu.id IS U
 
 // Create indexes for performance
 CREATE INDEX location_coordinates IF NOT EXISTS FOR (l:Location) ON (l.latitude, l.longitude);
+CREATE INDEX driver_status IF NOT EXISTS FOR (d:Driver) ON (d.status);
+CREATE INDEX vehicle_status IF NOT EXISTS FOR (v:Vehicle) ON (v.status);
+CREATE INDEX load_status IF NOT EXISTS FOR (l:Load) ON (l.status);
 CREATE INDEX route_distance IF NOT EXISTS FOR ()-[r:ROUTE_SEGMENT]->() ON (r.distance);
 
-// Create sample locations (major cities and hubs)
+// Create sample carriers (matching PostgreSQL data)
+CREATE
+  (carrier1:Carrier {
+    id: 'f47ac10b-58cc-4372-a567-0e02b2c3d479',
+    name: 'Austin Logistics LLC',
+    mc_number: 'MC-123456',
+    dot_number: 'DOT-789012',
+    status: 'active',
+    contact_info: {
+      phone: '512-555-0100',
+      email: 'dispatch@austinlogistics.com',
+      address: '123 Industrial Blvd, Austin, TX 78748'
+    }
+  }),
+  (carrier2:Carrier {
+    id: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
+    name: 'Texas Freight Solutions',
+    mc_number: 'MC-654321',
+    dot_number: 'DOT-210987',
+    status: 'active',
+    contact_info: {
+      phone: '512-555-0200',
+      email: 'operations@texasfreight.com',
+      address: '456 Commerce St, Austin, TX 78701'
+    }
+  });
+
+// Create sample customers (matching PostgreSQL schema)
+CREATE
+  (customer1:Customer {
+    id: 'c1a2b3c4-d5e6-f789-0123-456789abcdef',
+    customer_code: 'CUST001',
+    company_name: 'Austin Manufacturing Co',
+    contact_name: 'John Smith',
+    email: 'john.smith@austinmfg.com',
+    phone: '512-555-1000',
+    address: '789 Factory Rd, Austin, TX 78744',
+    city: 'Austin',
+    state: 'TX',
+    zipcode: '78744',
+    country: 'USA'
+  }),
+  (customer2:Customer {
+    id: 'd2b3c4d5-e6f7-8901-2345-6789abcdef01',
+    customer_code: 'CUST002',
+    company_name: 'Dallas Distribution Center',
+    contact_name: 'Sarah Johnson',
+    email: 'sarah.johnson@dallasdc.com',
+    phone: '214-555-2000',
+    address: '321 Warehouse Ave, Dallas, TX 75201',
+    city: 'Dallas',
+    state: 'TX',
+    zipcode: '75201',
+    country: 'USA'
+  });
+
+// Create locations (major cities and Austin area)
 CREATE 
+  (austin:Location {
+    id: 'LOC_AUSTIN',
+    name: 'Austin, TX',
+    city: 'Austin',
+    state: 'TX',
+    zipcode: '78701',
+    latitude: 30.2672,
+    longitude: -97.7431,
+    type: 'city'
+  }),
   (houston:Location {
     id: 'LOC_HOUSTON',
     name: 'Houston, TX',
@@ -34,34 +107,34 @@ CREATE
     longitude: -96.7970,
     type: 'city'
   }),
-  (atlanta:Location {
-    id: 'LOC_ATLANTA',
-    name: 'Atlanta, GA',
-    city: 'Atlanta',
-    state: 'GA',
-    zipcode: '30309',
-    latitude: 33.7490,
-    longitude: -84.3880,
+  (sanantonio:Location {
+    id: 'LOC_SAN_ANTONIO',
+    name: 'San Antonio, TX',
+    city: 'San Antonio',
+    state: 'TX',
+    zipcode: '78205',
+    latitude: 29.4241,
+    longitude: -98.4936,
     type: 'city'
   }),
-  (chicago:Location {
-    id: 'LOC_CHICAGO',
-    name: 'Chicago, IL',
-    city: 'Chicago',
-    state: 'IL',
-    zipcode: '60601',
-    latitude: 41.8781,
-    longitude: -87.6298,
+  (roundrock:Location {
+    id: 'LOC_ROUND_ROCK',
+    name: 'Round Rock, TX',
+    city: 'Round Rock',
+    state: 'TX',
+    zipcode: '78664',
+    latitude: 30.5082,
+    longitude: -97.6789,
     type: 'city'
   }),
-  (losangeles:Location {
-    id: 'LOC_LOS_ANGELES',
-    name: 'Los Angeles, CA',
-    city: 'Los Angeles',
-    state: 'CA',
-    zipcode: '90012',
-    latitude: 34.0522,
-    longitude: -118.2437,
+  (cedarpark:Location {
+    id: 'LOC_CEDAR_PARK',
+    name: 'Cedar Park, TX',
+    city: 'Cedar Park',
+    state: 'TX',
+    zipcode: '78613',
+    latitude: 30.5052,
+    longitude: -97.8203,
     type: 'city'
   }),
   (newyork:Location {
@@ -125,31 +198,70 @@ CREATE
     type: 'city'
   });
 
-// Create transportation hubs
-CREATE 
-  (houston_hub:Hub {
-    id: 'HUB_HOUSTON_001',
-    name: 'Houston Distribution Hub',
-    location_id: 'LOC_HOUSTON',
-    capacity: 1000,
-    hub_type: 'distribution',
-    operating_hours: '24/7'
+// Create sample loads (matching PostgreSQL data)
+CREATE
+  (load1:Load {
+    id: 'l1010101-2020-3030-4040-505050505050',
+    load_number: 'LD001',
+    customer_id: 'c1a2b3c4-d5e6-f789-0123-456789abcdef',
+    origin_location: 'LOC_AUSTIN',
+    destination_location: 'LOC_HOUSTON',
+    pickup_date: datetime('2024-01-15T08:00:00Z'),
+    delivery_date: datetime('2024-01-15T15:00:00Z'),
+    weight: 25000,
+    commodity: 'Electronics',
+    value: 150000.00,
+    rate: 850.00,
+    status: 'assigned',
+    assigned_driver_id: 'd1234567-89ab-cdef-0123-456789abcdef',
+    assigned_vehicle_id: 'v1111111-2222-3333-4444-555555555555'
   }),
-  (atlanta_hub:Hub {
-    id: 'HUB_ATLANTA_001',
-    name: 'Atlanta Logistics Center',
-    location_id: 'LOC_ATLANTA',
-    capacity: 1500,
-    hub_type: 'cross_dock',
-    operating_hours: '5AM-11PM'
+  (load2:Load {
+    id: 'l2020202-3030-4040-5050-606060606060',
+    load_number: 'LD002',
+    customer_id: 'd2b3c4d5-e6f7-8901-2345-6789abcdef01',
+    origin_location: 'LOC_DALLAS',
+    destination_location: 'LOC_SAN_ANTONIO',
+    pickup_date: datetime('2024-01-16T09:00:00Z'),
+    delivery_date: datetime('2024-01-16T16:00:00Z'),
+    weight: 18500,
+    commodity: 'Building Materials',
+    value: 45000.00,
+    rate: 625.00,
+    status: 'in_transit',
+    assigned_driver_id: 'd2345678-9abc-def0-1234-56789abcdef0',
+    assigned_vehicle_id: 'v2222222-3333-4444-5555-666666666666'
+  });
+
+// Create sample routes
+CREATE
+  (route1:Route {
+    id: 'r1a1a1a1-b2b2-c3c3-d4d4-e5e5e5e5e5e5',
+    route_name: 'Austin-Houston Express',
+    route_type: 'REGULAR',
+    load_id: 'l1010101-2020-3030-4040-505050505050',
+    driver_id: 'd1234567-89ab-cdef-0123-456789abcdef',
+    vehicle_id: 'v1111111-2222-3333-4444-555555555555',
+    origin_location: 'LOC_AUSTIN',
+    destination_location: 'LOC_HOUSTON',
+    total_distance: 165.0,
+    estimated_duration: 180,
+    fuel_cost_estimate: 45.50,
+    status: 'active'
   }),
-  (chicago_hub:Hub {
-    id: 'HUB_CHICAGO_001',
-    name: 'Chicago Regional Hub',
-    location_id: 'LOC_CHICAGO',
-    capacity: 2000,
-    hub_type: 'regional',
-    operating_hours: '24/7'
+  (route2:Route {
+    id: 'r2b2b2b2-c3c3-d4d4-e5e5-f6f6f6f6f6f6',
+    route_name: 'Dallas-San Antonio Direct',
+    route_type: 'SPOT',
+    load_id: 'l2020202-3030-4040-5050-606060606060',
+    driver_id: 'd2345678-9abc-def0-1234-56789abcdef0',
+    vehicle_id: 'v2222222-3333-4444-5555-666666666666',
+    origin_location: 'LOC_DALLAS',
+    destination_location: 'LOC_SAN_ANTONIO',
+    total_distance: 275.0,
+    estimated_duration: 300,
+    fuel_cost_estimate: 72.25,
+    status: 'in_progress'
   });
 
 // Create carriers aligned with PostgreSQL IDs
@@ -227,20 +339,198 @@ CREATE
     carrier_id: '00000000-0000-0000-0000-000000000001'
   });
 
-// Link hubs to their locations
-MATCH (h:Hub), (l:Location)
-WHERE h.location_id = l.id
-CREATE (h)-[:LOCATED_AT]->(l);
+// Route relationships
+CREATE
+  (route1)-[:INCLUDES_STOP {
+    stop_sequence: 1,
+    stop_type: 'PICKUP',
+    estimated_arrival: datetime('2024-01-15T08:00:00Z'),
+    service_time_minutes: 60
+  }]->(austin),
+  (route1)-[:INCLUDES_STOP {
+    stop_sequence: 2,
+    stop_type: 'DELIVERY',
+    estimated_arrival: datetime('2024-01-15T15:00:00Z'),
+    service_time_minutes: 45
+  }]->(houston),
+  (route2)-[:INCLUDES_STOP {
+    stop_sequence: 1,
+    stop_type: 'PICKUP',
+    estimated_arrival: datetime('2024-01-16T09:00:00Z'),
+    service_time_minutes: 75
+  }]->(dallas),
+  (route2)-[:INCLUDES_STOP {
+    stop_sequence: 2,
+    stop_type: 'DELIVERY',
+    estimated_arrival: datetime('2024-01-16T16:00:00Z'),
+    service_time_minutes: 60
+  }]->(sanantonio);
 
-// Create route segments between major locations
-MATCH (houston:Location {id: 'LOC_HOUSTON'}), (dallas:Location {id: 'LOC_DALLAS'})
-CREATE (houston)-[:ROUTE_SEGMENT {
-  distance: 239.1,
-  estimated_time: 240,
-  highway: 'I-45',
-  toll_cost: 15.50,
-  traffic_level: 'moderate'
-}]->(dallas);
+// Vehicle-Route assignments
+CREATE
+  (vehicle1)-[:FOLLOWS_ROUTE {
+    route_start: datetime('2024-01-15T06:30:00Z'),
+    route_end: datetime('2024-01-15T16:30:00Z')
+  }]->(route1),
+  (vehicle2)-[:FOLLOWS_ROUTE {
+    route_start: datetime('2024-01-16T07:30:00Z'),
+    route_end: datetime('2024-01-16T17:30:00Z')
+  }]->(route2);
+
+// Hub relationships
+CREATE
+  (hub_austin)-[:LOCATED_AT]->(austin),
+  (hub_houston)-[:LOCATED_AT]->(houston),
+  (hub_dallas)-[:LOCATED_AT]->(dallas);
+
+// Create basic route connections between locations
+CREATE
+  (austin)-[:ROUTE_SEGMENT {
+    distance: 165.0,
+    travel_time: 180,
+    highway: 'I-10',
+    toll_cost: 0.0,
+    fuel_cost_estimate: 45.50,
+    road_type: 'HIGHWAY',
+    traffic_patterns: {morning_rush: 1.2, evening_rush: 1.3, normal: 1.0}
+  }]->(houston),
+  (houston)-[:ROUTE_SEGMENT {
+    distance: 165.0,
+    travel_time: 180,
+    highway: 'I-10',
+    toll_cost: 0.0,
+    fuel_cost_estimate: 45.50,
+    road_type: 'HIGHWAY',
+    traffic_patterns: {morning_rush: 1.2, evening_rush: 1.3, normal: 1.0}
+  }]->(austin),
+  (austin)-[:ROUTE_SEGMENT {
+    distance: 195.0,
+    travel_time: 210,
+    highway: 'I-35',
+    toll_cost: 0.0,
+    fuel_cost_estimate: 52.75,
+    road_type: 'HIGHWAY',
+    traffic_patterns: {morning_rush: 1.4, evening_rush: 1.5, normal: 1.0}
+  }]->(dallas),
+  (dallas)-[:ROUTE_SEGMENT {
+    distance: 195.0,
+    travel_time: 210,
+    highway: 'I-35',
+    toll_cost: 0.0,
+    fuel_cost_estimate: 52.75,
+    road_type: 'HIGHWAY',
+    traffic_patterns: {morning_rush: 1.4, evening_rush: 1.5, normal: 1.0}
+  }]->(austin),
+  (dallas)-[:ROUTE_SEGMENT {
+    distance: 275.0,
+    travel_time: 300,
+    highway: 'I-35',
+    toll_cost: 0.0,
+    fuel_cost_estimate: 72.25,
+    road_type: 'HIGHWAY',
+    traffic_patterns: {morning_rush: 1.1, evening_rush: 1.2, normal: 1.0}
+  }]->(sanantonio),
+  (sanantonio)-[:ROUTE_SEGMENT {
+    distance: 275.0,
+    travel_time: 300,
+    highway: 'I-35',
+    toll_cost: 0.0,
+    fuel_cost_estimate: 72.25,
+    road_type: 'HIGHWAY',
+    traffic_patterns: {morning_rush: 1.1, evening_rush: 1.2, normal: 1.0}
+  }]->(dallas),
+  (houston)-[:ROUTE_SEGMENT {
+    distance: 240.0,
+    travel_time: 265,
+    highway: 'I-45',
+    toll_cost: 0.0,
+    fuel_cost_estimate: 65.00,
+    road_type: 'HIGHWAY',
+    traffic_patterns: {morning_rush: 1.3, evening_rush: 1.4, normal: 1.0}
+  }]->(dallas),
+  (dallas)-[:ROUTE_SEGMENT {
+    distance: 240.0,
+    travel_time: 265,
+    highway: 'I-45',
+    toll_cost: 0.0,
+    fuel_cost_estimate: 65.00,
+    road_type: 'HIGHWAY',
+    traffic_patterns: {morning_rush: 1.3, evening_rush: 1.4, normal: 1.0}
+  }]->(houston);
+
+// Add Austin area local connections
+CREATE
+  (austin)-[:ROUTE_SEGMENT {
+    distance: 20.0,
+    travel_time: 25,
+    highway: 'I-35',
+    toll_cost: 0.0,
+    fuel_cost_estimate: 5.50,
+    road_type: 'ARTERIAL'
+  }]->(roundrock),
+  (roundrock)-[:ROUTE_SEGMENT {
+    distance: 20.0,
+    travel_time: 25,
+    highway: 'I-35',
+    toll_cost: 0.0,
+    fuel_cost_estimate: 5.50,
+    road_type: 'ARTERIAL'
+  }]->(austin),
+  (austin)-[:ROUTE_SEGMENT {
+    distance: 18.0,
+    travel_time: 22,
+    highway: 'US-183',
+    toll_cost: 0.0,
+    fuel_cost_estimate: 4.90,
+    road_type: 'ARTERIAL'
+  }]->(cedarpark),
+  (cedarpark)-[:ROUTE_SEGMENT {
+    distance: 18.0,
+    travel_time: 22,
+    highway: 'US-183',
+    toll_cost: 0.0,
+    fuel_cost_estimate: 4.90,
+    road_type: 'ARTERIAL'
+  }]->(austin);
+
+// Performance and historical relationships
+CREATE
+  (driver1)-[:HAS_SERVED {
+    service_date: date('2024-01-10'),
+    load_id: 'previous_load_001',
+    on_time_pickup: true,
+    on_time_delivery: true,
+    customer_rating: 4.8,
+    fuel_efficiency: 7.2,
+    distance_driven: 165.0
+  }]->(houston),
+  (driver2)-[:HAS_SERVED {
+    service_date: date('2024-01-12'),
+    load_id: 'previous_load_002',
+    on_time_pickup: true,
+    on_time_delivery: false,
+    customer_rating: 4.2,
+    fuel_efficiency: 6.8,
+    distance_driven: 275.0
+  }]->(sanantonio);
+
+// Nearby location relationships for optimization
+CREATE
+  (austin)-[:NEARBY_LOCATION {
+    distance: 20.0,
+    travel_time: 25,
+    accessibility_score: 0.9
+  }]->(roundrock),
+  (austin)-[:NEARBY_LOCATION {
+    distance: 18.0,
+    travel_time: 22,
+    accessibility_score: 0.85
+  }]->(cedarpark),
+  (roundrock)-[:NEARBY_LOCATION {
+    distance: 12.0,
+    travel_time: 15,
+    accessibility_score: 0.75
+  }]->(cedarpark);
 
 MATCH (houston:Location {id: 'LOC_HOUSTON'}), (atlanta:Location {id: 'LOC_ATLANTA'})
 CREATE (houston)-[:ROUTE_SEGMENT {

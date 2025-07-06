@@ -8,6 +8,8 @@ import logging
 from datetime import datetime
 
 from models.events import BaseEvent, EventType, EVENT_TYPE_MAPPING
+from services.graph_sync_service import GraphSyncService
+from database.connections import DatabaseManager
 
 logger = logging.getLogger(__name__)
 
@@ -21,13 +23,20 @@ class TMSEventConsumer:
     def __init__(self, 
                  bootstrap_servers: str,
                  group_id: str,
-                 topics: List[str] = None):
+                 topics: List[str] = None,
+                 db_manager: Optional[DatabaseManager] = None):
         self.bootstrap_servers = bootstrap_servers
         self.group_id = group_id
         self.topics = topics or self._get_default_topics()
         self.consumer: Optional[AIOKafkaConsumer] = None
         self._handlers: Dict[EventType, List[EventHandler]] = {}
         self._running = False
+        
+        # Initialize graph sync service if database manager is provided
+        self.graph_sync_service = None
+        if db_manager:
+            self.graph_sync_service = GraphSyncService(db_manager)
+            logger.info("Graph sync service initialized for Neo4j event-driven updates")
     
     def _get_default_topics(self) -> List[str]:
         """Get default topics to subscribe to"""
@@ -98,67 +107,39 @@ class TMSEventConsumer:
         self._handlers[event_type].append(handler)
         logger.info(f"Registered handler for {event_type}")
     
-    def unregister_handler(self, event_type: EventType, handler: EventHandler):
-        """Unregister an event handler"""
-        if event_type in self._handlers and handler in self._handlers[event_type]:
-            self._handlers[event_type].remove(handler)
-            if not self._handlers[event_type]:
-                del self._handlers[event_type]
-            logger.info(f"Unregistered handler for {event_type}")
-    
-    async def _parse_event(self, message) -> Optional[BaseEvent]:
-        """Parse a Kafka message into a TMS event"""
+    async def _process_message(self, message):
+        """Process a single Kafka message"""
         try:
-            # Get event type from headers
-            event_type_header = None
-            if message.headers:
-                for key, value in message.headers:
-                    if key == 'event_type':
-                        event_type_header = value.decode('utf-8')
-                        break
+            # Parse message
+            message_data = json.loads(message.value.decode('utf-8'))
+            event_type = EventType(message_data.get('event_type'))
             
-            if not event_type_header:
-                logger.warning("Message missing event_type header")
-                return None
-            
-            # Map to EventType enum
-            try:
-                event_type = EventType(event_type_header)
-            except ValueError:
-                logger.warning(f"Unknown event type: {event_type_header}")
-                return None
-            
-            # Get the appropriate event class
+            # Create event object
             event_class = EVENT_TYPE_MAPPING.get(event_type, BaseEvent)
+            event = event_class(**message_data)
             
-            # Parse the message value
-            event_data = message.value
-            if not isinstance(event_data, dict):
-                logger.warning("Message value is not a dictionary")
-                return None
+            logger.debug(f"Processing {event_type} event: {event.event_id}")
             
-            # Create the event object
-            event = event_class(**event_data)
-            return event
+            # Process with registered handlers
+            handlers = self._handlers.get(event_type, [])
+            for handler in handlers:
+                try:
+                    await handler(event)
+                except Exception as e:
+                    logger.error(f"Handler error for {event_type}: {e}")
+            
+            # **NEW: Process with graph sync service if available**
+            if self.graph_sync_service:
+                try:
+                    await self.graph_sync_service.handle_event(event)
+                except Exception as e:
+                    logger.error(f"Graph sync error for {event_type}: {e}")
+            
+            logger.debug(f"Successfully processed {event_type} event")
             
         except Exception as e:
-            logger.error(f"Failed to parse event from message: {e}")
-            return None
-    
-    async def _handle_event(self, event: BaseEvent):
-        """Handle an event by calling registered handlers"""
-        handlers = self._handlers.get(event.event_type, [])
-        
-        if not handlers:
-            logger.debug(f"No handlers registered for {event.event_type}")
-            return
-        
-        # Execute all handlers for this event type
-        for handler in handlers:
-            try:
-                await handler(event)
-            except Exception as e:
-                logger.error(f"Error in event handler for {event.event_type}: {e}")
+            logger.error(f"Error processing message: {e}")
+            logger.error(f"Message content: {message.value}")
     
     async def consume_events(self):
         """Main event consumption loop"""
@@ -178,11 +159,8 @@ class TMSEventConsumer:
                     f"at offset {message.offset}"
                 )
                 
-                # Parse the event
-                event = await self._parse_event(message)
-                if event:
-                    # Handle the event
-                    await self._handle_event(event)
+                # Process the message
+                await self._process_message(message)
                 
         except Exception as e:
             logger.error(f"Error in event consumption loop: {e}")
@@ -197,101 +175,69 @@ class TMSEventConsumer:
             await self.stop()
 
 
-# Event Handlers
 class TMSEventHandlers:
     """Collection of TMS event handlers"""
     
     @staticmethod
     async def handle_load_created(event: BaseEvent):
         """Handle load created events"""
-        logger.info(f"Processing load created: {event.data}")
-        
-        # Here you would typically:
-        # 1. Validate the load data
-        # 2. Store in database
-        # 3. Trigger load matching algorithms
-        # 4. Send notifications
-        
+        logger.info(f"Load created: {event.data.get('id', 'unknown')}")
+        # Additional business logic can be added here
+    
     @staticmethod
     async def handle_load_assigned(event: BaseEvent):
         """Handle load assignment events"""
-        logger.info(f"Processing load assignment: {event.data}")
-        
-        # Here you would typically:
-        # 1. Update load status in database
-        # 2. Notify carrier/driver
-        # 3. Create route optimization task
-        # 4. Update capacity planning
+        logger.info(f"Load assigned: {event.data.get('load_id', 'unknown')} to driver {event.data.get('driver_id', 'unknown')}")
+        # Additional business logic can be added here
     
-    @staticmethod
+    @staticmethod 
     async def handle_vehicle_location_update(event: BaseEvent):
         """Handle vehicle location updates"""
-        logger.debug(f"Processing vehicle location update: {event.data}")
-        
-        # Here you would typically:
-        # 1. Store in TimescaleDB
-        # 2. Check for route deviations
-        # 3. Update ETAs
-        # 4. Trigger geofence alerts
+        vehicle_id = event.data.get('vehicle_id', 'unknown')
+        location = event.location
+        if location:
+            logger.debug(f"Vehicle {vehicle_id} location updated: {location.latitude}, {location.longitude}")
+        # Additional business logic can be added here
     
     @staticmethod
     async def handle_route_deviation(event: BaseEvent):
         """Handle route deviation alerts"""
         logger.warning(f"Route deviation detected: {event.data}")
-        
-        # Here you would typically:
-        # 1. Alert dispatchers
-        # 2. Recalculate routes
-        # 3. Update customer notifications
-        # 4. Log for analytics
+        # Additional alerting logic can be added here
     
     @staticmethod
     async def handle_ai_prediction(event: BaseEvent):
         """Handle AI predictions"""
-        logger.info(f"AI prediction received: {event.data}")
-        
-        # Here you would typically:
-        # 1. Store prediction results
-        # 2. Trigger preventive actions
-        # 3. Update dashboards
-        # 4. Feed back to ML models
+        prediction_type = event.data.get('prediction_type', 'unknown')
+        logger.info(f"AI Prediction received: {prediction_type}")
+        # Additional AI processing logic can be added here
 
 
 # Default consumer instance
 _consumer: Optional[TMSEventConsumer] = None
 
-
-async def get_consumer(group_id: str = "tms-api-group") -> TMSEventConsumer:
-    """Get the global consumer instance"""
+async def get_consumer(group_id: str = "tms-api-group", 
+                      db_manager: Optional[DatabaseManager] = None) -> TMSEventConsumer:
+    """Get the global consumer instance with graph sync capabilities"""
     global _consumer
-    logger.info(f"=== KAFKA CONSUMER INITIALIZATION START ===")
     
     if _consumer is None:
         import os
         bootstrap_servers = os.getenv("KAFKA_BOOTSTRAP_SERVERS", "localhost:9092")
-        logger.info(f"Consumer Config: bootstrap_servers={bootstrap_servers}, group_id={group_id}")
+        _consumer = TMSEventConsumer(
+            bootstrap_servers=bootstrap_servers,
+            group_id=group_id,
+            db_manager=db_manager  # Enable graph sync if db_manager provided
+        )
         
-        logger.info("Creating TMSEventConsumer instance...")
-        _consumer = TMSEventConsumer(bootstrap_servers, group_id)
-        logger.info("TMSEventConsumer instance created successfully")
-        
-        # Register default handlers
-        logger.info("Registering default event handlers...")
+        # Register default event handlers
         handlers = TMSEventHandlers()
-        logger.info("- Registering LOAD_CREATED handler")
         _consumer.register_handler(EventType.LOAD_CREATED, handlers.handle_load_created)
-        logger.info("- Registering LOAD_ASSIGNED handler")
         _consumer.register_handler(EventType.LOAD_ASSIGNED, handlers.handle_load_assigned)
-        logger.info("- Registering VEHICLE_LOCATION_UPDATED handler")
         _consumer.register_handler(EventType.VEHICLE_LOCATION_UPDATED, handlers.handle_vehicle_location_update)
-        logger.info("- Registering ROUTE_DEVIATION handler")
         _consumer.register_handler(EventType.ROUTE_DEVIATION, handlers.handle_route_deviation)
-        logger.info("- Registering AI_PREDICTION handler")
         _consumer.register_handler(EventType.AI_PREDICTION, handlers.handle_ai_prediction)
-        logger.info("All event handlers registered successfully")
         
-    else:
-        logger.info("Using existing consumer instance")
+        logger.info("TMSEventConsumer initialized with graph sync capabilities")
     
-    logger.info(f"=== KAFKA CONSUMER INITIALIZATION COMPLETE ===")
     return _consumer
