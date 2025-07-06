@@ -204,8 +204,8 @@ const LoadsPage = () => {
 
             {/* Loads Grid */}
             <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-                {loads.map((load) => (
-                    <div key={load.load_id} className="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow duration-200">
+                {loads.map((load, index) => (
+                    <div key={load.load_id || `load-${index}`} className="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow duration-200">
                         <div className="flex items-start justify-between mb-4">
                             <div>
                                 <h3 className="text-lg font-bold text-gray-900">{load.load_number || `Load #${load.load_id.slice(-8)}`}</h3>

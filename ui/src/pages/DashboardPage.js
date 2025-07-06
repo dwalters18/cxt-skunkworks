@@ -16,7 +16,7 @@ const DashboardPage = () => {
             setError(null);
             
             // Fetch dashboard summary
-            const dashboardResponse = await fetch(`${API_BASE}/api/dashboard`);
+            const dashboardResponse = await fetch(`${API_BASE}/api/analytics/dashboard`);
             if (!dashboardResponse.ok) throw new Error('Failed to fetch dashboard data');
             const dashboardData = await dashboardResponse.json();
             setDashboardData(dashboardData);
@@ -50,6 +50,7 @@ const DashboardPage = () => {
     };
 
     const formatPercentage = (value) => {
+        if (value == null || isNaN(value)) return '0%';
         return `${Math.round(value * 100)}%`;
     };
 
@@ -107,7 +108,7 @@ const DashboardPage = () => {
                             <span className="text-2xl">📦</span>
                         </div>
                         <div className="text-3xl font-bold text-blue-600 mb-2">
-                            {dashboardData.active_loads || dashboardData.total_loads - dashboardData.loads_delivered}
+                            {dashboardData.active_loads || (dashboardData.total_loads || 0) - (dashboardData.loads_delivered || 0) || 0}
                         </div>
                         <div className="text-sm text-blue-600">
                             {dashboardData.loads_in_transit || 0} in transit
@@ -120,10 +121,14 @@ const DashboardPage = () => {
                             <span className="text-2xl">🚛</span>
                         </div>
                         <div className="text-3xl font-bold text-green-600 mb-2">
-                            {formatPercentage((dashboardData.active_vehicles / dashboardData.total_vehicles) || 0.85)}
+                            {formatPercentage(
+                                (dashboardData.total_vehicles && dashboardData.total_vehicles > 0) 
+                                    ? (dashboardData.active_vehicles || 0) / dashboardData.total_vehicles 
+                                    : 0.85
+                            )}
                         </div>
                         <div className="text-sm text-green-600">
-                            {dashboardData.active_vehicles} of {dashboardData.total_vehicles} active
+                            {dashboardData.active_vehicles || 0} of {dashboardData.total_vehicles || 0} active
                         </div>
                     </div>
 
@@ -146,10 +151,14 @@ const DashboardPage = () => {
                             <span className="text-2xl">👨‍💼</span>
                         </div>
                         <div className="text-3xl font-bold text-purple-600 mb-2">
-                            {formatPercentage((dashboardData.active_drivers / dashboardData.total_drivers) || 0.78)}
+                            {formatPercentage(
+                                (dashboardData.total_drivers && dashboardData.total_drivers > 0) 
+                                    ? (dashboardData.active_drivers || 0) / dashboardData.total_drivers 
+                                    : 0.78
+                            )}
                         </div>
                         <div className="text-sm text-purple-600">
-                            {dashboardData.active_drivers} of {dashboardData.total_drivers} active
+                            {dashboardData.active_drivers || 0} of {dashboardData.total_drivers || 0} active
                         </div>
                     </div>
                 </div>

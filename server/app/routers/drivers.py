@@ -70,13 +70,13 @@ async def get_drivers(
         conditions = []
         params = []
         
-        if status:
-            conditions.append("status = $1")
-            params.append(status)
-            
+        # Handle status filtering - available_only takes precedence
         if available_only:
-            conditions.append("status = $1")
+            conditions.append(f"status = ${len(params) + 1}")
             params.append("AVAILABLE")
+        elif status:
+            conditions.append(f"status = ${len(params) + 1}")
+            params.append(status)
         
         # Get drivers using the proper driver repository
         drivers = await driver_repo.get_drivers(conditions, params, limit, offset)

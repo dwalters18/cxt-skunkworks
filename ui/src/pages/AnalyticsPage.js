@@ -11,7 +11,7 @@ const AnalyticsPage = () => {
 
     const fetchDashboardData = async () => {
         try {
-            const response = await fetch(`${API_BASE}/api/dashboard`);
+            const response = await fetch(`${API_BASE}/api/analytics/dashboard`);
             if (!response.ok) throw new Error('Failed to fetch dashboard data');
             
             const data = await response.json();
@@ -23,7 +23,7 @@ const AnalyticsPage = () => {
 
     const fetchPerformanceData = async () => {
         try {
-            const response = await fetch(`${API_BASE}/api/performance?period=${timeFilter}`);
+            const response = await fetch(`${API_BASE}/api/routes/performance?time_range=${timeFilter}`);
             if (!response.ok) throw new Error('Failed to fetch performance data');
             
             const data = await response.json();

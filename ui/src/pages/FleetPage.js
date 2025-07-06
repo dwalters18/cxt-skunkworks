@@ -183,8 +183,8 @@ const FleetPage = () => {
 
             {/* Vehicles Grid */}
             <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-                {vehicles.map((vehicle) => (
-                    <div key={vehicle.vehicle_id} className="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow duration-200">
+                {vehicles.map((vehicle, index) => (
+                    <div key={vehicle.vehicle_id || `vehicle-${index}`} className="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow duration-200">
                         <div className="flex items-start justify-between mb-4">
                             <div>
                                 <h3 className="text-lg font-bold text-gray-900">{vehicle.vehicle_number}</h3>

@@ -25,7 +25,7 @@ export const useMapData = () => {
                 fetch(`${API_BASE}/api/loads`),
                 fetch(`${API_BASE}/api/routes`),
                 fetch(`${API_BASE}/api/drivers`),
-                fetch(`${API_BASE}/api/dashboard`)
+                fetch(`${API_BASE}/api/analytics/dashboard`)
             ]);
 
             // Handle different response formats and check for successful responses

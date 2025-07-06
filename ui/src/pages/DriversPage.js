@@ -132,8 +132,8 @@ const DriversPage = () => {
 
             {/* Drivers Grid */}
             <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-                {drivers.map((driver) => (
-                    <div key={driver.driver_id} className="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow duration-200">
+                {drivers.map((driver, index) => (
+                    <div key={driver.driver_id || `driver-${index}`} className="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow duration-200">
                         <div className="flex items-start justify-between mb-4">
                             <div>
                                 <h3 className="text-lg font-bold text-gray-900">{driver.name}</h3>

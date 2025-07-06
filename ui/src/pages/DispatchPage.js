@@ -11,14 +11,14 @@ const DispatchPage = () => {
     const fetchDispatchStats = async () => {
         try {
             // Fetch dashboard data for active loads
-            const dashboardResponse = await fetch(`${API_BASE}/api/dashboard`);
+            const dashboardResponse = await fetch(`${API_BASE}/api/analytics/dashboard`);
             if (dashboardResponse.ok) {
                 const data = await dashboardResponse.json();
                 setDashboardData(data);
             }
 
             // Fetch performance data for route optimization stats
-            const performanceResponse = await fetch(`${API_BASE}/api/performance?days=1`);
+            const performanceResponse = await fetch(`${API_BASE}/api/routes/performance?time_range=24h`);
             if (performanceResponse.ok) {
                 const data = await performanceResponse.json();
                 setPerformance(data);
