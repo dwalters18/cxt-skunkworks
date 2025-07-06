@@ -4,6 +4,9 @@ CREATE CONSTRAINT carrier_id IF NOT EXISTS FOR (c:Carrier) REQUIRE c.id IS UNIQU
 CREATE CONSTRAINT location_id IF NOT EXISTS FOR (l:Location) REQUIRE l.id IS UNIQUE;
 CREATE CONSTRAINT route_id IF NOT EXISTS FOR (r:Route) REQUIRE r.id IS UNIQUE;
 CREATE CONSTRAINT hub_id IF NOT EXISTS FOR (h:Hub) REQUIRE h.id IS UNIQUE;
+CREATE CONSTRAINT driver_id IF NOT EXISTS FOR (d:Driver) REQUIRE d.id IS UNIQUE;
+CREATE CONSTRAINT vehicle_id IF NOT EXISTS FOR (v:Vehicle) REQUIRE v.id IS UNIQUE;
+CREATE CONSTRAINT customer_id IF NOT EXISTS FOR (cu:Customer) REQUIRE cu.id IS UNIQUE;
 
 // Create indexes for performance
 CREATE INDEX location_coordinates IF NOT EXISTS FOR (l:Location) ON (l.latitude, l.longitude);
@@ -70,6 +73,56 @@ CREATE
     latitude: 40.7128,
     longitude: -74.0060,
     type: 'city'
+  }),
+  (austin:Location {
+    id: 'LOC_AUSTIN',
+    name: 'Austin, TX',
+    city: 'Austin',
+    state: 'TX',
+    zipcode: '78701',
+    latitude: 30.2672,
+    longitude: -97.7431,
+    type: 'city'
+  }),
+  (roundrock:Location {
+    id: 'LOC_ROUND_ROCK',
+    name: 'Round Rock, TX',
+    city: 'Round Rock',
+    state: 'TX',
+    zipcode: '78664',
+    latitude: 30.5077,
+    longitude: -97.6890,
+    type: 'city'
+  }),
+  (pflugerville:Location {
+    id: 'LOC_PFLUGERVILLE',
+    name: 'Pflugerville, TX',
+    city: 'Pflugerville',
+    state: 'TX',
+    zipcode: '78660',
+    latitude: 30.3872,
+    longitude: -97.6231,
+    type: 'city'
+  }),
+  (buda:Location {
+    id: 'LOC_BUDA',
+    name: 'Buda, TX',
+    city: 'Buda',
+    state: 'TX',
+    zipcode: '78610',
+    latitude: 30.1272,
+    longitude: -97.6631,
+    type: 'city'
+  }),
+  (georgetown:Location {
+    id: 'LOC_GEORGETOWN',
+    name: 'Georgetown, TX',
+    city: 'Georgetown',
+    state: 'TX',
+    zipcode: '78626',
+    latitude: 30.5172,
+    longitude: -97.6831,
+    type: 'city'
   });
 
 // Create transportation hubs
@@ -99,23 +152,79 @@ CREATE
     operating_hours: '24/7'
   });
 
-// Create carriers
-CREATE 
-  (abc_transport:Carrier {
-    id: 'CARRIER_ABC',
-    name: 'ABC Transportation',
-    mc_number: 'MC123456',
-    dot_number: 'DOT789012',
-    fleet_size: 50,
-    service_areas: ['TX', 'LA', 'AR', 'OK']
+// Create carriers aligned with PostgreSQL IDs
+CREATE
+  (swift:Carrier {
+    id: '00000000-0000-0000-0000-000000000001',
+    name: 'Swift Transportation',
+    mc_number: 'MC-123456',
+    dot_number: 'DOT-987654'
   }),
-  (xyz_logistics:Carrier {
-    id: 'CARRIER_XYZ',
-    name: 'XYZ Logistics',
-    mc_number: 'MC234567',
-    dot_number: 'DOT890123',
-    fleet_size: 75,
-    service_areas: ['TX', 'GA', 'FL', 'AL', 'MS']
+  (schneider:Carrier {
+    id: '00000000-0000-0000-0000-000000000002',
+    name: 'Schneider National',
+    mc_number: 'MC-234567',
+    dot_number: 'DOT-876543'
+  }),
+  (jbhunt:Carrier {
+    id: '00000000-0000-0000-0000-000000000003',
+    name: 'J.B. Hunt Transport',
+    mc_number: 'MC-345678',
+    dot_number: 'DOT-765432'
+  });
+
+// Create customers
+CREATE
+  (acme:Customer {
+    id: '10000000-0000-0000-0000-000000000001',
+    customer_code: 'CUST001',
+    company_name: 'Acme Logistics'
+  }),
+  (global:Customer {
+    id: '10000000-0000-0000-0000-000000000002',
+    customer_code: 'CUST002',
+    company_name: 'Global Freight Solutions'
+  }),
+  (premier:Customer {
+    id: '10000000-0000-0000-0000-000000000003',
+    customer_code: 'CUST003',
+    company_name: 'Premier Shipping Co'
+  });
+
+// Create vehicles
+CREATE
+  (:Vehicle {
+    id: '20000000-0000-0000-0000-000000000001',
+    vehicle_number: 'SWIFT001',
+    carrier_id: '00000000-0000-0000-0000-000000000001'
+  }),
+  (:Vehicle {
+    id: '20000000-0000-0000-0000-000000000002',
+    vehicle_number: 'SCH001',
+    carrier_id: '00000000-0000-0000-0000-000000000002'
+  }),
+  (:Vehicle {
+    id: '20000000-0000-0000-0000-000000000003',
+    vehicle_number: 'JBH001',
+    carrier_id: '00000000-0000-0000-0000-000000000003'
+  });
+
+// Create drivers
+CREATE
+  (:Driver {
+    id: 'd1f8b2c4-5e6f-4a7b-8c9d-0e1f2a3b4c5d',
+    name: 'Robert Wilson',
+    carrier_id: '00000000-0000-0000-0000-000000000001'
+  }),
+  (:Driver {
+    id: 'a4c1e5f7-8b9c-7d0e-1f2a-3b4c5d6e7f8a',
+    name: 'Maria Garcia',
+    carrier_id: '00000000-0000-0000-0000-000000000001'
+  }),
+  (:Driver {
+    id: 'c6e3a9b1-0d2f-9e4c-5d6e-7f8a9b0c1d2e',
+    name: 'Carlos Rodriguez',
+    carrier_id: '00000000-0000-0000-0000-000000000001'
   });
 
 // Link hubs to their locations
