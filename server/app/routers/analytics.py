@@ -1,8 +1,11 @@
 """Analytics and dashboard endpoints for TMS API."""
 from fastapi import APIRouter, HTTPException, Depends
+from typing import Optional, List
 import logging
 
-from dependencies import get_load_repo, get_timescale_repo
+from dependencies import get_load_repo, get_timescale_repo, get_neo4j_repo
+from services.graph_query_service import get_graph_query_service
+from models.domain import OptimalDriverVehiclePairsRequest
 
 logger = logging.getLogger(__name__)
 
@@ -243,3 +246,192 @@ async def get_carrier_performance(
     except Exception as e:
         logger.error(f"Error retrieving carrier performance: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to retrieve carrier performance: {str(e)}")
+
+
+# Advanced Neo4j Analytics Endpoints
+@router.get("/nearby-drivers")
+async def find_nearby_drivers(
+    pickup_lat: float,
+    pickup_lng: float,
+    radius_miles: float = 50.0,
+    status_filter: str = "AVAILABLE",
+    min_rating: Optional[float] = None,
+    vehicle_type_filter: Optional[str] = None,
+    neo4j_repo=Depends(get_neo4j_repo)
+):
+    """
+    Find drivers within specified radius of pickup location using Neo4j graph queries.
+    
+    This endpoint uses Neo4j spatial functions to efficiently find drivers based on:
+    - Geographic proximity to pickup location
+    - Driver availability status
+    - Minimum rating requirements
+    - Vehicle type compatibility
+    """
+    try:
+        graph_service = await get_graph_query_service(neo4j_repo)
+        
+        nearby_drivers = await graph_service.find_nearby_drivers(
+            pickup_lat=pickup_lat,
+            pickup_lng=pickup_lng,
+            radius_miles=radius_miles,
+            status_filter=status_filter,
+            min_rating=min_rating,
+            vehicle_type_filter=vehicle_type_filter
+        )
+        
+        return {
+            "success": True,
+            "drivers_found": len(nearby_drivers),
+            "search_criteria": {
+                "pickup_location": {"lat": pickup_lat, "lng": pickup_lng},
+                "radius_miles": radius_miles,
+                "status_filter": status_filter,
+                "min_rating": min_rating,
+                "vehicle_type_filter": vehicle_type_filter
+            },
+            "drivers": [{
+                "driver_id": driver.driver_id,
+                "driver_name": driver.driver_name,
+                "current_location": driver.current_location,
+                "distance_miles": driver.distance_miles,
+                "status": driver.status,
+                "carrier_name": driver.carrier_name,
+                "vehicle_type": driver.vehicle_type,
+                "rating": driver.rating,
+                "hours_available": driver.hours_available
+            } for driver in nearby_drivers]
+        }
+        
+    except Exception as e:
+        logger.error(f"Error finding nearby drivers: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to find nearby drivers: {str(e)}")
+
+
+@router.get("/carrier-performance")
+async def get_advanced_carrier_performance(
+    carrier_id: Optional[str] = None,
+    time_period_days: int = 90,
+    neo4j_repo=Depends(get_neo4j_repo)
+):
+    """
+    Get comprehensive carrier performance analytics from Neo4j graph relationships.
+    
+    Analyzes carrier performance metrics including:
+    - On-time delivery rates
+    - Average load ratings
+    - Cost efficiency scores
+    - Revenue generation
+    - Active fleet metrics
+    """
+    try:
+        graph_service = await get_graph_query_service(neo4j_repo)
+        
+        carrier_metrics = await graph_service.get_carrier_performance_metrics(
+            carrier_id=carrier_id,
+            time_period_days=time_period_days
+        )
+        
+        return {
+            "success": True,
+            "analysis_period_days": time_period_days,
+            "carriers_analyzed": len(carrier_metrics),
+            "carrier_metrics": [{
+                "carrier_id": metrics.carrier_id,
+                "carrier_name": metrics.carrier_name,
+                "total_loads_completed": metrics.total_loads_completed,
+                "on_time_delivery_rate": metrics.on_time_delivery_rate,
+                "average_rating": metrics.average_rating,
+                "cost_efficiency_score": metrics.cost_efficiency_score,
+                "revenue_generated": metrics.revenue_generated,
+                "active_drivers": metrics.active_drivers,
+                "active_vehicles": metrics.active_vehicles,
+                "specialties": metrics.specialties
+            } for metrics in carrier_metrics]
+        }
+        
+    except Exception as e:
+        logger.error(f"Error getting advanced carrier performance: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to get carrier performance: {str(e)}")
+
+
+@router.get("/fleet-utilization")
+async def get_fleet_utilization_analytics(
+    neo4j_repo=Depends(get_neo4j_repo)
+):
+    """
+    Get comprehensive fleet utilization metrics from Neo4j graph analysis.
+    
+    Provides insights into:
+    - Fleet utilization rates
+    - Average miles per vehicle
+    - Maintenance requirements
+    - Fuel efficiency metrics
+    - Revenue per vehicle
+    """
+    try:
+        graph_service = await get_graph_query_service(neo4j_repo)
+        
+        fleet_metrics = await graph_service.get_fleet_utilization_metrics()
+        
+        return {
+            "success": True,
+            "fleet_metrics": {
+                "total_vehicles": fleet_metrics.total_vehicles,
+                "active_vehicles": fleet_metrics.active_vehicles,
+                "utilization_rate": fleet_metrics.utilization_rate,
+                "average_miles_per_vehicle": fleet_metrics.average_miles_per_vehicle,
+                "maintenance_due_count": fleet_metrics.maintenance_due_count,
+                "fuel_efficiency_avg": fleet_metrics.fuel_efficiency_avg,
+                "revenue_per_vehicle": fleet_metrics.revenue_per_vehicle
+            }
+        }
+        
+    except Exception as e:
+        logger.error(f"Error getting fleet utilization analytics: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to get fleet utilization: {str(e)}")
+
+
+@router.post("/optimal-driver-vehicle-pairs")
+async def find_optimal_driver_vehicle_pairs(
+    request: OptimalDriverVehiclePairsRequest,
+    neo4j_repo=Depends(get_neo4j_repo)
+):
+    """
+    Find optimal driver-vehicle pairs for specific load requirements using graph analysis.
+    
+    Uses composite scoring algorithm considering:
+    - Driver proximity to pickup location
+    - Vehicle capacity and suitability
+    - Carrier performance history
+    - Cost efficiency factors
+    """
+    try:
+        graph_service = await get_graph_query_service(neo4j_repo)
+        
+        optimal_pairs = await graph_service.find_optimal_driver_vehicle_pairs(
+            pickup_lat=request.pickup_lat,
+            pickup_lng=request.pickup_lng,
+            delivery_lat=request.delivery_lat,
+            delivery_lng=request.delivery_lng,
+            load_weight=request.load_weight,
+            load_type=request.load_type,
+            max_distance_miles=request.max_distance_miles
+        )
+        
+        return {
+            "success": True,
+            "load_requirements": {
+                "pickup_location": {"lat": request.pickup_lat, "lng": request.pickup_lng},
+                "delivery_location": {"lat": request.delivery_lat, "lng": request.delivery_lng},
+                "load_weight": request.load_weight,
+                "load_type": request.load_type,
+                "max_distance_miles": request.max_distance_miles
+            },
+            "optimal_pairs_found": len(optimal_pairs),
+            "driver_vehicle_pairs": optimal_pairs
+        }
+        
+    except Exception as e:
+        logger.error(f"Error finding optimal driver-vehicle pairs: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to find optimal pairs: {str(e)}")

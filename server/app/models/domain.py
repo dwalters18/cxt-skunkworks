@@ -297,3 +297,35 @@ class CreateDriverRequest(BaseModel):
     current_location: Location = Field(..., description="Current location with latitude/longitude")
     current_address: Optional[str] = None
     status: DriverStatus = DriverStatus.AVAILABLE
+
+
+# Advanced Analytics Request Models
+class NearbyDriversRequest(BaseModel):
+    """Request model for finding nearby drivers"""
+    pickup_lat: float = Field(..., ge=-90.0, le=90.0)
+    pickup_lng: float = Field(..., ge=-180.0, le=180.0)
+    radius_miles: Optional[float] = Field(50.0, gt=0.0, le=500.0)
+    status_filter: Optional[str] = "AVAILABLE"
+    min_rating: Optional[float] = Field(None, ge=0.0, le=5.0)
+    vehicle_type_filter: Optional[str] = None
+
+
+class OptimalDriverVehiclePairsRequest(BaseModel):
+    """Request model for finding optimal driver-vehicle pairs"""
+    pickup_lat: float = Field(..., ge=-90.0, le=90.0)
+    pickup_lng: float = Field(..., ge=-180.0, le=180.0)
+    delivery_lat: float = Field(..., ge=-90.0, le=90.0)
+    delivery_lng: float = Field(..., ge=-180.0, le=180.0)
+    load_weight: float = Field(..., gt=0.0)
+    load_type: str = Field(..., min_length=1)
+    max_distance_miles: Optional[float] = Field(100.0, gt=0.0, le=1000.0)
+
+
+class AdvancedOptimizeLoadRequest(BaseModel):
+    """Request model for advanced route optimization with multi-constraint support"""
+    load_id: str = Field(..., description="Load ID to optimize")
+    max_driver_distance_miles: Optional[float] = Field(100.0, gt=0.0, le=500.0)
+    max_route_duration_hours: Optional[float] = Field(12.0, gt=0.0, le=24.0)
+    min_driver_rating: Optional[float] = Field(None, ge=0.0, le=5.0)
+    min_carrier_performance: Optional[float] = Field(None, ge=0.0, le=1.0)
+    consider_traffic: Optional[bool] = True

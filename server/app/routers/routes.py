@@ -5,8 +5,10 @@ from typing import Optional
 import logging
 
 from services.route_optimization import route_optimizer
+from services.advanced_route_optimization import get_advanced_route_optimizer, OptimizationConstraints
 from dependencies import get_neo4j_repo, get_load_repo
 from websocket_manager import broadcast_event_to_websockets
+from models.domain import AdvancedOptimizeLoadRequest
 
 logger = logging.getLogger(__name__)
 
@@ -232,6 +234,54 @@ async def optimize_load_route(
             "data": {
                 "load_id": request.load_id,
                 "vehicle_id": request.vehicle_id,
+                "route": optimized_route
+            }
+        })
+        
+        return optimized_route
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error optimizing load route: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to optimize load route: {str(e)}")
+
+
+@router.post("/advanced-optimize-load")
+async def advanced_optimize_load_route(
+    request: AdvancedOptimizeLoadRequest, 
+    background_tasks: BackgroundTasks,
+    load_repo=Depends(get_load_repo),
+    neo4j_repo=Depends(get_neo4j_repo)
+):
+    """
+    Calculate optimized street-level route for load assignment using graph relationships.
+    """
+    try:
+        # Get load details
+        load = await load_repo.get_load(request.load_id)
+        if not load:
+            raise HTTPException(status_code=404, detail="Load not found")
+        
+        # Use advanced route optimization service to calculate optimal route
+        advanced_optimizer = get_advanced_route_optimizer(neo4j_repo)
+        constraints = OptimizationConstraints(
+            max_driver_distance_miles=request.max_driver_distance_miles,
+            max_route_duration_hours=request.max_route_duration_hours,
+            min_driver_rating=request.min_driver_rating,
+            min_carrier_performance=request.min_carrier_performance,
+            consider_traffic=request.consider_traffic
+        )
+        
+        optimized_route = await advanced_optimizer.optimize_route(
+            load_id=request.load_id,
+            constraints=constraints
+        )
+        
+        # Broadcast optimization result
+        background_tasks.add_task(broadcast_event_to_websockets, {
+            "event_type": "ROUTE_OPTIMIZED",
+            "data": {
+                "load_id": request.load_id,
                 "route": optimized_route
             }
         })

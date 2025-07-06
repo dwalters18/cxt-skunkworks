@@ -301,6 +301,56 @@ The current API implementation focuses on core functionality with basic security
   - **Planned Neo4j Enhancement**: Advanced ML-driven optimization with real-time traffic integration and complex route relationship modeling [7,11]
 - **Events Published**: `ROUTE_OPTIMIZED` event published to `tms.routes` Kafka topic [3,5]
 
+#### 4.1.10 Advanced Optimize Load Route
+- **Purpose**: Calculate optimized route using Neo4j graph relationships for multi-constraint optimization
+- **HTTP Method & Path**: `POST /api/routes/advanced-optimize-load`
+- **Request Body**:
+  ```json
+  {
+    "load_id": "string (UUID)",
+    "max_driver_distance_miles": 50.0,
+    "max_route_duration_hours": 11.0,
+    "min_driver_rating": 3.0,
+    "min_carrier_performance": 70.0,
+    "consider_traffic": true
+  }
+  ```
+- **Response**:
+  ```json
+  {
+    "success": true,
+    "selected_driver_id": "string (UUID)",
+    "selected_vehicle_id": "string (UUID)", 
+    "optimization_score": 85.2,
+    "optimization_method": "graph_based_multi_constraint",
+    "alternatives_considered": 12,
+    "distance_miles": 247.8,
+    "duration_minutes": 285,
+    "route_geometry": "LINESTRING(...)",
+    "cost_estimate": 1247.50,
+    "timeline_feasible": true,
+    "candidate_details": {
+      "driver_proximity_score": 92.5,
+      "vehicle_suitability_score": 88.0,
+      "carrier_performance_score": 78.5,
+      "cost_efficiency_score": 85.0,
+      "timeline_feasibility_score": 95.0
+    }
+  }
+  ```
+- **Multi-Constraint Optimization Features**:
+  - **Driver Proximity**: Uses Neo4j spatial queries to find drivers within specified distance of pickup location
+  - **Vehicle Suitability**: Matches vehicle capacity, type, and equipment requirements with load specifications
+  - **Carrier Performance**: Leverages historical performance metrics stored in graph relationships
+  - **Cost Efficiency**: Considers fuel costs, driver rates, and route efficiency
+  - **Timeline Feasibility**: Validates Hours-of-Service compliance and delivery time windows
+  - **Traffic Awareness**: Integrates real-time traffic data for accurate duration estimates
+- **Database Operations**:
+  - **Neo4j**: Graph traversal queries for candidate discovery, relationship scoring
+  - **PostgreSQL**: Load details, driver/vehicle availability, route persistence
+  - **Google Maps API**: Traffic-aware route calculation and geometry generation
+- **Event Publishing**: Publishes `ADVANCED_ROUTE_OPTIMIZED` event to Kafka for downstream processing
+
 ### 4.2 Vehicle Management API
 
 #### 4.2.1 Get All Vehicles
