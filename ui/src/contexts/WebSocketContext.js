@@ -32,7 +32,7 @@ export const WebSocketProvider = ({ children }) => {
             return;
         }
 
-        const wsUrl = `ws://localhost:8000/ws/events`;
+        const wsUrl = `${process.env.REACT_APP_WEBSOCKET_URL || 'ws://localhost:8000/ws'}/events`;
         console.log('Attempting WebSocket connection...');
         isConnectingRef.current = true;
         

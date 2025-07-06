@@ -2,6 +2,7 @@
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, HTTPException, Depends
 import logging
 import json
+import asyncio
 
 from websocket_manager import ConnectionManager, broadcast_event_to_websockets
 
@@ -17,11 +18,20 @@ manager = ConnectionManager()
 async def websocket_endpoint(websocket: WebSocket):
     """WebSocket endpoint for real-time event streaming."""
     await manager.connect(websocket)
+    logger.info("WebSocket client connected")
+    
     try:
+        # Send initial connection confirmation
+        await websocket.send_text(json.dumps({
+            "type": "connection_established",
+            "message": "Connected to TMS event stream"
+        }))
+        
+        # Keep the connection alive by listening for client disconnect or optional messages
         while True:
-            # Listen for messages from client (optional - client can send subscription preferences)
             try:
-                data = await websocket.receive_text()
+                # Use asyncio.wait_for with timeout to prevent blocking
+                data = await asyncio.wait_for(websocket.receive_text(), timeout=1.0)
                 message = json.loads(data)
                 
                 # Handle client messages if needed (e.g., subscription filters)
@@ -44,9 +54,12 @@ async def websocket_endpoint(websocket: WebSocket):
                         "timestamp": message.get("timestamp")
                     }))
                     
-            except Exception as e:
-                # If receiving fails, just continue (client might not send messages)
-                logger.debug(f"WebSocket receive error (non-critical): {e}")
+            except asyncio.TimeoutError:
+                # Timeout is normal - client doesn't need to send messages
+                # Just continue to keep connection alive
+                continue
+            except json.JSONDecodeError:
+                logger.warning("Received invalid JSON from WebSocket client")
                 continue
                 
     except WebSocketDisconnect:

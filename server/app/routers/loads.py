@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/loads", tags=["loads"])
 
 
-@router.post("/", status_code=201)
+@router.post("", status_code=201)
 async def create_load(
     load_request: CreateLoadRequest, 
     background_tasks: BackgroundTasks,
@@ -40,7 +40,7 @@ async def create_load(
         raise HTTPException(status_code=500, detail=f"Failed to create load: {str(e)}")
 
 
-@router.get("/")
+@router.get("")
 async def search_loads(
     status: Optional[str] = None,
     limit: int = 50,

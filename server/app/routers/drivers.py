@@ -13,10 +13,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/drivers", tags=["drivers"])
 
 
-
-
-
-@router.post("/")
+@router.post("")
 async def create_driver(
     driver_request: CreateDriverRequest,
     background_tasks: BackgroundTasks,
@@ -59,7 +56,7 @@ async def create_driver(
         raise HTTPException(status_code=500, detail=f"Failed to create driver: {str(e)}")
 
 
-@router.get("/")
+@router.get("")
 async def get_drivers(
     status: Optional[str] = None,
     available_only: bool = False,

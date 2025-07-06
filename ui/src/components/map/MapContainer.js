@@ -3,12 +3,14 @@ import { GoogleMap, useJsApiLoader } from '@react-google-maps/api';
 import MapMarker from './MapMarker';
 import LoadInfoWindow from './LoadInfoWindow';
 import RoutePolyline from './RoutePolyline';
+import { getRouteCoordinates } from '../../utils/routeDecoder';
 
 const GOOGLE_MAPS_LIBRARIES = ['geometry', 'drawing', 'marker'];
 
 const MapContainer = ({ 
     vehicles, 
     loads, 
+    routes = [],
     events,
     drivers,
     selectedLoad,

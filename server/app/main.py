@@ -1,5 +1,6 @@
 # server/app/main.py
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 import asyncio
 import logging
@@ -37,15 +38,15 @@ async def lifespan(app: FastAPI):
     """Manage application lifecycle."""
     global consumer_task
     logger.info("=== STARTING TMS EVENT-DRIVEN API ===")
-    
+
     # Start Kafka consumer in background
     try:
         logger.info("Step 1: Initializing Kafka consumer...")
         consumer = await get_consumer()
         logger.info("Step 2: Kafka consumer instance created successfully")
-        
+
         logger.info("Step 3: Starting Kafka consumer background task...")
-        
+
         # Wrap the consumer start in a safe background task
         async def safe_consumer_start():
             try:
@@ -54,14 +55,14 @@ async def lifespan(app: FastAPI):
             except Exception as e:
                 logger.error(f"Kafka consumer failed to start: {e}")
                 logger.exception("Kafka consumer startup error:")
-        
+
         consumer_task = asyncio.create_task(safe_consumer_start())
         logger.info("Step 4: Kafka consumer background task created")
-        
+
         # Give it a brief moment to attempt startup, but don't wait for completion
         await asyncio.sleep(0.5)
         logger.info("Step 5: Initial startup delay completed")
-        
+
         logger.info("=== KAFKA CONSUMER STARTUP COMPLETED ===")
     except Exception as e:
         logger.error(f"ERROR: Failed to initialize Kafka consumer: {e}")
@@ -69,10 +70,10 @@ async def lifespan(app: FastAPI):
         # Don't fail the entire app if Kafka consumer fails
         logger.warning("Continuing without Kafka consumer...")
         consumer_task = None
-    
+
     logger.info("=== API STARTUP COMPLETED - READY TO SERVE REQUESTS ===")
     yield
-    
+
     # Cleanup
     logger.info("=== SHUTTING DOWN TMS EVENT-DRIVEN API ===")
     if consumer_task:
@@ -82,7 +83,7 @@ async def lifespan(app: FastAPI):
             await consumer_task
         except asyncio.CancelledError:
             logger.info("Kafka consumer stopped gracefully")
-    
+
     logger.info("=== SHUTDOWN COMPLETE ===")
 
 
@@ -97,7 +98,15 @@ app = FastAPI(
 )
 logger.info("FastAPI application initialized")
 
-# CORS middleware removed for POC - not needed for local testing
+# Add CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3000"],  # React dev server
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+logger.info("CORS middleware configured for localhost:3000")
 
 # Register routers with /api prefix
 logger.info("Registering API routers...")

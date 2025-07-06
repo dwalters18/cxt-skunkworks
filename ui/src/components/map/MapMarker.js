@@ -1,36 +1,27 @@
 import React from 'react';
 import { Marker } from '@react-google-maps/api';
+import { normalizePosition } from '../../utils/wkbDecoder';
 
-const MapMarker = ({ 
-    position, 
-    type, 
-    data, 
-    onClick, 
-    isSelected = false 
+const MapMarker = ({
+    position,
+    type,
+    data,
+    onClick,
+    isSelected = false
 }) => {
     // Convert position data to Google Maps LatLngLiteral format
     const getValidPosition = (pos) => {
         if (!pos) return null;
-        
-        // Handle backend Location format {latitude, longitude}
-        if (pos.latitude !== undefined && pos.longitude !== undefined) {
-            return {
-                lat: parseFloat(pos.latitude),
-                lng: parseFloat(pos.longitude)
-            };
+
+        // Use the new normalizePosition utility that handles WKB, {latitude, longitude}, and {lat, lng} formats
+        const validPos = normalizePosition(pos);
+
+        if (!validPos) {
+            console.warn('Invalid position data for marker:', pos);
+            return null;
         }
-        
-        // Handle Google Maps format {lat, lng}
-        if (pos.lat !== undefined && pos.lng !== undefined) {
-            return {
-                lat: parseFloat(pos.lat),
-                lng: parseFloat(pos.lng)
-            };
-        }
-        
-        // Invalid position data
-        console.warn('Invalid position data for marker:', pos);
-        return null;
+
+        return validPos;
     };
     
     const validPosition = getValidPosition(position);

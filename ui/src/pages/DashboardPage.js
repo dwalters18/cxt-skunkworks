@@ -22,7 +22,7 @@ const DashboardPage = () => {
             setDashboardData(dashboardData);
             
             // Fetch recent loads for activity feed
-            const loadsResponse = await fetch(`${API_BASE}/api/loads?limit=5`);
+            const loadsResponse = await fetch(`${API_BASE}/api/loads?limit=50&offset=0`);
             if (loadsResponse.ok) {
                 const loadsData = await loadsResponse.json();
                 setRecentLoads(loadsData.loads || []);

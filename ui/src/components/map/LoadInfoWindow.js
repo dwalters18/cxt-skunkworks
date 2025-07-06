@@ -1,42 +1,33 @@
 import React from 'react';
 import { InfoWindow } from '@react-google-maps/api';
+import { normalizePosition } from '../../utils/wkbDecoder';
 
-const LoadInfoWindow = ({ 
-    load, 
-    onClose, 
-    vehicles, 
+const LoadInfoWindow = ({
+    load,
+    onClose,
+    vehicles,
     drivers,
-    selectedVehicleForOptimization, 
+    selectedVehicleForOptimization,
     onVehicleSelect,
     onOptimizeRoute,
     isOptimizing,
     optimizedRoute
 }) => {
     if (!load) return null;
-    
+
     // Convert position data to Google Maps LatLngLiteral format
     const getValidPosition = (pos) => {
         if (!pos) return null;
-        
-        // Handle backend Location format {latitude, longitude}
-        if (pos.latitude !== undefined && pos.longitude !== undefined) {
-            return {
-                lat: parseFloat(pos.latitude),
-                lng: parseFloat(pos.longitude)
-            };
+
+        // Use the new normalizePosition utility that handles WKB, {latitude, longitude}, and {lat, lng} formats
+        const validPos = normalizePosition(pos);
+
+        if (!validPos) {
+            console.warn('Invalid position data for InfoWindow:', pos);
+            return null;
         }
-        
-        // Handle Google Maps format {lat, lng}
-        if (pos.lat !== undefined && pos.lng !== undefined) {
-            return {
-                lat: parseFloat(pos.lat),
-                lng: parseFloat(pos.lng)
-            };
-        }
-        
-        // Invalid position data
-        console.warn('Invalid position data for InfoWindow:', pos);
-        return null;
+
+        return validPos;
     };
     
     const validPosition = getValidPosition(load.pickup_location);

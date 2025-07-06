@@ -136,30 +136,19 @@ const LoadsPage = () => {
 
             {/* Load Summary Cards */}
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
-                <div className="bg-white rounded-lg shadow p-4">
-                    <div className="text-2xl font-bold text-gray-900">{loadCounts.total}</div>
-                    <div className="text-sm text-gray-600">Total Loads</div>
-                </div>
-                <div className="bg-white rounded-lg shadow p-4">
-                    <div className="text-2xl font-bold text-yellow-600">{loadCounts.pending}</div>
-                    <div className="text-sm text-gray-600">Pending</div>
-                </div>
-                <div className="bg-white rounded-lg shadow p-4">
-                    <div className="text-2xl font-bold text-blue-600">{loadCounts.assigned}</div>
-                    <div className="text-sm text-gray-600">Assigned</div>
-                </div>
-                <div className="bg-white rounded-lg shadow p-4">
-                    <div className="text-2xl font-bold text-indigo-600">{loadCounts.in_transit}</div>
-                    <div className="text-sm text-gray-600">In Transit</div>
-                </div>
-                <div className="bg-white rounded-lg shadow p-4">
-                    <div className="text-2xl font-bold text-green-600">{loadCounts.delivered}</div>
-                    <div className="text-sm text-gray-600">Delivered</div>
-                </div>
-                <div className="bg-white rounded-lg shadow p-4">
-                    <div className="text-2xl font-bold text-red-600">{loadCounts.unassigned}</div>
-                    <div className="text-sm text-gray-600">Unassigned</div>
-                </div>
+                {[
+                    { key: 'total', count: loadCounts.total, label: 'Total Loads', color: 'text-gray-900' },
+                    { key: 'pending', count: loadCounts.pending, label: 'Pending', color: 'text-yellow-600' },
+                    { key: 'assigned', count: loadCounts.assigned, label: 'Assigned', color: 'text-blue-600' },
+                    { key: 'in_transit', count: loadCounts.in_transit, label: 'In Transit', color: 'text-indigo-600' },
+                    { key: 'delivered', count: loadCounts.delivered, label: 'Delivered', color: 'text-green-600' },
+                    { key: 'unassigned', count: loadCounts.unassigned, label: 'Unassigned', color: 'text-red-600' }
+                ].map((card) => (
+                    <div key={card.key} className="bg-white rounded-lg shadow p-4">
+                        <div className={`text-2xl font-bold ${card.color}`}>{card.count}</div>
+                        <div className="text-sm text-gray-600">{card.label}</div>
+                    </div>
+                ))}
             </div>
 
             {/* Filters */}

@@ -23,7 +23,7 @@ class OptimizeLoadRouteRequest(BaseModel):
     priority: Optional[str] = "normal"
 
 
-@router.get("/")
+@router.get("")
 async def get_routes(
     status: Optional[str] = None,
     active_only: bool = False,

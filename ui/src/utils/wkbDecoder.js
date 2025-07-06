@@ -16,43 +16,51 @@ export const decodeWKB = (wkbHex) => {
 
         // Remove any whitespace and convert to uppercase
         const hex = wkbHex.replace(/\s/g, '').toUpperCase();
-
+        
         // Basic validation - WKB should be hex string
         if (!/^[0-9A-F]+$/.test(hex)) {
             return null;
         }
 
-        // For POINT geometry, the structure is:
-        // - Byte order (1 byte)
-        // - Geometry type (4 bytes)
-        // - SRID (4 bytes, if present)
-        // - X coordinate (8 bytes - longitude)
-        // - Y coordinate (8 bytes - latitude)
-
-        // Skip byte order (2 chars), geometry type (8 chars), and SRID if present
-        let offset = 2; // byte order
-        offset += 8; // geometry type
-
-        // Check if SRID is present (geometry type will have 0x20000000 flag)
-        const geometryType = parseInt(hex.substring(2, 10), 16);
+        // Parse WKB structure:
+        // Byte 0: Byte order (01 = little endian, 00 = big endian)
+        const byteOrder = hex.substring(0, 2);
+        const isLittleEndian = byteOrder === '01';
+        
+        // Bytes 1-4: Geometry type (with potential SRID flag)
+        const geometryTypeHex = hex.substring(2, 10);
+        const geometryType = parseInt(reverseHexIfNeeded(geometryTypeHex, isLittleEndian), 16);
+        
+        let offset = 10; // After byte order + geometry type
+        
+        // Check if SRID is present (0x20000000 flag in geometry type)
         if (geometryType & 0x20000000) {
-            offset += 8; // skip SRID
+            offset += 8; // skip SRID (4 bytes = 8 hex chars)
         }
-
-        // Extract X (longitude) and Y (latitude) coordinates
+        
+        // Extract coordinates (8 bytes each = 16 hex chars)
         const xHex = hex.substring(offset, offset + 16);
         const yHex = hex.substring(offset + 16, offset + 32);
-
+        
         // Convert hex to double precision floating point
-        const longitude = hexToDouble(xHex);
-        const latitude = hexToDouble(yHex);
-
+        const longitude = hexToDouble(xHex, isLittleEndian);
+        const latitude = hexToDouble(yHex, isLittleEndian);
+        
+        // Debug logging
+        // console.log('WKB Debug:', {
+        //     hex: hex.substring(0, 50) + '...',
+        //     byteOrder,
+        //     geometryType: geometryType.toString(16),
+        //     longitude,
+        //     latitude
+        // });
+        
         // Validate coordinates are within valid ranges
         if (latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180) {
             console.warn('Decoded coordinates out of valid range:', { latitude, longitude });
             return null;
         }
-
+        
         return {
             lat: latitude,
             lng: longitude
@@ -64,28 +72,43 @@ export const decodeWKB = (wkbHex) => {
 };
 
 /**
+ * Reverses hex byte order if needed based on endianness
+ * @param {string} hex - Hex string to potentially reverse
+ * @param {boolean} isLittleEndian - Whether the data is little endian
+ * @returns {string} - Potentially reversed hex string
+ */
+function reverseHexIfNeeded(hex, isLittleEndian) {
+    if (!isLittleEndian) return hex;
+    
+    // Reverse byte order for little endian
+    let reversed = '';
+    for (let i = hex.length - 2; i >= 0; i -= 2) {
+        reversed += hex.substring(i, i + 2);
+    }
+    return reversed;
+}
+
+/**
  * Converts a hex string to a double precision floating point number
  * @param {string} hex - 16-character hex string representing a double
+ * @param {boolean} isLittleEndian - Whether the bytes are in little endian order
  * @returns {number} - The decoded double value
  */
-function hexToDouble(hex) {
-    // Convert hex string to byte array
-    const bytes = [];
-    for (let i = 0; i < hex.length; i += 2) {
-        bytes.push(parseInt(hex.substr(i, 2), 16));
-    }
-
+function hexToDouble(hex, isLittleEndian) {
     // Create ArrayBuffer and DataView for IEEE 754 double conversion
     const buffer = new ArrayBuffer(8);
     const view = new DataView(buffer);
-
-    // Set bytes in little-endian order (typical for WKB)
+    
+    // Convert hex string to bytes and set them in the buffer
     for (let i = 0; i < 8; i++) {
-        view.setUint8(i, bytes[i]);
+        const byteIndex = isLittleEndian ? i : (7 - i);
+        const hexIndex = i * 2;
+        const byte = parseInt(hex.substring(hexIndex, hexIndex + 2), 16);
+        view.setUint8(byteIndex, byte);
     }
-
-    // Read as double in little-endian format
-    return view.getFloat64(0, true);
+    
+    // Read as double in the correct endian format
+    return view.getFloat64(0, isLittleEndian);
 }
 
 /**
@@ -96,12 +119,12 @@ function hexToDouble(hex) {
  */
 export const normalizePosition = (position) => {
     if (!position) return null;
-
+    
     // Handle WKB string format
     if (typeof position === 'string') {
         return decodeWKB(position);
     }
-
+    
     // Handle {latitude, longitude} format
     if (position.latitude !== undefined && position.longitude !== undefined) {
         return {
@@ -109,7 +132,7 @@ export const normalizePosition = (position) => {
             lng: parseFloat(position.longitude)
         };
     }
-
+    
     // Handle {lat, lng} format
     if (position.lat !== undefined && position.lng !== undefined) {
         return {
@@ -117,6 +140,6 @@ export const normalizePosition = (position) => {
             lng: parseFloat(position.lng)
         };
     }
-
+    
     return null;
 };

@@ -163,19 +163,19 @@ const DriversPage = () => {
                         <div className="mb-4">
                             <div className="text-sm text-gray-600 mb-1">Hours of Service</div>
                             <div className="flex justify-between text-xs">
-                                <span>Driven: {driver.hours_driven_today.toFixed(1)}h</span>
-                                <span>Remaining: {driver.hours_remaining_today.toFixed(1)}h</span>
+                                <span>Driven: {(driver.hours_driven_today ?? 0).toFixed(1)}h</span>
+                                <span>Remaining: {(driver.hours_remaining_today ?? 0).toFixed(1)}h</span>
                             </div>
                             <div className="w-full bg-gray-200 rounded-full h-2 mt-1">
-                                <div 
-                                    className="bg-blue-600 h-2 rounded-full" 
-                                    style={{ width: `${(driver.hours_driven_today / 11) * 100}%` }}
+                                <div
+                                    className="bg-blue-600 h-2 rounded-full"
+                                    style={{ width: `${((driver.hours_driven_today ?? 0) / 11) * 100}%` }}
                                 ></div>
                             </div>
                         </div>
-                        
+
                         {/* Location Info */}
-                        {driver.current_location.latitude && (
+                        {driver.current_location?.latitude && driver.current_location?.longitude && (
                             <div className="text-xs text-gray-500 mb-4">
                                 Location: {driver.current_location.latitude.toFixed(4)}, {driver.current_location.longitude.toFixed(4)}<br/>
                                 Updated: {formatLastUpdate(driver.last_location_update)}

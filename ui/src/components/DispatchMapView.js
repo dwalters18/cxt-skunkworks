@@ -12,6 +12,7 @@ const DispatchMapView = ({ onTransitionToManagement }) => {
         events, 
         vehicles, 
         loads, 
+        routes,
         drivers, 
         dashboardData,
         isLoading: dataLoading,

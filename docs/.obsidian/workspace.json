@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "ROADMAP.md",
+                "file": "SPEC-Frontend-Application.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "ROADMAP"
+              "title": "SPEC-Frontend-Application"
             }
           }
         ]
@@ -187,16 +187,19 @@
   },
   "active": "72ea8a054668365d",
   "lastOpenFiles": [
+    "SPEC-TMS-Advanced-Services.md",
+    "SPEC-Object-Relationships.md",
+    "SPEC-Machine-Learning.md",
+    "SPEC-Events-Schema.md",
+    "ROADMAP.md",
     "SPEC-TMS-API.md",
     "SPEC-Backend-System.md",
     "SPEC-Real-time-Analytics.md",
     "SPEC-Database-Schema.md",
-    "ROADMAP.md",
     "PRD-Overview.md",
     "2025-07-05.md",
     "Untitled.canvas",
     "PKM-Setup-Guide.md",
-    "SPEC-Events-Schema.md",
     "TMS-PKM-Index.md",
     "PRD-Database-Schema.md",
     "TMS-Object-Relationships.md",

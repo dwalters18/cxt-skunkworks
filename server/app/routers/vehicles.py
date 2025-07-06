@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/vehicles", tags=["vehicles"])
 
 
-@router.get("/")
+@router.get("")
 async def get_vehicles(
     carrier_id: Optional[str] = None, 
     status: Optional[str] = None,

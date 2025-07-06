@@ -143,15 +143,15 @@ CREATE TABLE audit_events (
 | CRITICAL | Critical errors requiring immediate attention | System failures, HOS violations |
 
 #### 3.1.4 Entity Types
-| Entity Type | Description | Example Events |
-|-------------|-------------|----------------|
-| LOAD | Shipment/load operations | LOAD_CREATED, LOAD_DELIVERED |
-| VEHICLE | Vehicle-related events | VEHICLE_LOCATION_UPDATED, VEHICLE_BREAKDOWN |
-| DRIVER | Driver operations and compliance | DRIVER_HOS_VIOLATION, DRIVER_LOGIN |
-| ROUTE | Route optimization and tracking | ROUTE_OPTIMIZED, ROUTE_DEVIATION |
-| CUSTOMER | Customer interactions | (Future implementation) |
-| CARRIER | Carrier management | (Future implementation) |
-| SYSTEM | System-level events | SYSTEM_ALERT, AI_PREDICTION |
+| Entity Type | Description                      | Example Events                              |
+| ----------- | -------------------------------- | ------------------------------------------- |
+| LOAD        | Shipment/load operations         | LOAD_CREATED, LOAD_DELIVERED                |
+| VEHICLE     | Vehicle-related events           | VEHICLE_LOCATION_UPDATED, VEHICLE_BREAKDOWN |
+| DRIVER      | Driver operations and compliance | DRIVER_HOS_VIOLATION, DRIVER_LOGIN          |
+| ROUTE       | Route optimization and tracking  | ROUTE_OPTIMIZED, ROUTE_DEVIATION            |
+| CUSTOMER    | Customer interactions            | (Future implementation)                     |
+| CARRIER     | Carrier management               | (Future implementation)                     |
+| SYSTEM      | System-level events              | SYSTEM_ALERT, AI_PREDICTION                 |
 
 ---
 
@@ -632,15 +632,9 @@ topics:
 
 ## 8. Security and Compliance
 
-### 8.1 Event Security
-- **Encryption**: All events encrypted in transit and at rest
-- **Authentication**: Producer authentication for event publishing
-- **Authorization**: Consumer authorization for topic access
-- **Audit**: All event access logged and monitored
+### 8.1 Event Schema Validation and Testing
 
-### 8.2 Event Schema Validation and Testing
-
-#### 8.2.1 Comprehensive Test Coverage
+#### 8.1.1 Comprehensive Test Coverage
 The event schema has been thoroughly validated through comprehensive testing achieving **100% pass rate** in our test suite:
 
 **Event Model Tests:**
@@ -650,7 +644,7 @@ The event schema has been thoroughly validated through comprehensive testing ach
 - **Event API Compatibility**: Tests event publishing and consumption workflows
 - **Cross-system Event Flow**: Validates event propagation across services
 
-#### 8.2.2 Enhanced Event Models
+#### 8.1.2 Enhanced Event Models
 The event models include comprehensive validation and enhanced attributes:
 
 **BaseEvent Enhancements:**
@@ -664,7 +658,7 @@ The event models include comprehensive validation and enhanced attributes:
 - **Spatial Data**: Google Maps API-compatible coordinate validation
 - **Performance Metrics**: Route efficiency and cost estimation data
 
-#### 8.2.3 Event Validation Rules
+#### 8.1.3 Event Validation Rules
 
 **Schema Validation:**
 - **Required Fields**: All base event fields properly validated as required
@@ -677,13 +671,7 @@ The event models include comprehensive validation and enhanced attributes:
 - **State Consistency**: Validates event data consistency with entity state
 - **Correlation Tracking**: Proper correlation ID usage for event tracing
 
-### 8.3 Data Privacy
-- **PII Protection**: Sensitive data tokenized or encrypted
-- **Retention Policies**: Automatic deletion per compliance requirements
-- **Access Controls**: Role-based access to event data
-- **Anonymization**: PII removed from non-production environments
-
-### 8.3 Compliance Requirements
+### 8.2 Compliance Requirements
 - **DOT Regulations**: Driver hours and vehicle inspection events
 - **FMCSA Rules**: Hours of service violation tracking
 - **SOX Compliance**: Financial transaction event audit trails
