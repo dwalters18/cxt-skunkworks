@@ -52,10 +52,13 @@ async def get_routes(
         param_count += 1
         offset_param = param_count
         query = f"""
-            SELECT 
-                r.id, r.load_id, r.route_data, r.estimated_distance, r.estimated_duration,
-                r.actual_distance, r.actual_duration, r.distance_miles, r.optimization_score,
-                r.fuel_estimate, r.toll_estimate, r.status, r.created_at, r.updated_at,
+            SELECT
+                r.id, r.load_id, r.driver_id, r.vehicle_id,
+                r.origin_location, r.destination_location, r.waypoints,
+                r.route_geometry, r.planned_distance_miles, r.planned_duration_minutes,
+                r.actual_distance_miles, r.actual_duration_minutes, r.estimated_arrival,
+                r.actual_arrival, r.optimization_score, r.fuel_estimate, r.toll_estimate,
+                r.status, r.created_at, r.updated_at,
                 l.load_number, l.pickup_address, l.delivery_address, l.pickup_date, l.delivery_date,
                 l.vehicle_id, l.driver_id, l.carrier_id
             FROM routes r
@@ -116,11 +119,11 @@ async def get_route_performance(
         
         # Get performance metrics
         performance_query = f"""
-            SELECT 
+            SELECT
                 COUNT(*) as total_routes,
-                COUNT(CASE WHEN r.status = 'completed' THEN 1 END) as completed_routes,
-                AVG(r.actual_distance) as avg_distance_miles,
-                AVG(r.actual_duration) as avg_duration_minutes,
+                COUNT(CASE WHEN r.status = 'COMPLETED' THEN 1 END) as completed_routes,
+                AVG(r.actual_distance_miles) as avg_distance_miles,
+                AVG(r.actual_duration_minutes) as avg_duration_minutes,
                 AVG(r.optimization_score) as avg_optimization_score,
                 AVG(r.fuel_estimate) as avg_fuel_cost,
                 AVG(r.toll_estimate) as avg_toll_cost,
@@ -134,9 +137,9 @@ async def get_route_performance(
         
         # Get on-time performance
         ontime_query = f"""
-            SELECT 
+            SELECT
                 COUNT(*) as total_deliveries,
-                COUNT(CASE WHEN l.updated_at <= l.delivery_datetime THEN 1 END) as ontime_deliveries
+                COUNT(CASE WHEN l.updated_at <= l.delivery_date THEN 1 END) as ontime_deliveries
             FROM routes r
             JOIN loads l ON r.load_id = l.id
             WHERE r.created_at >= NOW() - INTERVAL '{interval}'
@@ -250,10 +253,13 @@ async def get_route_details(
     try:
         # Get route with load information
         query = """
-            SELECT 
-                r.id, r.load_id, r.route_data, r.estimated_distance, r.estimated_duration,
-                r.actual_distance, r.actual_duration, r.distance_miles, r.optimization_score,
-                r.fuel_estimate, r.toll_estimate, r.status, r.created_at, r.updated_at,
+            SELECT
+                r.id, r.load_id, r.driver_id, r.vehicle_id,
+                r.origin_location, r.destination_location, r.waypoints,
+                r.route_geometry, r.planned_distance_miles, r.planned_duration_minutes,
+                r.actual_distance_miles, r.actual_duration_minutes, r.estimated_arrival,
+                r.actual_arrival, r.optimization_score, r.fuel_estimate, r.toll_estimate,
+                r.status, r.created_at, r.updated_at,
                 l.load_number, l.pickup_address, l.delivery_address, l.pickup_date, l.delivery_date,
                 l.vehicle_id, l.driver_id, l.carrier_id, l.status as load_status
             FROM routes r

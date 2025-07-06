@@ -28,16 +28,16 @@ async def get_recent_events(
 ):
     """Get recent events from TimescaleDB."""
     try:
-        # Get recent events from load_events table (our main event table)
+        # Get recent events from the event_stream hypertable
         query = """
-            SELECT 
-                event_id, event_type, event_data, created_at,
-                load_id, vehicle_id, driver_id
-            FROM load_events 
-            ORDER BY created_at DESC 
+            SELECT
+                event_id, event_type, event_data, source_system,
+                entity_type, entity_id, time
+            FROM event_stream
+            ORDER BY time DESC
             LIMIT $1
         """
-        
+
         events = await timescale_repo.execute_query(query, limit)
         
         # Format events for API response
@@ -46,18 +46,16 @@ async def get_recent_events(
             formatted_event = {
                 "event_id": event["event_id"],
                 "event_type": event["event_type"],
-                "timestamp": event["created_at"].isoformat(),
+                "timestamp": event["time"].isoformat(),
                 "data": event["event_data"] if isinstance(event["event_data"], dict) else json.loads(event["event_data"]) if event["event_data"] else {},
-                "source": "TMS_API"
+                "source": event["source_system"]
             }
-            
+
             # Add entity references if available
-            if event.get("load_id"):
-                formatted_event["data"]["load_id"] = event["load_id"]
-            if event.get("vehicle_id"):
-                formatted_event["data"]["vehicle_id"] = event["vehicle_id"]
-            if event.get("driver_id"):
-                formatted_event["data"]["driver_id"] = event["driver_id"]
+            if event.get("entity_id"):
+                formatted_event["data"]["entity_id"] = event["entity_id"]
+            if event.get("entity_type"):
+                formatted_event["data"]["entity_type"] = event["entity_type"]
                 
             formatted_events.append(formatted_event)
         
@@ -204,22 +202,22 @@ async def get_events_by_filter(
             
         if load_id:
             param_count += 1
-            conditions.append(f"load_id = ${param_count}")
+            conditions.append(f"event_data->>'load_id' = ${param_count}")
             params.append(load_id)
-            
+
         if vehicle_id:
             param_count += 1
-            conditions.append(f"vehicle_id = ${param_count}")
+            conditions.append(f"event_data->>'vehicle_id' = ${param_count}")
             params.append(vehicle_id)
-            
+
         if driver_id:
             param_count += 1
-            conditions.append(f"driver_id = ${param_count}")
+            conditions.append(f"event_data->>'driver_id' = ${param_count}")
             params.append(driver_id)
         
         # Add time filter
         param_count += 1
-        conditions.append(f"created_at >= NOW() - INTERVAL '${param_count} hours'")
+        conditions.append(f"time >= NOW() - INTERVAL '${param_count} hours'")
         params.append(hours)
         
         where_clause = f"WHERE {' AND '.join(conditions)}"
@@ -228,12 +226,12 @@ async def get_events_by_filter(
         param_count += 1
         limit_param = param_count
         query = f"""
-            SELECT 
-                event_id, event_type, event_data, created_at,
-                load_id, vehicle_id, driver_id
-            FROM load_events 
+            SELECT
+                event_id, event_type, event_data, source_system,
+                entity_type, entity_id, time
+            FROM event_stream
             {where_clause}
-            ORDER BY created_at DESC 
+            ORDER BY time DESC
             LIMIT ${limit_param}
         """
         params.append(limit)
@@ -246,18 +244,16 @@ async def get_events_by_filter(
             formatted_event = {
                 "event_id": event["event_id"],
                 "event_type": event["event_type"],
-                "timestamp": event["created_at"].isoformat(),
+                "timestamp": event["time"].isoformat(),
                 "data": event["event_data"] if isinstance(event["event_data"], dict) else json.loads(event["event_data"]) if event["event_data"] else {},
-                "source": "TMS_API"
+                "source": event["source_system"]
             }
             
             # Add entity references if available
-            if event.get("load_id"):
-                formatted_event["data"]["load_id"] = event["load_id"]
-            if event.get("vehicle_id"):
-                formatted_event["data"]["vehicle_id"] = event["vehicle_id"]
-            if event.get("driver_id"):
-                formatted_event["data"]["driver_id"] = event["driver_id"]
+            if event.get("entity_id"):
+                formatted_event["data"]["entity_id"] = event["entity_id"]
+            if event.get("entity_type"):
+                formatted_event["data"]["entity_type"] = event["entity_type"]
                 
             formatted_events.append(formatted_event)
         
