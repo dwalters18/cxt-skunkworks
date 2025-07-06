@@ -6,20 +6,20 @@ TRUNCATE TABLE carriers RESTART IDENTITY CASCADE;
 TRUNCATE TABLE customers RESTART IDENTITY CASCADE;
 
 -- Insert sample data aligned with PRD
-INSERT INTO customers (customer_code, company_name, contact_name, email, phone, address, city, state, zipcode) VALUES
-('CUST001', 'Acme Logistics', 'John Smith', 'john@acmelogistics.com', '555-0101', '123 Main St', 'Houston', 'TX', '77002'),
-('CUST002', 'Global Freight Solutions', 'Sarah Johnson', 'sarah@globalfreight.com', '555-0102', '456 Oak Ave', 'Dallas', 'TX', '75201'),
-('CUST003', 'Premier Shipping Co', 'Mike Davis', 'mike@premiership.com', '555-0103', '789 Pine St', 'Atlanta', 'GA', '30309');
+INSERT INTO customers (id, customer_code, company_name, contact_name, email, phone, address, city, state, zipcode) VALUES
+('10000000-0000-0000-0000-000000000001', 'CUST001', 'Acme Logistics', 'John Smith', 'john@acmelogistics.com', '555-0101', '123 Main St', 'Houston', 'TX', '77002'),
+('10000000-0000-0000-0000-000000000002', 'CUST002', 'Global Freight Solutions', 'Sarah Johnson', 'sarah@globalfreight.com', '555-0102', '456 Oak Ave', 'Dallas', 'TX', '75201'),
+('10000000-0000-0000-0000-000000000003', 'CUST003', 'Premier Shipping Co', 'Mike Davis', 'mike@premiership.com', '555-0103', '789 Pine St', 'Atlanta', 'GA', '30309');
 
-INSERT INTO carriers (name, mc_number, dot_number, contact_info) VALUES
-('Swift Transportation', 'MC-123456', 'DOT-987654', '{"phone": "555-0201", "email": "dispatch@swift.com"}'),
-('Schneider National', 'MC-234567', 'DOT-876543', '{"phone": "555-0202", "email": "dispatch@schneider.com"}'),
-('J.B. Hunt Transport', 'MC-345678', 'DOT-765432', '{"phone": "555-0203", "email": "dispatch@jbhunt.com"}');
+INSERT INTO carriers (id, name, mc_number, dot_number, contact_info) VALUES
+('00000000-0000-0000-0000-000000000001', 'Swift Transportation', 'MC-123456', 'DOT-987654', '{"phone": "555-0201", "email": "dispatch@swift.com"}'),
+('00000000-0000-0000-0000-000000000002', 'Schneider National', 'MC-234567', 'DOT-876543', '{"phone": "555-0202", "email": "dispatch@schneider.com"}'),
+('00000000-0000-0000-0000-000000000003', 'J.B. Hunt Transport', 'MC-345678', 'DOT-765432', '{"phone": "555-0203", "email": "dispatch@jbhunt.com"}');
 
-INSERT INTO vehicles (carrier_id, vehicle_number, make, model, year, vin, license_plate, vehicle_type, capacity_weight, capacity_volume, fuel_type, status) VALUES
-((SELECT id FROM carriers WHERE name = 'Swift Transportation'), 'SWIFT001', 'Freightliner', 'Cascadia', 2022, '1FUJGBDV8NLSP1234', 'TX-12345', 'TRUCK', 80000.00, 3500.00, 'DIESEL', 'AVAILABLE'),
-((SELECT id FROM carriers WHERE name = 'Schneider National'), 'SCH001', 'Peterbilt', '579', 2021, '1XPWD40X1ED123456', 'TX-23456', 'TRUCK', 80000.00, 3500.00, 'DIESEL', 'AVAILABLE'),
-((SELECT id FROM carriers WHERE name = 'J.B. Hunt Transport'), 'JBH001', 'Kenworth', 'T680', 2023, '1XKWDB0X5NJ123456', 'TX-34567', 'TRUCK', 80000.00, 3500.00, 'DIESEL', 'AVAILABLE');
+INSERT INTO vehicles (id, carrier_id, vehicle_number, make, model, year, vin, license_plate, vehicle_type, capacity_weight, capacity_volume, fuel_type, status) VALUES
+('20000000-0000-0000-0000-000000000001', (SELECT id FROM carriers WHERE name = 'Swift Transportation'), 'SWIFT001', 'Freightliner', 'Cascadia', 2022, '1FUJGBDV8NLSP1234', 'TX-12345', 'TRUCK', 80000.00, 3500.00, 'DIESEL', 'AVAILABLE'),
+('20000000-0000-0000-0000-000000000002', (SELECT id FROM carriers WHERE name = 'Schneider National'), 'SCH001', 'Peterbilt', '579', 2021, '1XPWD40X1ED123456', 'TX-23456', 'TRUCK', 80000.00, 3500.00, 'DIESEL', 'AVAILABLE'),
+('20000000-0000-0000-0000-000000000003', (SELECT id FROM carriers WHERE name = 'J.B. Hunt Transport'), 'JBH001', 'Kenworth', 'T680', 2023, '1XKWDB0X5NJ123456', 'TX-34567', 'TRUCK', 80000.00, 3500.00, 'DIESEL', 'AVAILABLE');
 
 -- 20 Austin TX-focused drivers with realistic data
 INSERT INTO drivers (id, carrier_id, driver_number, first_name, last_name, email, phone, license_number, license_class, license_expiry, date_of_birth, hire_date, status, current_location, current_address, hours_of_service_remaining) VALUES
