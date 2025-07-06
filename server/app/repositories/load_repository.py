@@ -14,7 +14,7 @@ class LoadRepository(PostgresRepository):
         """Create a new load"""
         query = """
         INSERT INTO loads (load_number, pickup_address, delivery_address, 
-                          pickup_datetime, delivery_datetime, weight, rate, status)
+                          pickup_date, delivery_date, weight, rate, status)
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
         RETURNING id
         """
@@ -23,8 +23,8 @@ class LoadRepository(PostgresRepository):
             load_data['load_number'],
             load_data['pickup_address'],
             load_data['delivery_address'],
-            load_data['pickup_datetime'],
-            load_data['delivery_datetime'],
+            load_data['pickup_date'],
+            load_data['delivery_date'],
             load_data.get('weight'),
             load_data.get('rate'),
             'pending'
@@ -49,15 +49,15 @@ class LoadRepository(PostgresRepository):
         query = "UPDATE loads SET status = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2"
         await self.execute_command(query, status, load_id)
     
-    async def assign_load(self, load_id: str, carrier_id: str, vehicle_id: str, driver_id: str):
-        """Assign load to carrier/vehicle/driver"""
+    async def assign_load(self, load_id: str, vehicle_id: str, driver_id: str):
+        """Assign load to vehicle/driver"""
         query = """
         UPDATE loads 
-        SET carrier_id = $1, vehicle_id = $2, driver_id = $3, 
+        SET assigned_vehicle_id = $1, assigned_driver_id = $2, 
             status = 'ASSIGNED', updated_at = CURRENT_TIMESTAMP 
-        WHERE id = $4
+        WHERE id = $3
         """
-        await self.execute_command(query, carrier_id, vehicle_id, driver_id, load_id)
+        await self.execute_command(query, vehicle_id, driver_id, load_id)
     
     async def search_loads(self, filters: Dict[str, Any], limit: int = 50, offset: int = 0):
         """Search loads with various filters"""
@@ -72,12 +72,12 @@ class LoadRepository(PostgresRepository):
         
         if filters.get('date_from'):
             param_count += 1
-            where_clauses.append(f"pickup_datetime >= ${param_count}")
+            where_clauses.append(f"pickup_date >= ${param_count}")
             params.append(filters['date_from'])
         
         if filters.get('date_to'):
             param_count += 1
-            where_clauses.append(f"pickup_datetime <= ${param_count}")
+            where_clauses.append(f"pickup_date <= ${param_count}")
             params.append(filters['date_to'])
         
         where_sql = " WHERE " + " AND ".join(where_clauses) if where_clauses else ""

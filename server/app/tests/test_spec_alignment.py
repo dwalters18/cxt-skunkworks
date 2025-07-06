@@ -276,7 +276,7 @@ class TestAPIRequestResponseAlignment:
         assert request.load_number
         assert request.pickup_address
         assert request.delivery_address
-        assert request.pickup_datetime
+        assert request.pickup_date
         assert request.delivery_datetime
 
         # Test validation fails for invalid data
@@ -285,7 +285,7 @@ class TestAPIRequestResponseAlignment:
                 load_number="",  # Empty string should fail
                 pickup_address="Valid address",
                 delivery_address="Valid address",
-                pickup_datetime=datetime.now(),
+                pickup_date=datetime.now(),
                 delivery_datetime=datetime.now()
             )
 
@@ -319,7 +319,7 @@ class TestCrossSystemCompatibility:
             load_number="LOAD-2025-001",
             pickup_address="123 Main St, New York, NY",
             delivery_address="456 Oak Ave, Los Angeles, CA",
-            pickup_datetime=datetime.now(timezone.utc),
+            pickup_date=datetime.now(timezone.utc),
             delivery_datetime=datetime.now(timezone.utc),
             weight=25000.0,
             rate=2500.00
@@ -332,7 +332,7 @@ class TestCrossSystemCompatibility:
             delivery_location=Location(latitude=34.0522, longitude=-118.2437),
             pickup_address=api_request.pickup_address,
             delivery_address=api_request.delivery_address,
-            pickup_datetime=api_request.pickup_datetime,
+            pickup_date=api_request.pickup_date,
             delivery_datetime=api_request.delivery_datetime,
             weight=api_request.weight,
             rate=api_request.rate,
@@ -403,12 +403,12 @@ class TestDataValidationRules:
             delivery_location=Location(latitude=34.0522, longitude=-118.2437),
             pickup_address="New York",
             delivery_address="Los Angeles",
-            pickup_datetime=pickup_time,
+            pickup_date=pickup_time,
             delivery_datetime=delivery_time,
             status=LoadStatus.PENDING
         )
 
-        assert valid_load.pickup_datetime < valid_load.delivery_datetime
+        assert valid_load.pickup_date < valid_load.delivery_date
 
     def test_vehicle_capacity_validation(self):
         """Validate vehicle capacity constraints"""
@@ -479,7 +479,7 @@ class TestSchemaEvolution:
             delivery_location=Location(latitude=34.0522, longitude=-118.2437),
             pickup_address="New York",
             delivery_address="Los Angeles",
-            pickup_datetime=datetime.now(timezone.utc),
+            pickup_date=datetime.now(timezone.utc),
             delivery_datetime=datetime.now(timezone.utc),
             status=LoadStatus.PENDING
         )

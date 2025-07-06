@@ -117,10 +117,10 @@ async def get_driver(
         assignment_query = """
             SELECT 
                 l.id as load_id, l.load_number, l.status as load_status,
-                l.pickup_address, l.delivery_address, l.pickup_datetime, l.delivery_datetime
+                l.pickup_address, l.delivery_address, l.pickup_date, l.delivery_date
             FROM loads l
             WHERE l.driver_id = $1 AND l.status IN ('ASSIGNED', 'PICKED_UP', 'IN_TRANSIT')
-            ORDER BY l.pickup_datetime
+            ORDER BY l.pickup_date
             LIMIT 1
         """
         current_assignment = await load_repo.execute_single(assignment_query, driver_id)
@@ -129,7 +129,7 @@ async def get_driver(
         recent_loads_query = """
             SELECT 
                 l.id as load_id, l.load_number, l.status,
-                l.pickup_address, l.delivery_address, l.pickup_datetime, l.delivery_datetime
+                l.pickup_address, l.delivery_address, l.pickup_date, l.delivery_date
             FROM loads l
             WHERE l.driver_id = $1
             ORDER BY l.updated_at DESC

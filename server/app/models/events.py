@@ -86,8 +86,8 @@ class LoadCreatedEvent(BaseEvent):
         consignee_id: Optional[str]
         pickup_location: Location
         delivery_location: Location
-        pickup_datetime: datetime
-        delivery_datetime: datetime
+        pickup_date: datetime
+        delivery_date: datetime
         weight: float
         rate: float
 

@@ -56,7 +56,7 @@ async def get_routes(
                 r.id, r.load_id, r.route_data, r.estimated_distance, r.estimated_duration,
                 r.actual_distance, r.actual_duration, r.distance_miles, r.optimization_score,
                 r.fuel_estimate, r.toll_estimate, r.status, r.created_at, r.updated_at,
-                l.load_number, l.pickup_address, l.delivery_address, l.pickup_datetime, l.delivery_datetime,
+                l.load_number, l.pickup_address, l.delivery_address, l.pickup_date, l.delivery_date,
                 l.vehicle_id, l.driver_id, l.carrier_id
             FROM routes r
             JOIN loads l ON r.load_id = l.id
@@ -254,7 +254,7 @@ async def get_route_details(
                 r.id, r.load_id, r.route_data, r.estimated_distance, r.estimated_duration,
                 r.actual_distance, r.actual_duration, r.distance_miles, r.optimization_score,
                 r.fuel_estimate, r.toll_estimate, r.status, r.created_at, r.updated_at,
-                l.load_number, l.pickup_address, l.delivery_address, l.pickup_datetime, l.delivery_datetime,
+                l.load_number, l.pickup_address, l.delivery_address, l.pickup_date, l.delivery_date,
                 l.vehicle_id, l.driver_id, l.carrier_id, l.status as load_status
             FROM routes r
             JOIN loads l ON r.load_id = l.id

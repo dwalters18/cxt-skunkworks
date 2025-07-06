@@ -220,4 +220,4 @@ CREATE TRIGGER update_routes_updated_at BEFORE UPDATE ON routes FOR EACH ROW EXE
 CREATE TRIGGER update_shipments_updated_at BEFORE UPDATE ON shipments FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 -- Insert sample data from sample_data.sql
-\i sample_data.sql
+\i /docker-entrypoint-initdb.d/sample_data.sql

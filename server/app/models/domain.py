@@ -100,8 +100,8 @@ class Load(BaseEntity):
     delivery_location: Location
     pickup_address: str
     delivery_address: str
-    pickup_datetime: datetime
-    delivery_datetime: datetime
+    pickup_date: datetime
+    delivery_date: datetime
     weight: Optional[float] = None
     volume: Optional[float] = None
     rate: Optional[Decimal] = None
@@ -142,8 +142,8 @@ class CreateLoadRequest(BaseModel):
     load_number: str = Field(..., min_length=1)
     pickup_address: str = Field(..., min_length=1)
     delivery_address: str = Field(..., min_length=1)
-    pickup_datetime: datetime
-    delivery_datetime: datetime
+    pickup_date: datetime
+    delivery_date: datetime
     weight: Optional[float] = None
     volume: Optional[float] = None
     rate: Optional[Decimal] = None
@@ -154,7 +154,6 @@ class CreateLoadRequest(BaseModel):
 
 class AssignLoadRequest(BaseModel):
     load_id: str = Field(..., pattern=r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$')
-    carrier_id: str = Field(..., pattern=r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$')
     vehicle_id: str = Field(..., pattern=r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$')
     driver_id: str = Field(..., pattern=r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$')
     estimated_pickup_time: Optional[datetime] = None
@@ -240,8 +239,8 @@ class LoadResponse(BaseModel):
     delivery_location: Location
     pickup_address: str
     delivery_address: str
-    pickup_datetime: datetime
-    delivery_datetime: datetime
+    pickup_date: datetime
+    delivery_date: datetime
     weight: Optional[float] = None
     volume: Optional[float] = None
     rate: Optional[Decimal] = None

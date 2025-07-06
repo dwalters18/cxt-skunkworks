@@ -47,9 +47,25 @@ async def search_loads(
     offset: int = 0,
     load_repo=Depends(get_load_repo)
 ):
-    """Get loads with basic filtering (kept for backward compatibility)."""
-    # Implementation remains the same for backward compatibility
-    return await _search_loads_internal(status, limit, offset, load_repo)
+    """Get loads with basic filtering."""
+    try:
+        filters = {}
+        if status:
+            filters['status'] = status
+        
+        loads = await load_repo.search_loads(filters, limit, offset)
+        total_count = await load_repo.count_loads(filters)
+        
+        return {
+            "loads": loads or [],
+            "total": total_count,
+            "limit": limit,
+            "offset": offset,
+            "has_more": (offset + limit) < total_count
+        }
+    except Exception as e:
+        logger.error(f"Error searching loads: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to search loads: {str(e)}")
 
 
 @router.get("/search")
@@ -105,16 +121,18 @@ async def search_loads_advanced(
         
         where_clause = f"WHERE {' AND '.join(conditions)}" if conditions else ""
         
-        # Get loads with pagination
+        # Get loads with pagination  
+        limit_param = param_counter
+        offset_param = param_counter + 1
         query = f"""
             SELECT 
-                id, load_number, customer_id, carrier_id, pickup_address, delivery_address,
-                pickup_date, delivery_date, status, rate, distance, weight, commodity,
+                id, load_number, customer_id, pickup_address, delivery_address,
+                pickup_date, delivery_date, status, rate, distance_miles, weight, commodity_type,
                 pickup_location, delivery_location, created_at, updated_at
             FROM loads 
             {where_clause}
             ORDER BY created_at DESC
-            LIMIT ${param_counter} OFFSET ${param_counter + 1}
+            LIMIT ${limit_param} OFFSET ${offset_param}
         """
         params.extend([limit, offset])
         
@@ -202,7 +220,6 @@ async def assign_load(
         # Emit load assignment event
         background_tasks.add_task(emit_load_status_change, load_id, "ASSIGNED", {
             "load_id": load_id,
-            "carrier_id": assignment.carrier_id,
             "vehicle_id": assignment.vehicle_id,
             "driver_id": assignment.driver_id,
             "status": "ASSIGNED"
@@ -258,49 +275,3 @@ async def update_load_status(
     except Exception as e:
         logger.error(f"Error updating load status {load_id}: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to update load status: {str(e)}")
-
-
-async def _search_loads_internal(
-    status: Optional[str] = None,
-    limit: int = 50,
-    offset: int = 0,
-    load_repo=None
-):
-    """Internal function for basic load search (backward compatibility)."""
-    try:
-        # Build query conditions
-        conditions = []
-        params = []
-        param_counter = 1
-        
-        if status:
-            conditions.append(f"status = ${param_counter}")
-            params.append(status)
-            param_counter += 1
-        
-        where_clause = f"WHERE {' AND '.join(conditions)}" if conditions else ""
-        
-        # Get loads with pagination
-        query = f"""
-            SELECT 
-                id, load_number, customer_id, carrier_id, pickup_address, delivery_address,
-                pickup_date, delivery_date, status, rate, distance, weight, commodity,
-                created_at, updated_at
-            FROM loads 
-            {where_clause}
-            ORDER BY created_at DESC
-            LIMIT ${param_counter} OFFSET ${param_counter + 1}
-        """
-        params.extend([limit, offset])
-        
-        loads = await load_repo.execute_query(query, params)
-        
-        return {
-            "loads": loads or [],
-            "total": len(loads) if loads else 0,
-            "limit": limit,
-            "offset": offset
-        }
-    except Exception as e:
-        logger.error(f"Error searching loads: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to search loads: {str(e)}")

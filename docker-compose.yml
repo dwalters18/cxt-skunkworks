@@ -146,6 +146,7 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./server/database/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - ./server/database/postgres/sample_data.sql:/docker-entrypoint-initdb.d/sample_data.sql
     networks:
       - tms-network
 
