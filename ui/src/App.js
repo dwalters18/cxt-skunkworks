@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import { WebSocketProvider } from './contexts/WebSocketContext';
 import SplashOverlay from './components/SplashOverlay';
-import AppLayout from './components/layout/AppLayout';
+import { ModernLayout } from './components/layout/ModernLayout';
 import DispatchPage from './pages/DispatchPage';
 import DashboardPage from './pages/DashboardPage';
 import AnalyticsPage from './pages/AnalyticsPage';
@@ -37,24 +37,41 @@ function App() {
   return (
     <WebSocketProvider>
       <Router>
-        <Routes>
-          <Route path="/" element={<AppLayout />}>
-            {/* Main Dispatch Command Center - Primary Focus */}
-            <Route index element={<DispatchPage />} />
-            
-            {/* Dashboard and Analytics */}
-            <Route path="dashboard" element={<DashboardPage />} />
-            <Route path="analytics" element={<AnalyticsPage />} />
-            
-            {/* Management Sections */}
-            <Route path="loads" element={<LoadsPage />} />
-            <Route path="fleet" element={<FleetPage />} />
-            <Route path="drivers" element={<DriversPage />} />
-            <Route path="settings" element={<SettingsPage />} />
-          </Route>
-        </Routes>
+        <AppWithLayout />
       </Router>
     </WebSocketProvider>
+  );
+}
+
+// Component to handle navigation within Router context
+function AppWithLayout() {
+  const navigate = useNavigate();
+  const location = useLocation();
+  
+  const handleNavigate = (path) => {
+    navigate(path);
+  };
+
+  return (
+    <ModernLayout currentPath={location.pathname} onNavigate={handleNavigate}>
+      <Routes>
+        {/* Default to dashboard */}
+        <Route index element={<DashboardPage />} />
+        
+        {/* Main Dispatch Command Center */}
+        <Route path="dispatch" element={<DispatchPage />} />
+        
+        {/* Dashboard and Analytics */}
+        <Route path="dashboard" element={<DashboardPage />} />
+        <Route path="analytics" element={<AnalyticsPage />} />
+        
+        {/* Management Sections */}
+        <Route path="loads" element={<LoadsPage />} />
+        <Route path="fleet" element={<FleetPage />} />
+        <Route path="drivers" element={<DriversPage />} />
+        <Route path="settings" element={<SettingsPage />} />
+      </Routes>
+    </ModernLayout>
   );
 }
 

@@ -119,7 +119,7 @@ const LoadsPage = () => {
 
     if (loading) {
         return (
-            <div className="p-8">
+            <div className="space-y-6">
                 <div className="flex items-center justify-center h-64">
                     <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
                 </div>
@@ -128,14 +128,33 @@ const LoadsPage = () => {
     }
 
     return (
-        <div className="p-8">
-            <div className="mb-8">
-                <h1 className="text-3xl font-bold text-gray-900 mb-2">📦 Load Management</h1>
-                <p className="text-gray-600">Manage and track all transportation loads</p>
+        <div className="space-y-6">
+            {/* Header */}
+            <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+                        <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                        </svg>
+                    </div>
+                    <div>
+                        <h1 className="text-3xl font-bold text-gray-900">Loads</h1>
+                        <p className="text-gray-600 mt-1">Manage and track all transportation loads</p>
+                    </div>
+                </div>
+                <button 
+                    onClick={fetchLoads}
+                    className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors duration-200 flex items-center gap-2"
+                >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                    Refresh
+                </button>
             </div>
 
             {/* Load Summary Cards */}
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
                 {[
                     { key: 'total', count: loadCounts.total, label: 'Total Loads', color: 'text-gray-900' },
                     { key: 'pending', count: loadCounts.pending, label: 'Pending', color: 'text-yellow-600' },
@@ -144,7 +163,7 @@ const LoadsPage = () => {
                     { key: 'delivered', count: loadCounts.delivered, label: 'Delivered', color: 'text-green-600' },
                     { key: 'unassigned', count: loadCounts.unassigned, label: 'Unassigned', color: 'text-red-600' }
                 ].map((card) => (
-                    <div key={card.key} className="bg-white rounded-lg shadow p-4">
+                    <div key={card.key} className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
                         <div className={`text-2xl font-bold ${card.color}`}>{card.count}</div>
                         <div className="text-sm text-gray-600">{card.label}</div>
                     </div>
@@ -152,15 +171,14 @@ const LoadsPage = () => {
             </div>
 
             {/* Filters */}
-            <div className="bg-white rounded-xl shadow-lg p-6 mb-6">
-                <div className="flex items-center justify-between mb-4">
-                    <h2 className="text-xl font-bold text-gray-900">Load Filters</h2>
-                    <button 
-                        onClick={fetchLoads}
-                        className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors duration-200"
-                    >
-                        🔄 Refresh
-                    </button>
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                <div className="flex items-center gap-2 mb-4">
+                    <div className="w-6 h-6 bg-gray-100 rounded-lg flex items-center justify-center">
+                        <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.207A1 1 0 013 6.5V4z" />
+                        </svg>
+                    </div>
+                    <h2 className="text-lg font-semibold text-gray-900">Filters</h2>
                 </div>
                 
                 <div className="flex flex-wrap gap-4">

@@ -115,10 +115,11 @@ const FleetPage = () => {
     }
 
     return (
-        <div className="p-8">
-            <div className="mb-8">
-                <h1 className="text-3xl font-bold text-gray-900 mb-2">🚛 Fleet Management</h1>
-                <p className="text-gray-600">Monitor and manage your vehicle fleet</p>
+        <div className="space-y-6">
+            {/* Header */}
+            <div>
+                <h1 className="text-3xl font-bold text-gray-900">Fleet</h1>
+                <p className="text-gray-600 mt-1">Monitor and manage your vehicle fleet</p>
             </div>
 
             {/* Fleet Summary Cards */}
