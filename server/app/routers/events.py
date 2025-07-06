@@ -35,10 +35,10 @@ async def get_recent_events(
                 load_id, vehicle_id, driver_id
             FROM load_events 
             ORDER BY created_at DESC 
-            LIMIT %s
+            LIMIT $1
         """
         
-        events = await timescale_repo.execute_query(query, [limit])
+        events = await timescale_repo.execute_query(query, limit)
         
         # Format events for API response
         formatted_events = []
@@ -195,29 +195,38 @@ async def get_events_by_filter(
         # Build query conditions
         conditions = []
         params = []
+        param_count = 0
         
         if event_type:
-            conditions.append("event_type = %s")
+            param_count += 1
+            conditions.append(f"event_type = ${param_count}")
             params.append(event_type)
             
         if load_id:
-            conditions.append("load_id = %s")
+            param_count += 1
+            conditions.append(f"load_id = ${param_count}")
             params.append(load_id)
             
         if vehicle_id:
-            conditions.append("vehicle_id = %s")
+            param_count += 1
+            conditions.append(f"vehicle_id = ${param_count}")
             params.append(vehicle_id)
             
         if driver_id:
-            conditions.append("driver_id = %s")
+            param_count += 1
+            conditions.append(f"driver_id = ${param_count}")
             params.append(driver_id)
         
         # Add time filter
-        conditions.append("created_at >= NOW() - INTERVAL '%s hours'")
+        param_count += 1
+        conditions.append(f"created_at >= NOW() - INTERVAL '${param_count} hours'")
         params.append(hours)
         
         where_clause = f"WHERE {' AND '.join(conditions)}"
         
+        # Add limit parameter
+        param_count += 1
+        limit_param = param_count
         query = f"""
             SELECT 
                 event_id, event_type, event_data, created_at,
@@ -225,7 +234,7 @@ async def get_events_by_filter(
             FROM load_events 
             {where_clause}
             ORDER BY created_at DESC 
-            LIMIT %s
+            LIMIT ${limit_param}
         """
         params.append(limit)
         

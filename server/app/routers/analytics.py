@@ -39,7 +39,7 @@ async def get_dashboard_data(
                 COUNT(CASE WHEN status = 'CANCELLED' THEN 1 END) as cancelled_loads,
                 AVG(CASE WHEN rate IS NOT NULL THEN rate::numeric END) as avg_rate
             FROM loads 
-            WHERE created_at >= NOW() - INTERVAL '{interval}'
+            WHERE created_at >= NOW() - INTERVAL '7 days'
         """
         
         load_stats = await load_repo.execute_single(load_stats_query)
@@ -76,7 +76,7 @@ async def get_dashboard_data(
                 event_type,
                 COUNT(*) as event_count
             FROM load_events 
-            WHERE created_at >= NOW() - INTERVAL '{interval}'
+            WHERE created_at >= NOW() - INTERVAL '7 days'
             GROUP BY event_type
             ORDER BY event_count DESC
             LIMIT 10
@@ -97,7 +97,7 @@ async def get_dashboard_data(
                     EXTRACT(EPOCH FROM (updated_at - created_at))/3600 
                 END) as avg_delivery_hours
             FROM loads 
-            WHERE created_at >= NOW() - INTERVAL '{interval}'
+            WHERE created_at >= NOW() - INTERVAL '7 days'
         """
         
         performance = await load_repo.execute_single(performance_query)
@@ -113,7 +113,7 @@ async def get_dashboard_data(
                 SUM(CASE WHEN rate IS NOT NULL THEN rate::numeric ELSE 0 END) as total_revenue,
                 COUNT(CASE WHEN status = 'DELIVERED' THEN 1 END) as completed_loads_count
             FROM loads 
-            WHERE created_at >= NOW() - INTERVAL '{interval}'
+            WHERE created_at >= NOW() - INTERVAL '7 days'
         """
         
         revenue = await load_repo.execute_single(revenue_query)

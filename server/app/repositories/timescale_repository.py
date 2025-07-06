@@ -34,7 +34,7 @@ class TimescaleRepository(BaseTimescaleRepository):
         """Get vehicle tracking history"""
         query = """
         SELECT * FROM vehicle_tracking 
-        WHERE vehicle_id = $1 AND time >= NOW() - INTERVAL '%s hours'
+        WHERE vehicle_id = $1 AND time >= NOW() - INTERVAL '$2 hours'
         ORDER BY time DESC
-        """ % hours
-        return await self.execute_query(query, vehicle_id)
+        """
+        return await self.execute_query(query, vehicle_id, hours)

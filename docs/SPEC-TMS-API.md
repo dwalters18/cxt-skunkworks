@@ -67,6 +67,51 @@ The TMS API implements a clean **Repository Pattern** for data access layer sepa
   - `route_optimization.py`: Route calculation and optimization services
 - **`/websocket_manager.py`**: WebSocket connection management for real-time communication
 
+### 1.6 SQL Parameter Formatting Standards
+
+The TMS API implements **asyncpg-compliant parameter formatting** for all database queries to ensure compatibility with PostgreSQL's async driver and prevent SQL injection vulnerabilities.
+
+**Parameter Placeholder Format:**
+- **Use**: Numbered placeholders (`$1`, `$2`, `$3`, etc.)
+- **Avoid**: Old-style `%s` placeholders (psycopg2 format)
+
+**Dynamic Parameter Counting Pattern:**
+```python
+# Standard implementation pattern
+conditions = []
+params = []
+param_counter = 1
+
+if status:
+    conditions.append(f"status = ${param_counter}")
+    params.append(status)
+    param_counter += 1
+    
+if customer_id:
+    conditions.append(f"customer_id = ${param_counter}")
+    params.append(customer_id)
+    param_counter += 1
+
+# Build final query with proper parameter numbering
+query = f"SELECT * FROM table WHERE {' AND '.join(conditions)} LIMIT ${param_counter} OFFSET ${param_counter + 1}"
+params.extend([limit, offset])
+```
+
+**Key Benefits:**
+- **Compatibility**: Required for asyncpg PostgreSQL driver
+- **Security**: Prevents SQL injection through proper parameterization
+- **Maintainability**: Dynamic counter ensures correct numbering regardless of conditional filters
+- **Scalability**: Easy to add/remove query conditions without renumbering parameters
+
+**Implementation Examples:**
+- **Single Condition**: `WHERE status = $1`
+- **Multiple Conditions**: `WHERE status = $1 AND customer_id = $2`
+- **Date Ranges**: `WHERE pickup_date >= $1 AND pickup_date <= $2`
+- **PostGIS Spatial**: `WHERE ST_DWithin(location, ST_MakePoint($1, $2), $3)`
+- **Pagination**: `LIMIT $n OFFSET $n+1`
+
+This standard must be applied consistently across all repository classes and SQL query construction in the TMS API.
+
 ---
 
 ## 2. Core API Principles

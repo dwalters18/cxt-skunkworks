@@ -60,7 +60,7 @@ class LoadRepository(PostgresRepository):
         await self.execute_command(query, carrier_id, vehicle_id, driver_id, load_id)
     
     async def search_loads(self, filters: Dict[str, Any], limit: int = 50, offset: int = 0):
-        """Search loads with filters"""
+        """Search loads with various filters"""
         where_clauses = []
         params = []
         param_count = 0
@@ -69,11 +69,6 @@ class LoadRepository(PostgresRepository):
             param_count += 1
             where_clauses.append(f"status = ${param_count}")
             params.append(filters['status'])
-        
-        if filters.get('carrier_id'):
-            param_count += 1
-            where_clauses.append(f"carrier_id = ${param_count}")
-            params.append(filters['carrier_id'])
         
         if filters.get('date_from'):
             param_count += 1
@@ -118,10 +113,6 @@ class LoadRepository(PostgresRepository):
         for key, value in filters.items():
             if key == 'status':
                 where_conditions.append(f"status = ${param_counter}")
-                params.append(value)
-                param_counter += 1
-            elif key == 'carrier_id':
-                where_conditions.append(f"carrier_id = ${param_counter}")
                 params.append(value)
                 param_counter += 1
         

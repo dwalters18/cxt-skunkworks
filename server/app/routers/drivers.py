@@ -74,11 +74,11 @@ async def get_drivers(
         params = []
         
         if status:
-            conditions.append("status = %s")
+            conditions.append("status = $1")
             params.append(status)
             
         if available_only:
-            conditions.append("status = %s")
+            conditions.append("status = $1")
             params.append("AVAILABLE")
         
         # Get drivers using the proper driver repository
@@ -119,11 +119,11 @@ async def get_driver(
                 l.id as load_id, l.load_number, l.status as load_status,
                 l.pickup_address, l.delivery_address, l.pickup_datetime, l.delivery_datetime
             FROM loads l
-            WHERE l.driver_id = %s AND l.status IN ('ASSIGNED', 'PICKED_UP', 'IN_TRANSIT')
+            WHERE l.driver_id = $1 AND l.status IN ('ASSIGNED', 'PICKED_UP', 'IN_TRANSIT')
             ORDER BY l.pickup_datetime
             LIMIT 1
         """
-        current_assignment = await load_repo.execute_single(assignment_query, [driver_id])
+        current_assignment = await load_repo.execute_single(assignment_query, driver_id)
         
         # Get recent loads (last 10)
         recent_loads_query = """
@@ -131,11 +131,11 @@ async def get_driver(
                 l.id as load_id, l.load_number, l.status,
                 l.pickup_address, l.delivery_address, l.pickup_datetime, l.delivery_datetime
             FROM loads l
-            WHERE l.driver_id = %s
+            WHERE l.driver_id = $1
             ORDER BY l.updated_at DESC
             LIMIT 10
         """
-        recent_loads = await load_repo.execute_query(recent_loads_query, [driver_id])
+        recent_loads = await load_repo.execute_query(recent_loads_query, driver_id)
         
         # Get performance metrics
         performance_query = """
@@ -146,9 +146,9 @@ async def get_driver(
                     EXTRACT(EPOCH FROM (updated_at - created_at))/3600 
                 END) as avg_completion_hours
             FROM loads 
-            WHERE driver_id = %s AND created_at >= NOW() - INTERVAL '30 days'
+            WHERE driver_id = $1 AND created_at >= NOW() - INTERVAL '30 days'
         """
-        performance = await load_repo.execute_single(performance_query, [driver_id])
+        performance = await load_repo.execute_single(performance_query, driver_id)
         
         return {
             "driver": driver,

@@ -43,14 +43,13 @@ async def create_load(
 @router.get("/")
 async def search_loads(
     status: Optional[str] = None,
-    carrier_id: Optional[str] = None,
     limit: int = 50,
     offset: int = 0,
     load_repo=Depends(get_load_repo)
 ):
     """Get loads with basic filtering (kept for backward compatibility)."""
     # Implementation remains the same for backward compatibility
-    return await _search_loads_internal(status, carrier_id, limit, offset, load_repo)
+    return await _search_loads_internal(status, limit, offset, load_repo)
 
 
 @router.get("/search")
@@ -68,21 +67,25 @@ async def search_loads_advanced(
         # Build query conditions
         conditions = []
         params = []
+        param_counter = 1
         
         if status:
-            conditions.append("status = %s")
+            conditions.append(f"status = ${param_counter}")
             params.append(status)
+            param_counter += 1
             
         if customer_id:
-            conditions.append("customer_id = %s")
+            conditions.append(f"customer_id = ${param_counter}")
             params.append(customer_id)
+            param_counter += 1
         
         if date_range:
             # Parse date range (format: "2025-01-01,2025-01-31")
             try:
                 start_date, end_date = date_range.split(',')
-                conditions.append("pickup_date >= %s AND pickup_date <= %s")
+                conditions.append(f"pickup_date >= ${param_counter} AND pickup_date <= ${param_counter + 1}")
                 params.extend([start_date.strip(), end_date.strip()])
+                param_counter += 2
             except ValueError:
                 raise HTTPException(status_code=400, detail="Invalid date_range format. Use: YYYY-MM-DD,YYYY-MM-DD")
         
@@ -93,9 +96,10 @@ async def search_loads_advanced(
                 lat, lng, radius = float(lat), float(lng), float(radius)
                 # Use PostGIS spatial query for location-based search
                 conditions.append(
-                    "ST_DWithin(pickup_location::geography, ST_SetSRID(ST_MakePoint(%s, %s), 4326)::geography, %s)"
+                    f"ST_DWithin(pickup_location::geography, ST_SetSRID(ST_MakePoint(${param_counter}, ${param_counter + 1}), 4326)::geography, ${param_counter + 2})"
                 )
                 params.extend([lng, lat, radius * 1000])  # Convert km to meters
+                param_counter += 3
             except (ValueError, IndexError):
                 raise HTTPException(status_code=400, detail="Invalid location_radius format. Use: lat,lng,radius_km")
         
@@ -110,7 +114,7 @@ async def search_loads_advanced(
             FROM loads 
             {where_clause}
             ORDER BY created_at DESC
-            LIMIT %s OFFSET %s
+            LIMIT ${param_counter} OFFSET ${param_counter + 1}
         """
         params.extend([limit, offset])
         
@@ -258,7 +262,6 @@ async def update_load_status(
 
 async def _search_loads_internal(
     status: Optional[str] = None,
-    carrier_id: Optional[str] = None,
     limit: int = 50,
     offset: int = 0,
     load_repo=None
@@ -268,14 +271,12 @@ async def _search_loads_internal(
         # Build query conditions
         conditions = []
         params = []
+        param_counter = 1
         
         if status:
-            conditions.append("status = %s")
+            conditions.append(f"status = ${param_counter}")
             params.append(status)
-            
-        if carrier_id:
-            conditions.append("carrier_id = %s")
-            params.append(carrier_id)
+            param_counter += 1
         
         where_clause = f"WHERE {' AND '.join(conditions)}" if conditions else ""
         
@@ -288,7 +289,7 @@ async def _search_loads_internal(
             FROM loads 
             {where_clause}
             ORDER BY created_at DESC
-            LIMIT %s OFFSET %s
+            LIMIT ${param_counter} OFFSET ${param_counter + 1}
         """
         params.extend([limit, offset])
         

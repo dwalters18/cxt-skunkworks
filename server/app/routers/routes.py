@@ -34,9 +34,11 @@ async def get_routes(
         # Build query conditions
         conditions = []
         params = []
+        param_count = 0
         
         if status:
-            conditions.append("r.status = %s")
+            param_count += 1
+            conditions.append(f"r.status = ${param_count}")
             params.append(status)
             
         if active_only:
@@ -45,6 +47,10 @@ async def get_routes(
         where_clause = f"WHERE {' AND '.join(conditions)}" if conditions else ""
         
         # Get routes with load information
+        param_count += 1
+        limit_param = param_count
+        param_count += 1
+        offset_param = param_count
         query = f"""
             SELECT 
                 r.id, r.load_id, r.route_data, r.estimated_distance, r.estimated_duration,
@@ -56,11 +62,11 @@ async def get_routes(
             JOIN loads l ON r.load_id = l.id
             {where_clause}
             ORDER BY r.created_at DESC
-            LIMIT %s OFFSET %s
+            LIMIT ${limit_param} OFFSET ${offset_param}
         """
         params.extend([limit, offset])
         
-        routes = await load_repo.execute_query(query, params)
+        routes = await load_repo.execute_query(query, *params)
         
         # Get total count
         count_query = f"""
@@ -70,7 +76,7 @@ async def get_routes(
             {where_clause}
         """
         count_params = params[:-2]  # Remove limit and offset
-        count_result = await load_repo.execute_single(count_query, count_params)
+        count_result = await load_repo.execute_single(count_query, *count_params)
         total_count = count_result['total'] if count_result else 0
         
         return {
@@ -252,10 +258,10 @@ async def get_route_details(
                 l.vehicle_id, l.driver_id, l.carrier_id, l.status as load_status
             FROM routes r
             JOIN loads l ON r.load_id = l.id
-            WHERE r.id = %s
+            WHERE r.id = $1
         """
         
-        route = await load_repo.execute_single(query, [route_id])
+        route = await load_repo.execute_single(query, route_id)
         
         if not route:
             raise HTTPException(status_code=404, detail="Route not found")

@@ -45,19 +45,30 @@ async def lifespan(app: FastAPI):
         logger.info("Step 2: Kafka consumer instance created successfully")
         
         logger.info("Step 3: Starting Kafka consumer background task...")
-        consumer_task = asyncio.create_task(consumer.start())
+        
+        # Wrap the consumer start in a safe background task
+        async def safe_consumer_start():
+            try:
+                await consumer.start()
+                logger.info("Kafka consumer started successfully")
+            except Exception as e:
+                logger.error(f"Kafka consumer failed to start: {e}")
+                logger.exception("Kafka consumer startup error:")
+        
+        consumer_task = asyncio.create_task(safe_consumer_start())
         logger.info("Step 4: Kafka consumer background task created")
         
-        # Give it a moment to start
-        await asyncio.sleep(1)
+        # Give it a brief moment to attempt startup, but don't wait for completion
+        await asyncio.sleep(0.5)
         logger.info("Step 5: Initial startup delay completed")
         
         logger.info("=== KAFKA CONSUMER STARTUP COMPLETED ===")
     except Exception as e:
-        logger.error(f"ERROR: Failed to start Kafka consumer: {e}")
+        logger.error(f"ERROR: Failed to initialize Kafka consumer: {e}")
         logger.exception("Full exception details:")
         # Don't fail the entire app if Kafka consumer fails
         logger.warning("Continuing without Kafka consumer...")
+        consumer_task = None
     
     logger.info("=== API STARTUP COMPLETED - READY TO SERVE REQUESTS ===")
     yield

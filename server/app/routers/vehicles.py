@@ -24,13 +24,16 @@ async def get_vehicles(
         # Build query conditions
         conditions = []
         params = []
+        param_count = 0
         
         if carrier_id:
-            conditions.append("carrier_id = %s")
+            param_count += 1
+            conditions.append(f"carrier_id = ${param_count}")
             params.append(carrier_id)
             
         if status:
-            conditions.append("status = %s")
+            param_count += 1
+            conditions.append(f"status = ${param_count}")
             params.append(status)
         
         where_clause = f"WHERE {' AND '.join(conditions)}" if conditions else ""
@@ -66,12 +69,12 @@ async def update_vehicle_location(
         # Update vehicle location in PostgreSQL
         update_query = """
             UPDATE vehicles 
-            SET current_location = ST_GeogFromText(%s), updated_at = NOW()
-            WHERE id = %s
+            SET current_location = ST_GeogFromText($1), updated_at = NOW()
+            WHERE id = $2
             RETURNING id, vehicle_number, status
         """
         point_wkt = f"POINT({location_update.longitude} {location_update.latitude})"
-        vehicle = await vehicle_repo.execute_single(update_query, [point_wkt, vehicle_id])
+        vehicle = await vehicle_repo.execute_single(update_query, point_wkt, vehicle_id)
         
         if not vehicle:
             raise HTTPException(status_code=404, detail="Vehicle not found")
@@ -80,7 +83,7 @@ async def update_vehicle_location(
         tracking_insert = """
             INSERT INTO vehicle_tracking 
             (vehicle_id, latitude, longitude, speed, heading, fuel_level, timestamp, created_at)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, NOW())
+            VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())
         """
         tracking_params = [
             vehicle_id,
@@ -91,7 +94,7 @@ async def update_vehicle_location(
             None,  # fuel_level - would come from vehicle telematics
             location_update.timestamp or 'NOW()'
         ]
-        await timescale_repo.execute_command(tracking_insert, tracking_params)
+        await timescale_repo.execute_command(tracking_insert, *tracking_params)
         
         # Emit location update event
         event_data = {
@@ -139,8 +142,8 @@ async def get_vehicle_tracking(
                 vehicle_id, latitude, longitude, speed, heading, 
                 fuel_level, timestamp, created_at
             FROM vehicle_tracking 
-            WHERE vehicle_id = %s 
-                AND timestamp >= NOW() - INTERVAL '%s hours'
+            WHERE vehicle_id = $1 
+                AND timestamp >= NOW() - INTERVAL '$2 hours'
             ORDER BY timestamp DESC
             LIMIT 1000
         """
