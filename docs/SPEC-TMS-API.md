@@ -137,14 +137,13 @@ All API endpoints implement strict data validation using Pydantic V2 models with
 ## 3. Authentication & Authorization
 
 ### 3.1 Current Status
-The current API implementation focuses on core functionality with basic security measures including input validation, CORS configuration, SQL injection prevention, and error message sanitization [3]. 
+The current API implementation focuses on core functionality with basic security measures including:
+- **Input Validation**: Comprehensive Pydantic model validation for all API requests and responses [3]
+- **SQL Injection Prevention**: Parameterized queries used throughout repository layer [3]  
+- **CORS Configuration**: Currently disabled for development/POC environment [3]
+- **Basic Error Handling**: Standard FastAPI error responses without sensitive data exposure [3]
 
-### 3.2 Planned Implementation
-Future authentication and authorization will include [3]:
-- **Role-Based Access Control (RBAC)**: Dispatcher, administrator, and read-only user roles
-- **Single Sign-On (SSO)**: Integration with enterprise authentication systems
-- **API Key Management**: Secure API key generation and rotation for external integrations
-- **JWT Token Authentication**: Stateless authentication for scalable operations
+**Note**: This is a proof-of-concept implementation. Production deployment will require additional security hardening including authentication, authorization, CORS configuration, and comprehensive security monitoring [3].
 
 ---
 
@@ -221,7 +220,19 @@ Future authentication and authorization will include [3]:
 - **Database Interactions**: Updates PostgreSQL loads table status enum field [3,4]
 - **Events Published**: Status-specific events (`LOAD_PICKED_UP`, `LOAD_IN_TRANSIT`, `LOAD_DELIVERED`, etc.) to `tms.loads` topic [5]
 
-#### 4.1.4 Search Loads
+#### 4.1.4 Get All Loads
+- **Purpose**: Retrieve paginated list of all loads with optional filtering [3]
+- **HTTP Method & Path**: `GET /api/loads` [3]
+- **Query Parameters**:
+  - `limit`: Maximum number of results (default: 50)
+  - `offset`: Number of results to skip (default: 0)
+  - `status`: Filter by load status
+  - `customer_id`: Customer UUID filter
+- **Response Body** (Success 200): Paginated list of loads with metadata
+- **Database Interactions**: Queries PostgreSQL loads table with optional filtering and pagination [3,4]
+- **Events Published**: None (read-only operation) [3]
+
+#### 4.1.5 Search Loads
 - **Purpose**: Search and filter loads with complex criteria [3]
 - **HTTP Method & Path**: `GET /api/loads/search` [3]
 - **Query Parameters**: 
@@ -232,7 +243,30 @@ Future authentication and authorization will include [3]:
 - **Database Interactions**: Executes complex PostgreSQL queries with spatial operations using PostGIS for location-based searches [3,4,6]
 - **Events Published**: None (read-only operation) [3]
 
-#### 4.1.5 Optimize Load Route
+#### 4.1.6 Get Unassigned Loads
+- **Purpose**: Retrieve all loads that have not been assigned to drivers/vehicles [3]
+- **HTTP Method & Path**: `GET /api/loads/unassigned` [3]
+- **Response Body** (Success 200): List of unassigned loads
+- **Database Interactions**: Queries PostgreSQL loads table for loads with NULL driver_id and vehicle_id [3,4]
+- **Events Published**: None (read-only operation) [3]
+
+#### 4.1.7 Get Loads by Status
+- **Purpose**: Retrieve loads filtered by specific status [3]
+- **HTTP Method & Path**: `GET /api/loads/status/{status}` [3]
+- **Path Parameters**: `status` - Load status enum value
+- **Response Body** (Success 200): List of loads with specified status
+- **Database Interactions**: Queries PostgreSQL loads table with status filter [3,4]
+- **Events Published**: None (read-only operation) [3]
+
+#### 4.1.8 Get Load by ID
+- **Purpose**: Retrieve detailed information for a specific load [3]
+- **HTTP Method & Path**: `GET /api/loads/{load_id}` [3]
+- **Path Parameters**: `load_id` - UUID of the load
+- **Response Body** (Success 200): Complete load details
+- **Database Interactions**: Queries PostgreSQL loads table by primary key [3,4]
+- **Events Published**: None (read-only operation) [3]
+
+#### 4.1.9 Optimize Load Route
 - **Purpose**: Generate optimized route for load using Google Maps API and Neo4j graph algorithms [3,7,10]
 - **HTTP Method & Path**: `POST /api/loads/{load_id}/optimize-route` [3]
 - **Request Body**:
@@ -269,7 +303,31 @@ Future authentication and authorization will include [3]:
 
 ### 4.2 Vehicle Management API
 
-#### 4.2.1 Create Vehicle
+#### 4.2.1 Get All Vehicles
+- **Purpose**: Retrieve paginated list of all vehicles with optional filtering [3]
+- **HTTP Method & Path**: `GET /api/vehicles` [3]
+- **Query Parameters**:
+  - `limit`: Maximum number of results (default: 50)
+  - `offset`: Number of results to skip (default: 0)
+  - `status`: Filter by vehicle status
+  - `vehicle_type`: Filter by vehicle type
+- **Response Body** (Success 200): Paginated list of vehicles with metadata
+- **Database Interactions**: Queries PostgreSQL vehicles table with optional filtering and pagination [3,4]
+- **Events Published**: None (read-only operation) [3]
+
+#### 4.2.2 Get Vehicle Tracking Data
+- **Purpose**: Retrieve historical tracking data for a specific vehicle [3]
+- **HTTP Method & Path**: `GET /api/vehicles/{vehicle_id}/tracking` [3]
+- **Path Parameters**: `vehicle_id` - UUID of the vehicle
+- **Query Parameters**:
+  - `start_date`: Start date for tracking data range
+  - `end_date`: End date for tracking data range
+  - `limit`: Maximum number of tracking records
+- **Response Body** (Success 200): List of vehicle tracking records with locations and timestamps
+- **Database Interactions**: Queries TimescaleDB vehicle_tracking hypertable for time-series location data [3,4,6]
+- **Events Published**: None (read-only operation) [3]
+
+#### 4.2.3 Create Vehicle
 - **Purpose**: Register new vehicle in the TMS system [3]
 - **HTTP Method & Path**: `POST /api/vehicles` [3]
 - **Request Body**:
@@ -295,7 +353,7 @@ Future authentication and authorization will include [3]:
 - **Database Interactions**: Stores vehicle data in PostgreSQL vehicles table with PostGIS GEOGRAPHY for location tracking [3,4,6]
 - **Events Published**: `VEHICLE_CREATED` event published to `tms.vehicles` topic [3,5]
 
-#### 4.2.2 Update Vehicle Location
+#### 4.2.4 Update Vehicle Location
 - **Purpose**: Update real-time vehicle GPS location for tracking [3]
 - **HTTP Method & Path**: `PUT /api/vehicles/{vehicle_id}/location` [3]
 - **Request Body**:
@@ -313,7 +371,7 @@ Future authentication and authorization will include [3]:
   - **TimescaleDB**: Stores historical location data in vehicle_tracking hypertable for time-series analysis [3,4,6]
 - **Events Published**: `VEHICLE_LOCATION_UPDATED` event published to `tms.vehicles.tracking` topic [3,5]
 
-#### 4.2.3 Update Vehicle Status
+#### 4.2.5 Update Vehicle Status
 - **Purpose**: Change vehicle operational status [3]
 - **HTTP Method & Path**: `PUT /api/vehicles/{vehicle_id}/status` [3]
 - **Request Body**:
@@ -326,9 +384,49 @@ Future authentication and authorization will include [3]:
 - **Database Interactions**: Updates PostgreSQL vehicles table status enum field [3,4]
 - **Events Published**: `VEHICLE_STATUS_CHANGED` event published to `tms.vehicles` topic [3,5]
 
-### 4.3 Driver Management API
+### 4.3 Route Management API
 
-#### 4.3.1 Get All Drivers
+#### 4.3.1 Get All Routes
+- **Purpose**: Retrieve paginated list of all routes with optional filtering [3]
+- **HTTP Method & Path**: `GET /api/routes` [3]
+- **Query Parameters**:
+  - `limit`: Maximum number of results (default: 50)
+  - `offset`: Number of results to skip (default: 0)
+  - `status`: Filter by route status
+  - `load_id`: Filter by associated load
+- **Response Body** (Success 200): Paginated list of routes with metadata
+- **Database Interactions**: Queries PostgreSQL routes table with optional filtering and pagination [3,4]
+- **Events Published**: None (read-only operation) [3]
+
+#### 4.3.2 Get Active Routes
+- **Purpose**: Retrieve all currently active routes [3]
+- **HTTP Method & Path**: `GET /api/routes/active` [3]
+- **Response Body** (Success 200): List of active routes with current status
+- **Database Interactions**: Queries PostgreSQL routes table for routes with active status [3,4]
+- **Events Published**: None (read-only operation) [3]
+
+#### 4.3.3 Get Route Performance Metrics
+- **Purpose**: Retrieve performance analytics for routes [3]
+- **HTTP Method & Path**: `GET /api/routes/performance` [3]
+- **Query Parameters**:
+  - `start_date`: Start date for performance data range
+  - `end_date`: End date for performance data range
+  - `route_id`: Specific route ID filter
+- **Response Body** (Success 200): Route performance metrics and analytics
+- **Database Interactions**: Queries TimescaleDB for route performance aggregations [3,4,6]
+- **Events Published**: None (read-only operation) [3]
+
+#### 4.3.4 Get Route by ID
+- **Purpose**: Retrieve detailed information for a specific route [3]
+- **HTTP Method & Path**: `GET /api/routes/{route_id}` [3]
+- **Path Parameters**: `route_id` - UUID of the route
+- **Response Body** (Success 200): Complete route details including geometry and waypoints
+- **Database Interactions**: Queries PostgreSQL routes table by primary key [3,4]
+- **Events Published**: None (read-only operation) [3]
+
+### 4.4 Driver Management API
+
+#### 4.4.1 Get All Drivers
 - **Purpose**: Retrieve paginated list of drivers with optional filtering [3]
 - **HTTP Method & Path**: `GET /api/drivers` [3]
 - **Query Parameters**:
@@ -371,7 +469,15 @@ Future authentication and authorization will include [3]:
 - **Database Interactions**: Queries PostgreSQL drivers table with optional filtering and pagination [3,4]
 - **Performance**: Optimized with proper indexing on status and driver_number columns [3]
 
-#### 4.3.2 Create Driver
+#### 4.4.2 Get Driver by ID
+- **Purpose**: Retrieve detailed information for a specific driver [3]
+- **HTTP Method & Path**: `GET /api/drivers/{driver_id}` [3]
+- **Path Parameters**: `driver_id` - UUID of the driver
+- **Response Body** (Success 200): Complete driver details including current status and location
+- **Database Interactions**: Queries PostgreSQL drivers table by primary key [3,4]
+- **Events Published**: None (read-only operation) [3]
+
+#### 4.4.3 Create Driver
 - **Purpose**: Register new driver in the TMS system [3]
 - **HTTP Method & Path**: `POST /api/drivers` [3]
 - **Request Body**:
@@ -401,7 +507,7 @@ Future authentication and authorization will include [3]:
 - **Database Interactions**: Stores driver data in PostgreSQL drivers table with PostGIS GEOGRAPHY for location tracking [3,4,6]
 - **Events Published**: `DRIVER_CREATED` event published to `tms.drivers` topic [3,5]
 
-#### 4.3.3 Update Driver Status
+#### 4.4.4 Update Driver Status
 - **Purpose**: Update driver duty status for Hours of Service compliance [3]
 - **HTTP Method & Path**: `PUT /api/drivers/{driver_id}/status` [3]
 - **Request Body**:
@@ -418,7 +524,7 @@ Future authentication and authorization will include [3]:
 - **Database Interactions**: Updates PostgreSQL drivers table status and location fields [3,4]
 - **Events Published**: `DRIVER_STATUS_CHANGED` event published to `tms.drivers` topic [3,5]
 
-#### 4.3.3 Track Driver Hours of Service
+#### 4.4.5 Track Driver Hours of Service
 - **Purpose**: Monitor and enforce HOS regulations compliance [3]
 - **HTTP Method & Path**: `GET /api/drivers/{driver_id}/hos` [3]
 - **Response Body**:
@@ -435,11 +541,29 @@ Future authentication and authorization will include [3]:
 - **Database Interactions**: Queries TimescaleDB driver_activity hypertable for time-series HOS data analysis [3,4,6]
 - **Events Published**: `DRIVER_HOS_VIOLATION` event if violations detected, published to `tms.drivers` topic [3,5]
 
-### 4.4 Event Management API
+### 4.5 Event Management API
 
-#### 4.4.1 Get Event Stream
-- **Purpose**: Retrieve filtered event history for operational visibility [3,5]
-- **HTTP Method & Path**: `GET /api/events` [3]
+#### 4.5.1 Get Recent Events
+- **Purpose**: Retrieve recent events for operational visibility [3,5]
+- **HTTP Method & Path**: `GET /api/events/recent` [3]
+- **Query Parameters**:
+  - `limit`: Maximum number of events to return (default: 100)
+  - `event_type`: Filter by specific event types
+  - `entity_type`: Filter by entity (LOAD, VEHICLE, DRIVER, ROUTE)
+- **Response Body** (Success 200): List of recent events with timestamps and details
+- **Database Interactions**: Queries TimescaleDB load_events hypertable for recent time-series event data [3,4,6]
+- **Events Published**: None (read-only operation) [3]
+
+#### 4.5.2 Get Event Topics
+- **Purpose**: Retrieve list of available Kafka event topics [3,5]
+- **HTTP Method & Path**: `GET /api/events/topics` [3]
+- **Response Body** (Success 200): List of available Kafka topics with metadata
+- **Database Interactions**: Queries Kafka cluster metadata for topic information [3,5]
+- **Events Published**: None (read-only operation) [3]
+
+#### 4.5.3 Filter Events
+- **Purpose**: Advanced event filtering with complex criteria [3,5]
+- **HTTP Method & Path**: `GET /api/events/filter` [3]
 - **Query Parameters**:
   - `event_type`: Filter by specific event types
   - `entity_type`: Filter by entity (LOAD, VEHICLE, DRIVER, ROUTE)
@@ -449,7 +573,7 @@ Future authentication and authorization will include [3]:
 - **Database Interactions**: Queries TimescaleDB load_events hypertable for time-series event data [3,4,6]
 - **Events Published**: None (read-only operation) [3]
 
-#### 4.4.2 Publish Custom Event
+#### 4.5.4 Publish Custom Event
 - **Purpose**: Allow external systems to publish events into TMS event stream [3,5]
 - **HTTP Method & Path**: `POST /api/events` [3]
 - **Request Body**:
@@ -465,9 +589,9 @@ Future authentication and authorization will include [3]:
 - **Database Interactions**: Stores event in TimescaleDB load_events hypertable [3,4,6]
 - **Events Published**: Custom event published to appropriate Kafka topic based on entity_type [3,5]
 
-### 4.5 Analytics API
+### 4.6 Analytics API
 
-#### 4.5.1 Dashboard Metrics
+#### 4.6.1 Dashboard Metrics
 - **Purpose**: Provide key performance indicators for TMS dashboard [3,9]
 - **HTTP Method & Path**: `GET /api/analytics/dashboard` [3]
 - **Response Body**:
@@ -485,11 +609,49 @@ Future authentication and authorization will include [3]:
 - **Database Interactions**: Executes complex aggregation queries across PostgreSQL and TimescaleDB for real-time metrics [3,4,6,9]
 - **Events Published**: None (read-only operation) [3]
 
-#### 4.5.2 Performance Analytics
-- **Purpose**: Detailed performance analysis for operational optimization [3,9]
-- **HTTP Method & Path**: `GET /api/analytics/performance` [3]
-- **Query Parameters**: Date range, vehicle_id, driver_id, route_id filters
-- **Database Interactions**: Queries TimescaleDB continuous aggregations for performance metrics analysis [4,6,9]
+#### 4.6.2 Loads Trend Analytics
+- **Purpose**: Retrieve load volume trends over time [3,9]
+- **HTTP Method & Path**: `GET /api/analytics/loads/trend` [3]
+- **Query Parameters**:
+  - `start_date`: Start date for trend analysis
+  - `end_date`: End date for trend analysis
+  - `granularity`: Time granularity (daily, weekly, monthly)
+- **Response Body** (Success 200): Time-series data showing load volume trends
+- **Database Interactions**: Queries TimescaleDB continuous aggregations for load trend analysis [4,6,9]
+- **Events Published**: None (read-only operation) [3]
+
+#### 4.6.3 Carrier Performance Analytics
+- **Purpose**: Detailed carrier performance analysis for operational optimization [3,9]
+- **HTTP Method & Path**: `GET /api/analytics/performance/carriers` [3]
+- **Query Parameters**:
+  - `start_date`: Start date for performance analysis
+  - `end_date`: End date for performance analysis
+  - `carrier_id`: Specific carrier ID filter
+- **Response Body** (Success 200): Carrier performance metrics including on-time delivery, efficiency scores
+- **Database Interactions**: Queries TimescaleDB continuous aggregations for carrier performance metrics analysis [4,6,9]
+- **Events Published**: None (read-only operation) [3]
+
+### 4.7 Health Management API
+
+#### 4.7.1 System Health Check
+- **Purpose**: Retrieve system health status and service availability [3]
+- **HTTP Method & Path**: `GET /health` [3]
+- **Response Body** (Success 200):
+  ```json
+  {
+    "status": "healthy",
+    "timestamp": "datetime (ISO 8601)",
+    "services": {
+      "database": "healthy",
+      "kafka": "healthy",
+      "neo4j": "healthy",
+      "timescale": "healthy"
+    },
+    "version": "string",
+    "uptime": "duration"
+  }
+  ```
+- **Database Interactions**: Performs basic connectivity checks to all database services [3,4]
 - **Events Published**: None (read-only operation) [3]
 
 ---
@@ -613,26 +775,31 @@ Implemented event processing patterns include [5,12]:
 - **API Endpoints**: Load Management API, Event Management API, WebSocket API [3]
 - **Business Value**: Proactive issue resolution and customer communication [2]
 - **Events**: LOAD_CREATED, LOAD_ASSIGNED, LOAD_IN_TRANSIT, LOAD_DELIVERED [5]
+- **Implementation Status**: Fully implemented with event handlers and producers
 
 ### 9.2 Vehicle Exception Handling
 - **API Endpoints**: Vehicle Management API, Analytics API, Event Management API [3]
 - **Business Value**: Preventive maintenance and operational efficiency [2]
 - **Events**: VEHICLE_BREAKDOWN, VEHICLE_MAINTENANCE_DUE, VEHICLE_STATUS_CHANGED [5]
+- **Implementation Status**: Event schemas defined, operational logic not yet implemented
 
 ### 9.3 Route Optimization Management
 - **API Endpoints**: Load Route Optimization API, Analytics API [3,7,10]
 - **Business Value**: Cost reduction through optimized routing [2]
 - **Events**: ROUTE_OPTIMIZED, ROUTE_DEVIATION, TRAFFIC_ALERT [5]
+- **Implementation Status**: ROUTE_OPTIMIZED events implemented in optimization service
 
 ### 9.4 Driver Hours of Service Compliance
 - **API Endpoints**: Driver Management API, Event Management API [3]
 - **Business Value**: Regulatory compliance and driver safety [2]
 - **Events**: DRIVER_STATUS_CHANGED, DRIVER_HOS_VIOLATION, DRIVER_BREAK_STARTED [5]
+- **Implementation Status**: Event schemas and Kafka topics configured
 
 ### 9.5 Operational Analytics and Reporting
 - **API Endpoints**: Analytics API, Event Management API [3,9]
 - **Business Value**: Data-driven decision making and performance optimization [2]
-- **Database Integration**: TimescaleDB continuous aggregations and PostgreSQL reporting [4,6,9]
+- **Database Integration**: Basic PostgreSQL and TimescaleDB queries [4,6,9]
+- **Implementation Status**: Basic analytics implemented, advanced continuous aggregations not yet configured
 
 ---
 
@@ -640,51 +807,12 @@ Implemented event processing patterns include [5,12]:
 
 ### 10.1 Current Security Features
 Implemented security measures include [3]:
-- **Input Validation**: Comprehensive Pydantic V2 validation preventing malicious input
-- **CORS Configuration**: Cross-origin resource sharing controls
-- **SQL Injection Prevention**: Parameterized queries and ORM usage
-- **Error Message Sanitization**: Secure error responses without sensitive information exposure
+- **Input Validation**: Comprehensive Pydantic model validation for all API requests and responses [3]
+- **SQL Injection Prevention**: Parameterized queries used throughout repository layer [3]  
+- **CORS Configuration**: Currently disabled for development/POC environment [3]
+- **Basic Error Handling**: Standard FastAPI error responses without sensitive data exposure [3]
 
-### 10.2 Data Protection
-- **Coordinate Validation**: GPS coordinate range validation prevents location spoofing [3]
-- **UUID Validation**: Prevents entity enumeration attacks through strict UUID patterns [3]
-- **Financial Data**: Decimal precision prevents calculation manipulation [3]
-
-### 10.3 API Endpoint Security
-- **Request Size Limits**: Prevents denial-of-service through large payload attacks [3]
-- **Rate Limiting**: (Planned) Prevents API abuse and ensures fair resource usage
-- **Authentication**: (Planned) JWT token-based authentication for secure access
-
----
-
-## 11. Future Enhancements
-
-### 11.1 Authentication & Authorization
-- **JWT Token Authentication**: Stateless authentication system [3]
-- **Role-Based Access Control**: Dispatcher, administrator, and read-only roles [3]
-- **API Key Management**: Secure external integration authentication [3]
-- **Single Sign-On Integration**: Enterprise authentication system integration [3]
-
-### 11.2 Advanced API Features
-- **GraphQL API**: Flexible query interface for complex data requirements
-- **API Versioning**: Backward-compatible API evolution strategy
-- **Batch Operations**: Bulk API operations for efficiency
-- **API Rate Limiting**: Request throttling and quota management
-
-### 11.3 Enhanced Route Optimization
-- **Real-time Traffic Integration**: Dynamic route optimization based on current conditions [7,10,11]
-- **ML-Driven Optimization**: Advanced machine learning algorithms for route planning [7,11]
-- **Multi-modal Routing**: Integration of different transportation modes
-
-### 11.4 Advanced Analytics
-- **Predictive Analytics API**: Machine learning-powered predictions [11]
-- **Custom Reporting API**: User-defined report generation
-- **Data Export API**: Bulk data export for external analysis
-
-### 11.5 Integration Capabilities
-- **Webhook API**: Event-driven external notifications
-- **Third-party Integrations**: ERP, WMS, and accounting system APIs
-- **Mobile API Optimization**: Specialized endpoints for mobile applications
+**Note**: This is a proof-of-concept implementation. Production deployment will require additional security hardening including authentication, authorization, CORS configuration, and comprehensive security monitoring [3].
 
 ---
 
