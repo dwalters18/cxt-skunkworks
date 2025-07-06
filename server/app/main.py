@@ -92,7 +92,8 @@ app = FastAPI(
     title="TMS Event-Driven API",
     description="Transportation Management System with Event-Driven Architecture",
     version="1.0.0",
-    lifespan=lifespan
+    lifespan=lifespan,
+    redirect_slashes=False  # Allow both /api/loads and /api/loads/ to work
 )
 logger.info("FastAPI application initialized")
 

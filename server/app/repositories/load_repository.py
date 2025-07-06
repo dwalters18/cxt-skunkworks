@@ -3,33 +3,70 @@ Load Repository for TMS API.
 Handles all database operations related to loads.
 """
 
-from typing import Dict, Any
+from typing import Dict, Any, Union
 from .base import PostgresRepository
 
 
 class LoadRepository(PostgresRepository):
     """Repository for load operations"""
     
-    async def create_load(self, load_data: Dict[str, Any]) -> str:
-        """Create a new load"""
+    async def create_load(self, load_request) -> dict:
+        """Create a new load from CreateLoadRequest model"""
+        # Handle both dict and Pydantic model input
+        if hasattr(load_request, 'model_dump'):
+            # It's a Pydantic model
+            load_data = load_request.model_dump()
+        else:
+            # It's already a dict
+            load_data = load_request
+            
         query = """
-        INSERT INTO loads (load_number, pickup_address, delivery_address, 
-                          pickup_date, delivery_date, weight, rate, status)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-        RETURNING id
+        INSERT INTO loads (
+            load_number, customer_id, pickup_location, delivery_location,
+            pickup_address, delivery_address, pickup_date, delivery_date, 
+            weight, volume, commodity_type, special_requirements, rate, status
+        )
+        VALUES (
+            $1, $2, ST_GeogFromText($3), ST_GeogFromText($4),
+            $5, $6, $7, $8, $9, $10, $11, $12, $13, $14
+        )
+        RETURNING id, load_number, customer_id, pickup_address, delivery_address,
+                  pickup_date, delivery_date, weight, volume, commodity_type, 
+                  special_requirements, rate, status, created_at, updated_at,
+                  ST_Y(pickup_location::geometry) as pickup_latitude,
+                  ST_X(pickup_location::geometry) as pickup_longitude,
+                  ST_Y(delivery_location::geometry) as delivery_latitude,
+                  ST_X(delivery_location::geometry) as delivery_longitude
         """
+        
+        # Prepare location WKT strings
+        pickup_wkt = f"POINT({load_data['pickup_location']['longitude']} {load_data['pickup_location']['latitude']})"
+        delivery_wkt = f"POINT({load_data['delivery_location']['longitude']} {load_data['delivery_location']['latitude']})"
+        
+        # Handle special_requirements as PostgreSQL array
+        special_req = load_data.get('special_requirements')
+        # PostgreSQL expects a Python list, not a JSON string
+        if not isinstance(special_req, list):
+            special_req = None
+        
         result = await self.execute_single(
             query,
             load_data['load_number'],
+            load_data['customer_id'],
+            pickup_wkt,
+            delivery_wkt,
             load_data['pickup_address'],
             load_data['delivery_address'],
             load_data['pickup_date'],
             load_data['delivery_date'],
             load_data.get('weight'),
+            load_data.get('volume'),
+            load_data.get('commodity_type'),
+            special_req,
             load_data.get('rate'),
-            'pending'
+            'CREATED'  # Use proper enum status
         )
-        return str(result['id'])
+        return dict(result)
     
     async def get_load(self, load_id: str):
         """Get load by ID"""

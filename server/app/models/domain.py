@@ -139,17 +139,20 @@ class Route(BaseEntity):
 
 # Request/Response Models
 class CreateLoadRequest(BaseModel):
-    load_number: str = Field(..., min_length=1)
-    pickup_address: str = Field(..., min_length=1)
-    delivery_address: str = Field(..., min_length=1)
-    pickup_date: datetime
-    delivery_date: datetime
-    weight: Optional[float] = None
-    volume: Optional[float] = None
-    rate: Optional[Decimal] = None
-    shipper_id: Optional[str] = None
-    consignee_id: Optional[str] = None
-    notes: Optional[str] = None
+    """Request for creating a new load as per API specification"""
+    load_number: str = Field(..., min_length=1, description="Unique load number")
+    customer_id: str = Field(..., description="Customer UUID")
+    pickup_location: Location = Field(..., description="Pickup coordinates")
+    delivery_location: Location = Field(..., description="Delivery coordinates")
+    pickup_address: str = Field(..., min_length=1, description="Pickup address")
+    delivery_address: str = Field(..., min_length=1, description="Delivery address")
+    pickup_date: datetime = Field(..., description="Scheduled pickup date")
+    delivery_date: datetime = Field(..., description="Scheduled delivery date")
+    weight: Optional[float] = Field(None, description="Load weight in pounds")
+    volume: Optional[float] = Field(None, description="Load volume in cubic feet")
+    commodity_type: Optional[str] = Field(None, description="Type of commodity")
+    special_requirements: Optional[List[str]] = Field(None, description="Special handling requirements")
+    rate: Optional[Decimal] = Field(None, description="Load rate in dollars")
 
 
 class AssignLoadRequest(BaseModel):
@@ -329,3 +332,59 @@ class AdvancedOptimizeLoadRequest(BaseModel):
     min_driver_rating: Optional[float] = Field(None, ge=0.0, le=5.0)
     min_carrier_performance: Optional[float] = Field(None, ge=0.0, le=1.0)
     consider_traffic: Optional[bool] = True
+
+
+# Analytics Response Models
+class NearbyDriverResponse(BaseModel):
+    """Response model for nearby drivers query"""
+    driver_id: str
+    driver_name: str
+    driver_phone: Optional[str] = None
+    driver_rating: Optional[float] = None
+    latitude: float
+    longitude: float
+    vehicle_id: str
+    vehicle_type: str
+    capacity_weight: Optional[float] = None
+    distance_miles: float
+
+
+class CarrierPerformanceMetrics(BaseModel):
+    """Response model for carrier performance metrics"""
+    carrier_id: str
+    carrier_name: str
+    total_loads_completed: int = 0
+    on_time_delivery_rate: float = 0.0
+    average_rating: float = 0.0
+    cost_efficiency_score: float = 0.0
+    revenue_generated: float = 0.0
+    active_drivers: int = 0
+    active_vehicles: int = 0
+    specialties: List[str] = Field(default_factory=list)
+
+
+class FleetUtilizationMetrics(BaseModel):
+    """Response model for fleet utilization analytics"""
+    total_vehicles: int = 0
+    active_vehicles: int = 0
+    utilization_rate: float = 0.0
+    average_miles_per_vehicle: float = 0.0
+    maintenance_due_count: int = 0
+    fuel_efficiency_avg: float = 0.0
+    revenue_per_vehicle: float = 0.0
+
+
+class OptimalDriverVehiclePair(BaseModel):
+    """Response model for optimal driver-vehicle pairs"""
+    driver_id: str
+    driver_name: str
+    driver_phone: Optional[str] = None
+    driver_rating: Optional[float] = None
+    vehicle_id: str
+    vehicle_type: str
+    vehicle_capacity: Optional[float] = None
+    carrier_id: str
+    carrier_name: str
+    pickup_distance_miles: float
+    route_distance_miles: float
+    composite_score: float
