@@ -52,6 +52,26 @@ class EventType(str, Enum):
     PERFORMANCE_DEGRADATION = "PERFORMANCE_DEGRADATION"
 
 
+class EventSeverity(str, Enum):
+    """Event severity levels for monitoring and alerting"""
+    DEBUG = "DEBUG"
+    INFO = "INFO"
+    WARNING = "WARNING"
+    ERROR = "ERROR"
+    CRITICAL = "CRITICAL"
+
+
+class EntityType(str, Enum):
+    """Entity types for event tracking"""
+    LOAD = "LOAD"
+    VEHICLE = "VEHICLE"
+    DRIVER = "DRIVER"
+    ROUTE = "ROUTE"
+    CUSTOMER = "CUSTOMER"
+    CARRIER = "CARRIER"
+    SYSTEM = "SYSTEM"
+
+
 class BaseEvent(BaseModel):
     """Base event structure for all TMS events"""
     event_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
@@ -60,8 +80,29 @@ class BaseEvent(BaseModel):
     source: str
     correlation_id: Optional[str] = None
     version: str = "1.0"
+    entity_type: Optional[EntityType] = None
+    entity_id: Optional[str] = None
+    location: Optional['Location'] = None
+    severity: EventSeverity = EventSeverity.INFO
     metadata: Dict[str, Any] = Field(default_factory=dict)
     data: Dict[str, Any] = Field(default_factory=dict)
+    
+    def to_audit_record(self) -> Dict[str, Any]:
+        """Convert event to audit_events table record format"""
+        return {
+            "time": self.timestamp,
+            "event_id": self.event_id,
+            "event_type": self.event_type.value,
+            "source": self.source,
+            "correlation_id": self.correlation_id,
+            "version": self.version,
+            "entity_type": self.entity_type.value if self.entity_type else None,
+            "entity_id": self.entity_id,
+            "location": f"POINT({self.location.longitude} {self.location.latitude})" if self.location else None,
+            "severity": self.severity.value,
+            "metadata": self.metadata,
+            "data": self.data
+        }
 
 
 class Location(BaseModel):

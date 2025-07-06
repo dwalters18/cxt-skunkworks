@@ -136,12 +136,12 @@ async def search_loads_advanced(
         """
         params.extend([limit, offset])
         
-        loads = await load_repo.execute_query(query, params)
+        loads = await load_repo.execute_query(query, *params)
         
         # Get total count for pagination
         count_query = f"SELECT COUNT(*) as total FROM loads {where_clause}"
         count_params = params[:-2]  # Remove limit and offset from params
-        count_result = await load_repo.execute_single(count_query, count_params)
+        count_result = await load_repo.execute_single(count_query, *count_params)
         total_count = count_result['total'] if count_result else 0
         
         return {

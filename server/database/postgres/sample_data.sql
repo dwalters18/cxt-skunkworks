@@ -1,3 +1,10 @@
+-- Clear existing sample data (truncate is safer than drop with foreign keys)
+TRUNCATE TABLE loads, routes, shipments RESTART IDENTITY CASCADE;
+TRUNCATE TABLE drivers RESTART IDENTITY CASCADE;
+TRUNCATE TABLE vehicles RESTART IDENTITY CASCADE;
+TRUNCATE TABLE carriers RESTART IDENTITY CASCADE;
+TRUNCATE TABLE customers RESTART IDENTITY CASCADE;
+
 -- Insert sample data aligned with PRD
 INSERT INTO customers (customer_code, company_name, contact_name, email, phone, address, city, state, zipcode) VALUES
 ('CUST001', 'Acme Logistics', 'John Smith', 'john@acmelogistics.com', '555-0101', '123 Main St', 'Houston', 'TX', '77002'),

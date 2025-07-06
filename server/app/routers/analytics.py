@@ -91,7 +91,7 @@ async def get_dashboard_data(
         # Calculate performance metrics
         performance_query = f"""
             SELECT 
-                COUNT(CASE WHEN status = 'DELIVERED' AND updated_at <= delivery_datetime THEN 1 END) as ontime_deliveries,
+                COUNT(CASE WHEN status = 'DELIVERED' AND updated_at <= delivery_date THEN 1 END) as ontime_deliveries,
                 COUNT(CASE WHEN status = 'DELIVERED' THEN 1 END) as total_deliveries,
                 AVG(CASE WHEN status = 'DELIVERED' THEN 
                     EXTRACT(EPOCH FROM (updated_at - created_at))/3600 
@@ -209,10 +209,11 @@ async def get_carrier_performance(
                 c.name as carrier_name,
                 COUNT(l.id) as total_loads,
                 COUNT(CASE WHEN l.status = 'DELIVERED' THEN 1 END) as delivered_loads,
-                COUNT(CASE WHEN l.status = 'DELIVERED' AND l.updated_at <= l.delivery_datetime THEN 1 END) as ontime_loads,
+                COUNT(CASE WHEN l.status = 'DELIVERED' AND l.updated_at <= l.delivery_date THEN 1 END) as ontime_loads,
                 AVG(CASE WHEN l.rate IS NOT NULL THEN l.rate::numeric END) as avg_rate
             FROM carriers c
-            LEFT JOIN loads l ON c.id = l.carrier_id 
+            LEFT JOIN vehicles v ON c.id = v.carrier_id
+            LEFT JOIN loads l ON v.id = l.assigned_vehicle_id 
                 AND l.created_at >= NOW() - INTERVAL '{days} days'
             GROUP BY c.id, c.name
             HAVING COUNT(l.id) > 0

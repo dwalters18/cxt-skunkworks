@@ -102,36 +102,108 @@ Events related to system operations and alerts:
 
 ---
 
-## 3. Event Schema Definitions
+## 3. Event Storage Architecture
 
-### 3.1 Base Event Structure
-All events inherit from a common base structure:
+### 3.1 TimescaleDB Audit Events Table
+
+All TMS events are persisted in the `audit_events` hypertable in TimescaleDB for time-series analytics and comprehensive audit trails.
+
+#### 3.1.1 Table Schema
+```sql
+CREATE TABLE audit_events (
+    time TIMESTAMPTZ NOT NULL,
+    event_id UUID NOT NULL,
+    event_type VARCHAR(50) NOT NULL,
+    source VARCHAR(100) NOT NULL,
+    correlation_id UUID,
+    version VARCHAR(10) NOT NULL DEFAULT '1.0',
+    entity_type VARCHAR(50),
+    entity_id UUID,
+    location GEOGRAPHY(POINT, 4326),
+    metadata JSONB NOT NULL DEFAULT '{}',
+    data JSONB NOT NULL DEFAULT '{}',
+    severity VARCHAR(20) DEFAULT 'INFO',
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+```
+
+#### 3.1.2 Performance Features
+- **Time Partitioning**: 1-day chunks for optimal query performance
+- **Retention Policy**: 90 days for detailed events, 1 year for aggregates
+- **Continuous Aggregates**: Real-time hourly summaries with 30-minute refresh
+- **Comprehensive Indexing**: Event type, entity tracking, spatial, and JSONB indexes
+
+#### 3.1.3 Event Severity Levels
+| Severity | Description | Use Cases |
+|----------|-------------|------------|
+| DEBUG | Detailed diagnostic information | Development, troubleshooting |
+| INFO | General operational events | Normal business operations |
+| WARNING | Potentially problematic situations | Performance degradation, delays |
+| ERROR | Error conditions that don't stop operations | Failed API calls, validation errors |
+| CRITICAL | Critical errors requiring immediate attention | System failures, HOS violations |
+
+#### 3.1.4 Entity Types
+| Entity Type | Description | Example Events |
+|-------------|-------------|----------------|
+| LOAD | Shipment/load operations | LOAD_CREATED, LOAD_DELIVERED |
+| VEHICLE | Vehicle-related events | VEHICLE_LOCATION_UPDATED, VEHICLE_BREAKDOWN |
+| DRIVER | Driver operations and compliance | DRIVER_HOS_VIOLATION, DRIVER_LOGIN |
+| ROUTE | Route optimization and tracking | ROUTE_OPTIMIZED, ROUTE_DEVIATION |
+| CUSTOMER | Customer interactions | (Future implementation) |
+| CARRIER | Carrier management | (Future implementation) |
+| SYSTEM | System-level events | SYSTEM_ALERT, AI_PREDICTION |
+
+---
+
+## 4. Event Schema Definitions
+
+### 4.1 Enhanced Base Event Structure
+All events inherit from the enhanced base structure with entity tracking, location support, and severity levels:
 
 ```json
 {
-  "eventId": "uuid",
-  "eventType": "string",
-  "eventVersion": "string",
-  "timestamp": "ISO 8601 datetime",
-  "source": {
-    "system": "string",
-    "service": "string",
-    "version": "string"
+  "event_id": "uuid",
+  "event_type": "EventType enum",
+  "timestamp": "ISO 8601 datetime with timezone",
+  "source": "string (service/system identifier)",
+  "correlation_id": "uuid (optional)",
+  "version": "string (default: 1.0)",
+  "entity_type": "EntityType enum (optional)",
+  "entity_id": "uuid (optional)",
+  "location": {
+    "latitude": "number",
+    "longitude": "number",
+    "address": "string (optional)",
+    "city": "string (optional)"
   },
-  "correlationId": "uuid",
-  "traceId": "uuid",
-  "entityType": "string",
-  "entityId": "uuid",
-  "data": {
-    // Event-specific payload
-  },
+  "severity": "EventSeverity enum (default: INFO)",
   "metadata": {
     "userId": "uuid",
     "sessionId": "uuid",
     "ipAddress": "string",
     "userAgent": "string"
+  },
+  "data": {
+    // Event-specific payload
   }
 }
+```
+
+#### 4.1.1 Python Event Model
+```python
+class BaseEvent(BaseModel):
+    event_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    event_type: EventType
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    source: str
+    correlation_id: Optional[str] = None
+    version: str = "1.0"
+    entity_type: Optional[EntityType] = None
+    entity_id: Optional[str] = None
+    location: Optional[Location] = None
+    severity: EventSeverity = EventSeverity.INFO
+    metadata: Dict[str, Any] = Field(default_factory=dict)
+    data: Dict[str, Any] = Field(default_factory=dict)
 ```
 
 ### 3.2 Load Event Schemas

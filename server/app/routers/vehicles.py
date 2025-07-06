@@ -48,7 +48,7 @@ async def get_vehicles(
             ORDER BY vehicle_number
         """
         
-        vehicles = await vehicle_repo.execute_query(query, params)
+        vehicles = await vehicle_repo.execute_query(query, *params)
         return {"vehicles": vehicles}
     except Exception as e:
         logger.error(f"Error retrieving vehicles: {e}")

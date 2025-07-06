@@ -28,6 +28,61 @@ CREATE INDEX ON vehicle_tracking USING GIST (location);
 CREATE INDEX ON vehicle_tracking (driver_id, time DESC);
 CREATE INDEX ON vehicle_tracking (load_id, time DESC);
 
+-- Audit Events hypertable - comprehensive event storage for analytics and audit
+CREATE TABLE audit_events (
+    time TIMESTAMPTZ NOT NULL,
+    event_id UUID NOT NULL,
+    event_type VARCHAR(50) NOT NULL,
+    source VARCHAR(100) NOT NULL,
+    correlation_id UUID,
+    version VARCHAR(10) NOT NULL DEFAULT '1.0',
+    entity_type VARCHAR(50),
+    entity_id UUID,
+    location GEOGRAPHY(POINT, 4326),
+    metadata JSONB NOT NULL DEFAULT '{}',
+    data JSONB NOT NULL DEFAULT '{}',
+    severity VARCHAR(20) DEFAULT 'INFO',
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Convert to hypertable with 1-day time partitioning
+SELECT create_hypertable('audit_events', 'time', chunk_time_interval => INTERVAL '1 day');
+
+-- Create indexes for efficient querying
+CREATE INDEX ON audit_events (event_type, time DESC);
+CREATE INDEX ON audit_events (entity_type, entity_id, time DESC);
+CREATE INDEX ON audit_events (source, time DESC);
+CREATE INDEX ON audit_events (correlation_id, time DESC) WHERE correlation_id IS NOT NULL;
+CREATE INDEX ON audit_events USING GIN (metadata);
+CREATE INDEX ON audit_events USING GIN (data);
+CREATE INDEX ON audit_events USING GIST (location) WHERE location IS NOT NULL;
+CREATE INDEX ON audit_events (severity, time DESC);
+
+-- Create continuous aggregates for common analytics queries
+CREATE MATERIALIZED VIEW event_hourly_summary
+WITH (timescaledb.continuous) AS
+SELECT 
+    time_bucket('1 hour', time) AS hour,
+    event_type,
+    source,
+    severity,
+    COUNT(*) as event_count,
+    COUNT(DISTINCT entity_id) as unique_entities
+FROM audit_events
+GROUP BY hour, event_type, source, severity
+WITH NO DATA;
+
+-- Add real-time aggregation policy (refresh every 30 minutes)
+-- Window must cover at least 2 buckets: 4 hours ago to 1 hour ago = 3 hour window
+SELECT add_continuous_aggregate_policy('event_hourly_summary',
+    start_offset => INTERVAL '4 hours',
+    end_offset => INTERVAL '1 hour',
+    schedule_interval => INTERVAL '30 minutes');
+
+-- Data retention policy - keep detailed events for 90 days
+SELECT add_retention_policy('audit_events', INTERVAL '90 days');
+SELECT add_retention_policy('event_hourly_summary', INTERVAL '1 year');
+
 -- Driver activity hypertable - aligned with PRD
 CREATE TABLE driver_activity (
     time TIMESTAMPTZ NOT NULL,

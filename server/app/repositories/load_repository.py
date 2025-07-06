@@ -82,12 +82,10 @@ class LoadRepository(PostgresRepository):
         
         where_sql = " WHERE " + " AND ".join(where_clauses) if where_clauses else ""
         
+        # Add limit and offset parameters
         param_count += 1
-        limit_param = f"${param_count}"
         params.append(limit)
-        
-        param_count += 1
-        offset_param = f"${param_count}"
+        param_count += 1 
         params.append(offset)
         
         query = f"""
@@ -99,7 +97,7 @@ class LoadRepository(PostgresRepository):
         FROM loads 
         {where_sql}
         ORDER BY created_at DESC 
-        LIMIT {limit_param} OFFSET {offset_param}
+        LIMIT ${param_count-1} OFFSET ${param_count}
         """
         
         return await self.execute_query(query, *params)

@@ -42,7 +42,7 @@ async def get_routes(
             params.append(status)
             
         if active_only:
-            conditions.append("r.status IN ('planned', 'active', 'in_progress')")
+            conditions.append("r.status IN ('PLANNED', 'ACTIVE')")
         
         where_clause = f"WHERE {' AND '.join(conditions)}" if conditions else ""
         
@@ -60,7 +60,7 @@ async def get_routes(
                 r.actual_arrival, r.optimization_score, r.fuel_estimate, r.toll_estimate,
                 r.status, r.created_at, r.updated_at,
                 l.load_number, l.pickup_address, l.delivery_address, l.pickup_date, l.delivery_date,
-                l.vehicle_id, l.driver_id, l.carrier_id
+                l.assigned_vehicle_id, l.assigned_driver_id
             FROM routes r
             JOIN loads l ON r.load_id = l.id
             {where_clause}
@@ -261,7 +261,7 @@ async def get_route_details(
                 r.actual_arrival, r.optimization_score, r.fuel_estimate, r.toll_estimate,
                 r.status, r.created_at, r.updated_at,
                 l.load_number, l.pickup_address, l.delivery_address, l.pickup_date, l.delivery_date,
-                l.vehicle_id, l.driver_id, l.carrier_id, l.status as load_status
+                l.assigned_vehicle_id, l.assigned_driver_id, l.status as load_status
             FROM routes r
             JOIN loads l ON r.load_id = l.id
             WHERE r.id = $1
