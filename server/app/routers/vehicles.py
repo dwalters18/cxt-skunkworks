@@ -39,11 +39,11 @@ async def get_vehicles(
         where_clause = f"WHERE {' AND '.join(conditions)}" if conditions else ""
         
         query = f"""
-            SELECT 
-                id, carrier_id, vehicle_number, vehicle_type, 
+            SELECT
+                id, carrier_id, vehicle_number, vehicle_type,
                 capacity_weight, capacity_volume, status, current_location,
-                fuel_level, odometer, created_at, updated_at
-            FROM vehicles 
+                fuel_level, mileage, created_at, updated_at
+            FROM vehicles
             {where_clause}
             ORDER BY vehicle_number
         """
