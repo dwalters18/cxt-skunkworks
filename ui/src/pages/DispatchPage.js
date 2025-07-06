@@ -1,144 +1,445 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import DispatchMapView from '../components/DispatchMapView';
+import { useMapData } from '../hooks/useMapData';
+import { 
+  Menu, 
+  X, 
+  MapPin, 
+  Truck, 
+  Package, 
+  Route,
+  Search,
+  RefreshCw,
+  Filter,
+  Phone,
+  Clock,
+  Navigation,
+  Circle,
+  CheckCircle,
+  AlertTriangle,
+  Play
+} from 'lucide-react';
 
 const DispatchPage = () => {
-    const [dashboardData, setDashboardData] = useState(null);
-    const [performance, setPerformance] = useState(null);
-    const [routesOptimized, setRoutesOptimized] = useState(0);
-    const [loading, setLoading] = useState(true);
-    const API_BASE = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
+    const navigate = useNavigate();
+    const [isImmersiveMode, setIsImmersiveMode] = useState(true);
+    const [selectedTab, setSelectedTab] = useState('loads');
+    const [selectedVehicle, setSelectedVehicle] = useState(null);
+    const [selectedLoad, setSelectedLoad] = useState(null);
+    const [autoRefresh, setAutoRefresh] = useState(true);
+    const [searchTerm, setSearchTerm] = useState('');
+    const [statusFilter, setStatusFilter] = useState('all');
+    const [visibleRoutes, setVisibleRoutes] = useState(new Set());
 
-    const fetchDispatchStats = async () => {
-        try {
-            // Fetch dashboard data for active loads
-            const dashboardResponse = await fetch(`${API_BASE}/api/analytics/dashboard`);
-            if (dashboardResponse.ok) {
-                const data = await dashboardResponse.json();
-                setDashboardData(data);
-            }
+    // Use the existing useMapData hook to get real data
+    const { 
+        events, 
+        vehicles, 
+        loads, 
+        routes,
+        drivers, 
+        dashboardData,
+        isLoading: dataLoading,
+        error: dataError,
+        fetchMapData 
+    } = useMapData();
 
-            // Fetch performance data for route optimization stats
-            const performanceResponse = await fetch(`${API_BASE}/api/routes/performance?time_range=24h`);
-            if (performanceResponse.ok) {
-                const data = await performanceResponse.json();
-                setPerformance(data);
-            }
+    // Initialize data on component mount
+    useEffect(() => {
+        fetchMapData();
+    }, [fetchMapData]);
 
-            // Calculate routes optimized from routes data
-            const routesResponse = await fetch(`${API_BASE}/api/routes`);
-            if (routesResponse.ok) {
-                const data = await routesResponse.json();
-                const optimizedToday = data.routes?.filter(route => {
-                    const routeDate = new Date(route.created_at);
-                    const today = new Date();
-                    return routeDate.toDateString() === today.toDateString() && route.status === 'ACTIVE';
-                }).length || 0;
-                setRoutesOptimized(optimizedToday);
-            }
-        } catch (error) {
-            console.error('Error fetching dispatch stats:', error);
-        } finally {
-            setLoading(false);
+    // Initialize visible routes when routes data changes
+    useEffect(() => {
+        if (routes && routes.length > 0) {
+            const initialVisible = new Set();
+            routes.forEach(route => {
+                // ACTIVE routes are always visible by default
+                if (route.status === 'active' || route.status === 'ACTIVE') {
+                    initialVisible.add(route.id);
+                }
+            });
+            setVisibleRoutes(initialVisible);
+        }
+    }, [routes]);
+
+    // Toggle between immersive and management modes
+    const toggleMode = () => {
+        if (isImmersiveMode) {
+            navigate('/');
+        } else {
+            setIsImmersiveMode(true);
         }
     };
 
-    useEffect(() => {
-        fetchDispatchStats();
-        // Refresh stats every 30 seconds
-        const interval = setInterval(fetchDispatchStats, 30000);
-        return () => clearInterval(interval);
-    }, []);
-
-    // Calculate gamification score based on performance metrics
-    const calculateGamificationScore = () => {
-        if (!performance || !dashboardData) return 0;
-        
-        let score = 0;
-        // Base score from route efficiency
-        score += Math.round((performance.route_efficiency || 0.85) * 100);
-        // Bonus for on-time delivery
-        if (performance.on_time_delivery_rate > 0.9) score += 20;
-        // Bonus for fuel efficiency
-        if (performance.fuel_efficiency > 7) score += 15;
-        // Active loads handling bonus
-        score += Math.min(dashboardData.active_loads || 0, 20);
-        
-        return Math.min(score, 999); // Cap at 999
+    // Utility functions
+    const getStatusColor = (status) => {
+        switch (status?.toLowerCase()) {
+            case 'delivered':
+                return 'bg-green-100 text-green-800';
+            case 'in_transit':
+                return 'bg-blue-100 text-blue-800';
+            case 'assigned':
+                return 'bg-yellow-100 text-yellow-800';
+            case 'unassigned':
+                return 'bg-gray-100 text-gray-800';
+            case 'cancelled':
+                return 'bg-red-100 text-red-800';
+            case 'active':
+                return 'bg-green-100 text-green-800';
+            case 'completed':
+                return 'bg-blue-100 text-blue-800';
+            case 'pending':
+                return 'bg-yellow-100 text-yellow-800';
+            default:
+                return 'bg-gray-100 text-gray-800';
+        }
     };
 
-    const gamificationScore = calculateGamificationScore();
-    const activeLoads = dashboardData?.active_loads || dashboardData?.total_loads - dashboardData?.loads_delivered || 0;
+    const getPriorityColor = (priority) => {
+        const colors = {
+            'High': 'bg-red-100 text-red-800',
+            'high': 'bg-red-100 text-red-800',
+            'Medium': 'bg-yellow-100 text-yellow-800',
+            'medium': 'bg-yellow-100 text-yellow-800',
+            'Low': 'bg-green-100 text-green-800',
+            'low': 'bg-green-100 text-green-800'
+        };
+        return colors[priority] || 'bg-gray-100 text-gray-800';
+    };
+
+    const toggleRouteVisibility = (routeId, routeStatus) => {
+        // ACTIVE routes cannot be hidden
+        if (routeStatus === 'active' || routeStatus === 'ACTIVE') {
+            return;
+        }
+
+        setVisibleRoutes(prev => {
+            const newVisible = new Set(prev);
+            if (newVisible.has(routeId)) {
+                newVisible.delete(routeId);
+            } else {
+                newVisible.add(routeId);
+            }
+            return newVisible;
+        });
+    };
+
+    const filteredLoads = loads ? loads.filter(load => {
+        const matchesSearch = (load.number || load.id || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                             (load.customer || '').toLowerCase().includes(searchTerm.toLowerCase());
+        const matchesStatus = statusFilter === 'all' || (load.status || '').toLowerCase() === statusFilter.toLowerCase();
+        return matchesSearch && matchesStatus;
+    }) : [];
+
+    // Handle load assignment
+    const handleAssignLoad = (loadId, vehicleId) => {
+        // This would typically make an API call to assign the load
+        console.log(`Assigning load ${loadId} to vehicle ${vehicleId}`);
+        // Refresh data after assignment
+        fetchMapData();
+    };
 
     return (
-        <div className="h-full flex flex-col">
-            {/* Header */}
-            <div className="bg-white border-b border-gray-200 px-6 py-4">
-                <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
-                            <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
-                            </svg>
-                        </div>
-                        <div>
-                            <h1 className="text-2xl font-bold text-gray-900">Dispatch</h1>
-                            <p className="text-gray-600 text-sm">Manage loads, routes, and vehicle assignments</p>
-                        </div>
-                    </div>
-                    
-                    {/* Stats */}
-                    <div className="flex items-center gap-4">
-                        {loading ? (
-                            <div className="text-center bg-gray-100 rounded-lg px-4 py-2">
-                                <div className="animate-pulse bg-gray-300 h-6 w-12 rounded mb-1"></div>
-                                <div className="text-xs text-gray-500">Loading...</div>
+        <div className="h-screen flex bg-gray-50 relative">
+            {/* Full Screen Map with Custom DispatchMapView */}
+            <div className="flex-1 relative">
+                <DispatchMapView visibleRoutes={visibleRoutes} />
+                
+                {/* Menu Toggle - Top Left Corner */}
+                <button
+                    onClick={toggleMode}
+                    className="absolute top-4 left-4 z-50 bg-white hover:bg-gray-100 rounded-lg p-3 shadow-lg transition-colors"
+                >
+                    <Menu className="w-5 h-5 text-gray-700" />
+                </button>
+
+                {/* Quick Stats - Top Right (if not covered by the floating panel) */}
+                <div className="absolute top-4 right-[25rem] z-40">
+                    <div className="bg-white/90 backdrop-blur-sm rounded-lg p-3 shadow-lg">
+                        <div className="grid grid-cols-3 gap-4 text-center">
+                            <div>
+                                <div className="text-lg font-bold text-green-600">
+                                    {vehicles ? vehicles.filter(v => (v.status || '').toLowerCase() === 'available').length : 0}
+                                </div>
+                                <div className="text-xs text-gray-600">Available</div>
                             </div>
-                        ) : (
-                            <>
-                                <div className="text-center bg-gray-50 rounded-lg px-4 py-2 border border-gray-200">
-                                    <div className="text-blue-600 font-bold text-lg">
-                                        {Math.round((performance?.route_efficiency || 0.85) * 100)}%
-                                    </div>
-                                    <div className="text-xs text-gray-600">Efficiency</div>
+                            <div>
+                                <div className="text-lg font-bold text-blue-600">
+                                    {vehicles ? vehicles.filter(v => (v.status || '').toLowerCase().includes('transit')).length : 0}
                                 </div>
-                                <div className="text-center bg-gray-50 rounded-lg px-4 py-2 border border-gray-200">
-                                    <div className="text-green-600 font-bold text-lg">
-                                        {routesOptimized}
-                                    </div>
-                                    <div className="text-xs text-gray-600">Routes Today</div>
+                                <div className="text-xs text-gray-600">In Transit</div>
+                            </div>
+                            <div>
+                                <div className="text-lg font-bold text-red-600">
+                                    {loads ? loads.filter(l => (l.status || '').toLowerCase() === 'unassigned' || (l.status || '').toLowerCase() === 'pending').length : 0}
                                 </div>
-                                <div className="text-center bg-gray-50 rounded-lg px-4 py-2 border border-gray-200">
-                                    <div className="text-purple-600 font-bold text-lg">
-                                        {activeLoads}
-                                    </div>
-                                    <div className="text-xs text-gray-600">Active Loads</div>
-                                </div>
-                                {performance?.on_time_delivery_rate > 0.95 && (
-                                    <div className="text-center bg-green-50 rounded-lg px-4 py-2 border border-green-200">
-                                        <div className="text-green-600 font-bold text-lg">STREAK</div>
-                                        <div className="text-xs text-green-600">95%+ On-Time</div>
-                                    </div>
-                                )}
-                            </>
-                        )}
-                        
-                        <button 
-                            onClick={fetchDispatchStats}
-                            className="bg-gray-100 hover:bg-gray-200 rounded-lg px-3 py-2 transition-colors duration-200"
-                            disabled={loading}
-                        >
-                            <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                            </svg>
-                            <div className="text-xs text-blue-200">Refresh</div>
-                        </button>
+                                <div className="text-xs text-gray-600">Unassigned</div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
-            
-            {/* Main Dispatch Map View */}
-            <div className="flex-1 relative">
-                <DispatchMapView />
+
+            {/* Floating Control Panel */}
+            <div className="w-96 bg-white/95 backdrop-blur-sm shadow-xl flex flex-col relative z-30">
+                {/* Panel Header */}
+                <div className="p-4 border-b border-gray-200">
+                    <h2 className="text-lg font-semibold mb-4">Dispatch Control</h2>
+                    
+                    {/* Search and Filter */}
+                    <div className="space-y-2">
+                        <div className="relative">
+                            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                            <input
+                                type="text"
+                                placeholder="Search loads..."
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            />
+                        </div>
+                        
+                        <select
+                            value={statusFilter}
+                            onChange={(e) => setStatusFilter(e.target.value)}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        >
+                            <option value="all">All Statuses</option>
+                            <option value="unassigned">Unassigned</option>
+                            <option value="assigned">Assigned</option>
+                            <option value="pending">Pending</option>
+                            <option value="active">Active</option>
+                            <option value="completed">Completed</option>
+                        </select>
+                    </div>
+                </div>
+
+                {/* Tab Navigation */}
+                <div className="flex border-b border-gray-200">
+                    {[
+                        { id: 'loads', label: 'Loads', icon: Package },
+                        { id: 'vehicles', label: 'Vehicles', icon: Truck },
+                        { id: 'routes', label: 'Routes', icon: Route }
+                    ].map(tab => (
+                        <button
+                            key={tab.id}
+                            onClick={() => setSelectedTab(tab.id)}
+                            className={`flex-1 flex items-center justify-center gap-2 py-3 px-4 text-sm font-medium transition-colors ${
+                                selectedTab === tab.id
+                                    ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50'
+                                    : 'text-gray-500 hover:text-gray-700'
+                            }`}
+                        >
+                            <tab.icon className="w-4 h-4" />
+                            {tab.label}
+                        </button>
+                    ))}
+                </div>
+
+                {/* Tab Content */}
+                <div className="flex-1 overflow-auto p-4">
+                    {dataLoading ? (
+                        <div className="flex items-center justify-center h-32">
+                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                            <span className="ml-2 text-gray-600">Loading...</span>
+                        </div>
+                    ) : (
+                        <>
+                            {selectedTab === 'loads' && (
+                                <div className="space-y-3">
+                                    {filteredLoads.length === 0 ? (
+                                        <div className="text-center text-gray-500 py-8">
+                                            <Package className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                                            <p>No loads found</p>
+                                        </div>
+                                    ) : (
+                                        filteredLoads.map((load) => (
+                                            <div 
+                                                key={load.id} 
+                                                className={`border rounded-lg p-4 cursor-pointer transition-all hover:shadow-md ${
+                                                    selectedLoad === load.id ? 'ring-2 ring-blue-500 bg-blue-50' : 'bg-white'
+                                                }`}
+                                                onClick={() => setSelectedLoad(load.id)}
+                                            >
+                                                <div className="flex items-start justify-between mb-2">
+                                                    <div className="flex items-center gap-2">
+                                                        <Package className="w-4 h-4 text-gray-500" />
+                                                        <span className="font-medium">{load.number || load.id}</span>
+                                                    </div>
+                                                    <div className="flex gap-1">
+                                                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(load.status)}`}>
+                                                            {load.status || 'Unknown'}
+                                                        </span>
+                                                        {load.priority && (
+                                                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${getPriorityColor(load.priority)}`}>
+                                                                {load.priority}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                                
+                                                <div className="space-y-2 text-sm">
+                                                    <div className="flex items-center gap-2">
+                                                        <MapPin className="w-3 h-3 text-green-500" />
+                                                        <span className="text-gray-600">{load.pickup_address || load.origin || 'N/A'}</span>
+                                                    </div>
+                                                    <div className="flex items-center gap-2">
+                                                        <MapPin className="w-3 h-3 text-red-500" />
+                                                        <span className="text-gray-600">{load.delivery_address || load.destination || 'N/A'}</span>
+                                                    </div>
+                                                    <div className="flex justify-between text-xs text-gray-500">
+                                                        <span>{load.customer || 'N/A'}</span>
+                                                        <span>{load.rate ? `$${load.rate.toLocaleString()}` : 'N/A'}</span>
+                                                    </div>
+                                                </div>
+
+                                                {((load.status || '').toLowerCase() === 'unassigned' || (load.status || '').toLowerCase() === 'pending') && vehicles && (
+                                                    <div className="mt-3 pt-3 border-t">
+                                                        <select 
+                                                            className="w-full px-3 py-1 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
+                                                            onChange={(e) => e.target.value && handleAssignLoad(load.id, e.target.value)}
+                                                        >
+                                                            <option value="">Assign vehicle...</option>
+                                                            {vehicles.filter(v => (v.status || '').toLowerCase() === 'available').map(vehicle => (
+                                                                <option key={vehicle.id} value={vehicle.id}>
+                                                                    {vehicle.number || vehicle.id} - {vehicle.driver || 'Unknown Driver'}
+                                                                </option>
+                                                            ))}
+                                                        </select>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        ))
+                                    )}
+                                </div>
+                            )}
+
+                            {selectedTab === 'vehicles' && (
+                                <div className="space-y-3">
+                                    {!vehicles || vehicles.length === 0 ? (
+                                        <div className="text-center text-gray-500 py-8">
+                                            <Truck className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                                            <p>No vehicles found</p>
+                                        </div>
+                                    ) : (
+                                        vehicles.map((vehicle) => (
+                                            <div 
+                                                key={vehicle.id}
+                                                className={`border rounded-lg p-4 cursor-pointer transition-all hover:shadow-md ${
+                                                    selectedVehicle === vehicle.id ? 'ring-2 ring-blue-500 bg-blue-50' : 'bg-white'
+                                                }`}
+                                                onClick={() => setSelectedVehicle(vehicle.id)}
+                                            >
+                                                <div className="flex items-start justify-between mb-2">
+                                                    <div className="flex items-center gap-2">
+                                                        <Truck className="w-4 h-4 text-gray-500" />
+                                                        <span className="font-medium">{vehicle.number || vehicle.id}</span>
+                                                    </div>
+                                                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(vehicle.status)}`}>
+                                                        {vehicle.status || 'Unknown'}
+                                                    </span>
+                                                </div>
+                                                
+                                                <div className="space-y-2 text-sm">
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="text-gray-600">{vehicle.driver || 'Unassigned'}</span>
+                                                    </div>
+                                                    <div className="flex justify-between text-xs text-gray-500">
+                                                        <span>{vehicle.type || 'Unknown Type'}</span>
+                                                        <span>{vehicle.speed || 0} mph</span>
+                                                    </div>
+                                                    <div className="flex justify-between text-xs text-gray-500">
+                                                        <span>Updated: {vehicle.lastUpdate || vehicle.last_update || 'N/A'}</span>
+                                                        <span className="flex items-center gap-1">
+                                                            <Navigation className="w-3 h-3" />
+                                                            {vehicle.heading || 0}°
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))
+                                    )}
+                                </div>
+                            )}
+
+                            {selectedTab === 'routes' && (
+                                <div className="space-y-3">
+                                    {!routes || routes.length === 0 ? (
+                                        <div className="text-center text-gray-500 py-8">
+                                            <Route className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                                            <p>No routes found</p>
+                                        </div>
+                                    ) : (
+                                        routes.map((route) => {
+                                            const isVisible = visibleRoutes.has(route.id);
+                                            const isActive = route.status === 'active' || route.status === 'ACTIVE';
+                                            const canToggle = !isActive;
+                                            
+                                            return (
+                                                <div 
+                                                    key={route.id} 
+                                                    className={`border rounded-lg p-4 transition-all ${
+                                                        canToggle ? 'cursor-pointer hover:shadow-md' : 'cursor-default'
+                                                    } ${
+                                                        isVisible ? 'bg-white border-blue-200' : 'bg-gray-50 border-gray-200'
+                                                    } ${
+                                                        isActive ? 'ring-2 ring-green-200' : ''
+                                                    }`}
+                                                    onClick={() => toggleRouteVisibility(route.id, route.status)}
+                                                >
+                                                    <div className="flex items-start justify-between mb-2">
+                                                        <div className="flex items-center gap-2">
+                                                            <div className="flex items-center gap-1">
+                                                                <Route className={`w-4 h-4 ${
+                                                                    isVisible ? 'text-blue-500' : 'text-gray-400'
+                                                                }`} />
+                                                                <div className={`w-2 h-2 rounded-full ${
+                                                                    isVisible ? 'bg-blue-500' : 'bg-gray-400'
+                                                                }`}></div>
+                                                            </div>
+                                                            <span className={`font-medium ${
+                                                                isVisible ? 'text-gray-900' : 'text-gray-500'
+                                                            }`}>{route.name || route.id}</span>
+                                                            {isActive && (
+                                                                <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full font-medium">
+                                                                    ALWAYS VISIBLE
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(route.status)}`}>
+                                                            {route.status || 'Unknown'}
+                                                        </span>
+                                                    </div>
+                                                    
+                                                    <div className="space-y-2 text-sm">
+                                                        <div className="flex justify-between text-xs text-gray-500">
+                                                            <span>Waypoints: {route.waypoints?.length || 0}</span>
+                                                            <span>Distance: {route.distance ? `${route.distance} km` : 'N/A'}</span>
+                                                        </div>
+                                                        <div className="flex justify-between text-xs text-gray-500">
+                                                            <span>Efficiency: {route.efficiency || 'N/A'}%</span>
+                                                            <span>ETA: {route.estimated_time || route.estimatedTime || 'N/A'}</span>
+                                                        </div>
+                                                    </div>
+                                                    
+                                                    {canToggle && (
+                                                        <div className="mt-2 pt-2 border-t border-gray-100">
+                                                            <span className="text-xs text-gray-400">
+                                                                Click to {isVisible ? 'hide' : 'show'} on map
+                                                            </span>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            );
+                                        })
+                                    )}
+                                </div>
+                            )}
+                        </>
+                    )}
+                </div>
             </div>
         </div>
     );

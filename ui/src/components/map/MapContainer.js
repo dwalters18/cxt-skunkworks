@@ -7,9 +7,9 @@ import { getRouteCoordinates } from '../../utils/routeDecoder';
 
 const GOOGLE_MAPS_LIBRARIES = ['geometry', 'drawing', 'marker'];
 
-const MapContainer = ({ 
-    vehicles, 
-    loads, 
+const MapContainer = ({
+    vehicles = [],
+    loads = [],
     routes = [],
     events,
     drivers,
@@ -18,6 +18,7 @@ const MapContainer = ({
     selectedVehicleForOptimization,
     optimizedRoutes,
     activeFilters,
+    visibleRoutes,
     onLoadSelect,
     onVehicleSelect,
     onVehicleSelectForOptimization,
@@ -119,6 +120,28 @@ const MapContainer = ({
                     onClick={handleMarkerClick}
                 />
             ))}
+
+            {/* Regular Route Polylines */}
+            {activeFilters.showRoutes && routes.map((route) => {
+                const coordinates = getRouteCoordinates(route);
+                if (!coordinates || coordinates.length < 2) return null;
+
+                // Check if route should be visible
+                const isActive = route.status === 'active' || route.status === 'ACTIVE';
+                const shouldShow = isActive || (visibleRoutes && visibleRoutes.has(route.id));
+                
+                if (!shouldShow) return null;
+
+                return (
+                    <RoutePolyline
+                        key={`regular-route-${route.id}`}
+                        coordinates={coordinates}
+                        loadId={route.load_id || route.id}
+                        isOptimized={false}
+                        color={isActive ? '#EF4444' : '#3B82F6'} // Red for active, blue for others
+                    />
+                );
+            })}
 
             {/* Optimized Route Polylines */}
             {activeFilters.showRoutes && Array.from(optimizedRoutes.entries()).map(([loadId, routeData]) => (
