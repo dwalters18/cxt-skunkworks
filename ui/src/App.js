@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import { WebSocketProvider } from './contexts/WebSocketContext';
 import SplashOverlay from './components/SplashOverlay';
-import { ModernLayout } from './components/layout/ModernLayout';
+import { AppLayout } from './components/layout/AppLayout';
 import DispatchPage from './pages/DispatchPage';
 import DashboardPage from './pages/DashboardPage';
 import AnalyticsPage from './pages/AnalyticsPage';
@@ -53,10 +53,10 @@ function AppWithLayout() {
   };
 
   return (
-    <ModernLayout currentPath={location.pathname} onNavigate={handleNavigate}>
+    <AppLayout currentPath={location.pathname} onNavigate={handleNavigate}>
       <Routes>
-        {/* Default to dashboard */}
-        <Route index element={<DashboardPage />} />
+        {/* Default to Dispatch */}
+        <Route index element={<DispatchPage />} />
         
         {/* Main Dispatch Command Center */}
         <Route path="dispatch" element={<DispatchPage />} />
@@ -71,7 +71,7 @@ function AppWithLayout() {
         <Route path="drivers" element={<DriversPage />} />
         <Route path="settings" element={<SettingsPage />} />
       </Routes>
-    </ModernLayout>
+    </AppLayout>
   );
 }
 
