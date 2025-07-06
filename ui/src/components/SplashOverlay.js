@@ -1,34 +1,106 @@
 import React from 'react';
 
-const backgroundStyle = {
-  position: 'fixed',
-  inset: 0,
-  width: '100vw',
-  height: '100vh',
-  zIndex: 0,
-  objectFit: 'cover',
-  objectPosition: 'center',
-  opacity: 0.22,
-  pointerEvents: 'none',
-};
-
 const SplashOverlay = ({ onGetStarted }) => {
   return (
-    <div className="fixed inset-0 bg-gradient-to-br from-logo-green to-medium-blue flex items-center justify-center">
-      {/* Subtle background image for artistry */}
-      <img
-        src="/images/background.png"
-        alt=""
-        aria-hidden="true"
-        style={backgroundStyle}
+    <div className="relative min-h-screen flex flex-col justify-center py-12 px-8 md:px-12">
+      
+      {/* Full-screen background image with overlay */}
+      <div 
+        className="fixed inset-0 -z-10" 
+        style={{
+          backgroundImage: 'url("/images/background2.png")',
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          backgroundRepeat: 'no-repeat'
+        }}
       />
-      <div className="absolute inset-0 bg-black opacity-50"></div>
-      <div className="relative z-10 bg-white bg-opacity-80 backdrop-blur-md rounded-xl p-10 max-w-md w-full text-center space-y-6">
-        <h1 className="text-4xl font-heading text-logo-gray">The Next Generation of Logistics & Courier Software</h1>
-        <p className="text-lg font-sans text-text-gray">AI-powered. Autonomous. Built for the future of delivery.</p>
-        <p className="text-base font-sans text-text-gray">Intelligent last-mile, route, and on-demand shipment orchestration that adapts and scales with your operation—empowering drivers, dispatchers, and clients with precision, speed, and ease.</p>
-        <button onClick={onGetStarted} className="mt-4 bg-logo-green hover:bg-secondary-green text-white font-bold py-3 px-6 rounded-full transition transform hover:-translate-y-1">Get Started</button>
-      </div>
+      <div className="fixed inset-0 bg-black/50 -z-10" />
+      
+      {/* Header */}
+      <header className="absolute font-sans top-0 left-0 right-0 z-10">
+        <nav className="flex justify-between items-center w-full mx-auto max-w-7xl px-8 md:px-12 py-6">
+          {/* Left Section */}
+          <div className="flex items-center gap-x-8">
+            {/* Nav Links */}
+            <ul className="flex items-center gap-x-6">
+              <li className="relative">
+                <a href="#" className="text-sm text-white hover:text-primary transition-colors">
+                  Home
+                </a>
+              </li>
+              <li>
+                <a href="#" className="text-sm text-gray-300 hover:text-white transition-colors">
+                  Products
+                </a>
+              </li>
+              <li>
+                <a href="#" className="text-sm text-gray-300 hover:text-white transition-colors">
+                  Services
+                </a>
+              </li>
+              <li>
+                <a href="#" className="text-sm text-gray-300 hover:text-white transition-colors">
+                  Who We Serve
+                </a>
+              </li>
+            </ul>
+          </div>
+          
+          {/* Right Section */}
+          <ul className="flex items-center gap-x-6">
+            <li>
+              <a href="#" className="text-sm text-gray-300 hover:text-white transition-colors">
+                About Us
+              </a>
+            </li>
+            <li>
+              <a href="#" className="text-sm text-gray-300 hover:text-white transition-colors">
+                Careers
+              </a>
+            </li>
+          </ul>
+        </nav>
+      </header>
+      
+      {/* Hero Content */}
+      <main className="w-full max-w-7xl mx-auto">
+        <div className="max-w-2xl">
+          {/* Pre-headline */}
+          <p className="text-xs font-sans uppercase tracking-widest text-gray-400 mb-4">
+            CXT Software - An Ionic Partners Company
+          </p>
+          
+          {/* Main Headline */}
+          <h1 className="text-5xl md:text-6xl font-heading text-white leading-tight">
+            The Next Generation of Logistics & Courier Software
+          </h1>
+          
+          {/* Paragraph */}
+          <p className="text-lg font-sans text-gray-300 mt-6">
+            Intelligent last-mile, route, and on-demand shipment orchestration that adapts and scales with your operation—empowering drivers, dispatchers, and clients with precision, speed, and ease.
+          </p>
+          
+          {/* Call to Action Button */}
+          <button 
+            onClick={onGetStarted}
+            className="inline-block font-sans bg-white/10 backdrop-blur-md border border-white/20 rounded-full text-white py-3 px-8 mt-8 hover:bg-white/20 hover:border-white/30 transition-all duration-300 shadow-lg"
+          >
+            Experience Now
+          </button>
+        </div>
+      </main>
+      
+      {/* Footer */}
+      <footer className="absolute font-sans bottom-8 left-8 md:left-12 z-10">
+        <div className="flex items-center gap-x-2">
+          {/* Logo */}
+          <img src="/images/logo.svg" alt="Logo" className="w-16 h-16" />
+          {/* Text */}
+          <p className="text-sm text-gray-500">
+            25 Years of Service Excellence
+          </p>
+        </div>
+      </footer>
     </div>
   );
 };
