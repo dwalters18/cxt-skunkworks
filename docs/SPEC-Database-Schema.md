@@ -785,100 +785,177 @@ CREATE TABLE vehicle_tracking (
 );
 
 SELECT create_hypertable('vehicle_tracking', 'time');
-CREATE INDEX ON vehicle_tracking (vehicle_id, time DESC);
-CREATE INDEX ON vehicle_tracking USING GIST (location);
 ```
 
-#### 5.1.2 Performance Metrics
-```sql
-CREATE TABLE performance_metrics (
-    time TIMESTAMPTZ NOT NULL,
-    entity_type VARCHAR(20) NOT NULL, -- 'DRIVER', 'VEHICLE', 'ROUTE'
-    entity_id UUID NOT NULL,
-    metric_name VARCHAR(50) NOT NULL,
-    metric_value DECIMAL(15,4) NOT NULL,
-    tags JSONB
-);
-
-SELECT create_hypertable('performance_metrics', 'time');
-CREATE INDEX ON performance_metrics (entity_type, entity_id, time DESC);
-CREATE INDEX ON performance_metrics (metric_name, time DESC);
-```
-
-#### 5.1.3 Event Stream Data
+#### 5.1.2 Event Stream Data
 ```sql
 CREATE TABLE event_stream (
     time TIMESTAMPTZ NOT NULL,
     event_id UUID NOT NULL,
     event_type VARCHAR(50) NOT NULL,
-    source_system VARCHAR(50) NOT NULL,
-    entity_type VARCHAR(20),
-    entity_id UUID,
-    event_data JSONB NOT NULL,
+    event_data JSONB NOT NULL DEFAULT '{}',
+    source_system VARCHAR(100) NOT NULL,
     correlation_id UUID,
-    trace_id UUID
+    entity_type VARCHAR(50),
+    entity_id UUID,
+    location GEOGRAPHY(POINT, 4326),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 SELECT create_hypertable('event_stream', 'time');
-CREATE INDEX ON event_stream (event_type, time DESC);
-CREATE INDEX ON event_stream (entity_type, entity_id, time DESC);
-CREATE INDEX ON event_stream (correlation_id);
+```
+
+#### 5.1.3 Audit Events Data
+```sql
+CREATE TABLE audit_events (
+    time TIMESTAMPTZ NOT NULL,
+    event_id UUID NOT NULL,
+    event_type VARCHAR(50) NOT NULL,
+    source VARCHAR(100) NOT NULL,
+    correlation_id UUID,
+    version VARCHAR(10) NOT NULL DEFAULT '1.0',
+    entity_type VARCHAR(50),
+    entity_id UUID,
+    location GEOGRAPHY(POINT, 4326),
+    metadata JSONB NOT NULL DEFAULT '{}',
+    data JSONB NOT NULL DEFAULT '{}',
+    severity VARCHAR(20) DEFAULT 'INFO',
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+SELECT create_hypertable('audit_events', 'time', chunk_time_interval => INTERVAL '1 day');
+```
+
+#### 5.1.4 Driver Activity Data
+```sql
+CREATE TABLE driver_activity (
+    time TIMESTAMPTZ NOT NULL,
+    driver_id UUID NOT NULL,
+    activity_type VARCHAR(50) NOT NULL, -- 'DRIVING', 'ON_DUTY', 'OFF_DUTY', 'SLEEPER'
+    location GEOGRAPHY(POINT, 4326),
+    vehicle_id UUID,
+    load_id UUID,
+    hos_remaining DECIMAL(4,2),
+    duration_minutes INTEGER,
+    metadata JSONB
+);
+
+SELECT create_hypertable('driver_activity', 'time');
+```
+
+#### 5.1.5 Performance Metrics Data
+```sql
+CREATE TABLE performance_metrics (
+    time TIMESTAMPTZ NOT NULL,
+    metric_name VARCHAR(100) NOT NULL,
+    metric_value DECIMAL(15,4) NOT NULL,
+    entity_type VARCHAR(50) NOT NULL, -- 'DRIVER', 'VEHICLE', 'ROUTE', 'LOAD'
+    entity_id UUID NOT NULL,
+    dimensions JSONB DEFAULT '{}',
+    tags JSONB DEFAULT '{}'
+);
+
+SELECT create_hypertable('performance_metrics', 'time');
 ```
 
 ### 5.2 Continuous Aggregates
 
-#### 5.2.1 Hourly Performance Summary
+#### 5.2.1 Event Hourly Summary
 ```sql
-CREATE MATERIALIZED VIEW hourly_performance
+CREATE MATERIALIZED VIEW event_hourly_summary
 WITH (timescaledb.continuous) AS
 SELECT 
-    time_bucket('1 hour', time) AS bucket,
-    entity_type,
-    entity_id,
-    metric_name,
-    AVG(metric_value) AS avg_value,
-    MAX(metric_value) AS max_value,
-    MIN(metric_value) AS min_value,
-    COUNT(*) AS sample_count
-FROM performance_metrics
-GROUP BY bucket, entity_type, entity_id, metric_name;
+    time_bucket('1 hour', time) AS hour,
+    event_type,
+    source,
+    severity,
+    COUNT(*) as event_count,
+    COUNT(DISTINCT entity_id) as unique_entities
+FROM audit_events
+GROUP BY hour, event_type, source, severity
+WITH NO DATA;
 
-SELECT add_continuous_aggregate_policy('hourly_performance',
-    start_offset => INTERVAL '1 day',
+SELECT add_continuous_aggregate_policy('event_hourly_summary',
+    start_offset => INTERVAL '4 hours',
     end_offset => INTERVAL '1 hour',
-    schedule_interval => INTERVAL '1 hour');
+    schedule_interval => INTERVAL '30 minutes');
 ```
 
-#### 5.2.2 Daily Vehicle Utilization
+#### 5.2.2 Vehicle Performance Summary
 ```sql
-CREATE MATERIALIZED VIEW daily_vehicle_utilization
+CREATE MATERIALIZED VIEW vehicle_performance_hourly
 WITH (timescaledb.continuous) AS
 SELECT 
-    time_bucket('1 day', time) AS bucket,
+    time_bucket('1 hour', time) AS hour,
     vehicle_id,
-    COUNT(DISTINCT load_id) AS loads_served,
-    SUM(CASE WHEN speed > 0 THEN 1 ELSE 0 END) * 5 / 60.0 AS driving_hours, -- 5-minute intervals
-    MAX(odometer) - MIN(odometer) AS miles_driven,
-    AVG(fuel_level) AS avg_fuel_level
+    AVG(speed) as avg_speed,
+    MAX(speed) as max_speed,
+    AVG(fuel_level) as avg_fuel_level,
+    COUNT(*) as tracking_points
 FROM vehicle_tracking
-GROUP BY bucket, vehicle_id;
+GROUP BY hour, vehicle_id
+WITH NO DATA;
 
-SELECT add_continuous_aggregate_policy('daily_vehicle_utilization',
-    start_offset => INTERVAL '7 days',
-    end_offset => INTERVAL '1 day',
-    schedule_interval => INTERVAL '1 hour');
+SELECT add_continuous_aggregate_policy('vehicle_performance_hourly',
+    start_offset => INTERVAL '4 hours',
+    end_offset => INTERVAL '1 hour',
+    schedule_interval => INTERVAL '30 minutes');
 ```
 
 ### 5.3 Retention Policies
 ```sql
--- Retain raw tracking data for 90 days
-SELECT add_retention_policy('vehicle_tracking', INTERVAL '90 days');
+-- Keep detailed events for 90 days
+SELECT add_retention_policy('audit_events', INTERVAL '90 days');
+SELECT add_retention_policy('event_stream', INTERVAL '90 days');
 
--- Retain raw performance metrics for 180 days  
-SELECT add_retention_policy('performance_metrics', INTERVAL '180 days');
+-- Keep vehicle tracking for 1 year
+SELECT add_retention_policy('vehicle_tracking', INTERVAL '1 year');
 
--- Retain raw events for 365 days
-SELECT add_retention_policy('event_stream', INTERVAL '365 days');
+-- Keep driver activity for 2 years (regulatory compliance)
+SELECT add_retention_policy('driver_activity', INTERVAL '2 years');
+
+-- Keep performance metrics for 6 months
+SELECT add_retention_policy('performance_metrics', INTERVAL '6 months');
+
+-- Keep aggregated summaries for 1 year
+SELECT add_retention_policy('event_hourly_summary', INTERVAL '1 year');
+SELECT add_retention_policy('vehicle_performance_hourly', INTERVAL '1 year');
+```
+
+### 5.4 Indexes for Performance
+```sql
+-- Event stream indexes
+CREATE INDEX ON event_stream (event_type, time DESC);
+CREATE INDEX ON event_stream (entity_type, entity_id, time DESC);
+CREATE INDEX ON event_stream (source_system, time DESC);
+CREATE INDEX ON event_stream USING GIN (event_data);
+
+-- Audit events indexes
+CREATE INDEX ON audit_events (event_type, time DESC);
+CREATE INDEX ON audit_events (entity_type, entity_id, time DESC);
+CREATE INDEX ON audit_events (source, time DESC);
+CREATE INDEX ON audit_events (correlation_id, time DESC) WHERE correlation_id IS NOT NULL;
+CREATE INDEX ON audit_events USING GIN (metadata);
+CREATE INDEX ON audit_events USING GIN (data);
+CREATE INDEX ON audit_events USING GIST (location) WHERE location IS NOT NULL;
+CREATE INDEX ON audit_events (severity, time DESC);
+
+-- Vehicle tracking indexes
+CREATE INDEX ON vehicle_tracking (vehicle_id, time DESC);
+CREATE INDEX ON vehicle_tracking USING GIST (location);
+CREATE INDEX ON vehicle_tracking (driver_id, time DESC);
+CREATE INDEX ON vehicle_tracking (load_id, time DESC);
+
+-- Driver activity indexes
+CREATE INDEX ON driver_activity (driver_id, time DESC);
+CREATE INDEX ON driver_activity (activity_type, time DESC);
+CREATE INDEX ON driver_activity USING GIST (location) WHERE location IS NOT NULL;
+
+-- Performance metrics indexes
+CREATE INDEX ON performance_metrics (metric_name, time DESC);
+CREATE INDEX ON performance_metrics (entity_type, entity_id, time DESC);
+CREATE INDEX ON performance_metrics USING GIN (dimensions);
+CREATE INDEX ON performance_metrics USING GIN (tags);
 ```
 
 ---
@@ -975,20 +1052,3 @@ The schema includes comprehensive attributes for operational excellence:
 - Vehicle capacity constraints prevent overloading
 - Driver hours-of-service validation maintains compliance
 
----
-
-## 9. Security and Compliance
-
-### 8.1 Data Protection
-- Column-level encryption for sensitive data
-- Row-level security policies
-- Database audit logging
-- Access control and authentication
-
-### 8.2 Compliance Requirements
-- Data retention policies per regulatory requirements
-- Audit trail maintenance
-- Personal data protection (GDPR compliance)
-- Industry-specific compliance (DOT, FMCSA)
-
-This comprehensive database schema provides the foundation for a scalable, performant, and feature-rich Transportation Management System while leveraging the strengths of each specialized database technology.
