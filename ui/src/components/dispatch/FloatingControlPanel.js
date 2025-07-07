@@ -265,7 +265,7 @@ const FloatingControlPanel = ({
 
                                 {selectedTab === 'vehicles' && (
                                     <div className="space-y-3">
-                                        {!vehicles || vehicles.length === 0 ? (
+                                        {!Array.isArray(vehicles) || vehicles.length === 0 ? (
                                             <div className={`text-center py-8 ${
                                                 isDarkMode ? 'text-gray-400' : 'text-white/60'
                                             }`}>
@@ -329,7 +329,7 @@ const FloatingControlPanel = ({
 
                                 {selectedTab === 'routes' && (
                                     <div className="space-y-3">
-                                        {!routes || routes.length === 0 ? (
+                                        {!Array.isArray(routes) || routes.length === 0 ? (
                                             <div className={`text-center py-8 ${
                                                 isDarkMode ? 'text-gray-400' : 'text-white/60'
                                             }`}>
@@ -338,7 +338,7 @@ const FloatingControlPanel = ({
                                             </div>
                                         ) : (
                                             routes.map((route) => {
-                                                const isVisible = visibleRoutes.has(route.id);
+                                                const isVisible = visibleRoutes && visibleRoutes.has ? visibleRoutes.has(route.id) : false;
                                                 const isActive = route.status === 'active' || route.status === 'ACTIVE';
                                                 const canToggle = !isActive;
                                                 

@@ -67,20 +67,34 @@ export const useMapData = () => {
     const fetchVehicles = useCallback(async () => {
         try {
             const response = await fetch(`${API_BASE}/api/vehicles`);
+            if (!response.ok) {
+                console.error('Failed to fetch vehicles:', response.status);
+                return; // Don't clear existing data on error
+            }
             const data = await response.json();
-            setVehicles(data || []);
+            if (Array.isArray(data) && data.length >= 0) {
+                setVehicles(data);
+            }
         } catch (err) {
             console.error('Error fetching vehicles:', err);
+            // Don't clear existing data on error
         }
     }, []);
 
     const fetchLoads = useCallback(async () => {
         try {
             const response = await fetch(`${API_BASE}/api/loads`);
+            if (!response.ok) {
+                console.error('Failed to fetch loads:', response.status);
+                return; // Don't clear existing data on error
+            }
             const data = await response.json();
-            setLoads(data || []);
+            if (Array.isArray(data) && data.length >= 0) {
+                setLoads(data);
+            }
         } catch (err) {
             console.error('Error fetching loads:', err);
+            // Don't clear existing data on error
         }
     }, []);
 
@@ -93,12 +107,18 @@ export const useMapData = () => {
     const fetchRoutes = useCallback(async () => {
         try {
             const response = await fetch(`${API_BASE}/api/routes`);
-            if (response.ok) {
-                const data = await response.json();
-                setRoutes(data?.routes || data || []);
+            if (!response.ok) {
+                console.error('Failed to fetch routes:', response.status);
+                return; // Don't clear existing data on error
+            }
+            const data = await response.json();
+            const routesData = data?.routes || data || [];
+            if (Array.isArray(routesData) && routesData.length >= 0) {
+                setRoutes(routesData);
             }
         } catch (err) {
             console.error('Error fetching routes:', err);
+            // Don't clear existing data on error
         }
     }, []);
 
