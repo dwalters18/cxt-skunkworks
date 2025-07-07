@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import { WebSocketProvider } from './contexts/WebSocketContext';
+import { DarkModeProvider } from './contexts/DarkModeContext';
 import SplashOverlay from './components/SplashOverlay';
 import { AppLayout } from './components/layout/AppLayout';
 import DispatchPage from './pages/DispatchPage';
@@ -25,21 +26,25 @@ function App() {
 
   if (showSplash) {
     return (
-      <WebSocketProvider>
-        <SplashOverlay 
-          onGetStarted={handleGetStarted}
-          isTransitioning={isTransitioning}
-        />
-      </WebSocketProvider>
+      <DarkModeProvider>
+        <WebSocketProvider>
+          <SplashOverlay 
+            onGetStarted={handleGetStarted}
+            isTransitioning={isTransitioning}
+          />
+        </WebSocketProvider>
+      </DarkModeProvider>
     );
   }
 
   return (
-    <WebSocketProvider>
-      <Router>
-        <AppWithLayout />
-      </Router>
-    </WebSocketProvider>
+    <DarkModeProvider>
+      <WebSocketProvider>
+        <Router>
+          <AppWithLayout />
+        </Router>
+      </WebSocketProvider>
+    </DarkModeProvider>
   );
 }
 

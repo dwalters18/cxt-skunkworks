@@ -99,7 +99,7 @@ const LoadsPage = () => {
             'DELIVERED': 'bg-green-100 text-green-800',
             'CANCELLED': 'bg-red-100 text-red-800'
         };
-        return colors[status] || 'bg-gray-100 text-gray-800';
+        return colors[status] || 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200';
     };
 
     const formatCurrency = (amount) => {
@@ -121,7 +121,7 @@ const LoadsPage = () => {
         return (
             <div className="space-y-6">
                 <div className="flex items-center justify-center h-64">
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
                 </div>
             </div>
         );
@@ -132,19 +132,19 @@ const LoadsPage = () => {
             {/* Header */}
             <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
-                        <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div className="w-8 h-8 bg-blue-100 dark:bg-primary/20 rounded-lg flex items-center justify-center">
+                        <svg className="w-5 h-5 text-blue-600 dark:text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
                         </svg>
                     </div>
                     <div>
-                        <h1 className="text-3xl font-bold text-gray-900">Loads</h1>
-                        <p className="text-gray-600 mt-1">Manage and track all transportation loads</p>
+                        <h1 className="text-3xl font-bold text-gray-900 dark:text-foreground">Loads</h1>
+                        <p className="text-gray-600 dark:text-muted mt-1">Manage and track all transportation loads</p>
                     </div>
                 </div>
                 <button 
                     onClick={fetchLoads}
-                    className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors duration-200 flex items-center gap-2"
+                    className="bg-primary hover:bg-primary/80 text-background px-4 py-2 rounded-lg transition-colors duration-200 flex items-center gap-2"
                 >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
@@ -156,38 +156,38 @@ const LoadsPage = () => {
             {/* Load Summary Cards */}
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
                 {[
-                    { key: 'total', count: loadCounts.total, label: 'Total Loads', color: 'text-gray-900' },
+                    { key: 'total', count: loadCounts.total, label: 'Total Loads', color: 'text-gray-900 dark:text-foreground' },
                     { key: 'pending', count: loadCounts.pending, label: 'Pending', color: 'text-yellow-600' },
                     { key: 'assigned', count: loadCounts.assigned, label: 'Assigned', color: 'text-blue-600' },
                     { key: 'in_transit', count: loadCounts.in_transit, label: 'In Transit', color: 'text-indigo-600' },
                     { key: 'delivered', count: loadCounts.delivered, label: 'Delivered', color: 'text-green-600' },
                     { key: 'unassigned', count: loadCounts.unassigned, label: 'Unassigned', color: 'text-red-600' }
                 ].map((card) => (
-                    <div key={card.key} className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+                    <div key={card.key} className="bg-white dark:bg-gray-900 rounded-lg shadow-sm border border-gray-200 dark:border-accent p-4">
                         <div className={`text-2xl font-bold ${card.color}`}>{card.count}</div>
-                        <div className="text-sm text-gray-600">{card.label}</div>
+                        <div className="text-sm text-gray-600 dark:text-muted">{card.label}</div>
                     </div>
                 ))}
             </div>
 
             {/* Filters */}
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <div className="bg-white dark:bg-gray-900 rounded-lg shadow-sm border border-gray-200 dark:border-accent p-6">
                 <div className="flex items-center gap-2 mb-4">
-                    <div className="w-6 h-6 bg-gray-100 rounded-lg flex items-center justify-center">
-                        <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div className="w-6 h-6 bg-gray-100 dark:bg-accent rounded-lg flex items-center justify-center">
+                        <svg className="w-4 h-4 text-gray-600 dark:text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.207A1 1 0 013 6.5V4z" />
                         </svg>
                     </div>
-                    <h2 className="text-lg font-semibold text-gray-900">Filters</h2>
+                    <h2 className="text-lg font-semibold text-gray-900 dark:text-foreground">Filters</h2>
                 </div>
                 
                 <div className="flex flex-wrap gap-4">
                     <div className="flex items-center space-x-2">
-                        <label className="text-sm font-medium text-gray-700">Status:</label>
+                        <label className="text-sm font-medium text-gray-700 dark:text-muted">Status:</label>
                         <select 
                             value={statusFilter} 
                             onChange={(e) => setStatusFilter(e.target.value)}
-                            className="border border-gray-300 rounded-md px-3 py-1 text-sm"
+                            className="border border-gray-300 dark:border-accent rounded-md px-3 py-1 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-foreground"
                         >
                             <option value="all">All Statuses</option>
                             <option value="pending">Pending</option>
@@ -205,9 +205,9 @@ const LoadsPage = () => {
                             id="unassignedOnly" 
                             checked={showUnassignedOnly}
                             onChange={(e) => setShowUnassignedOnly(e.target.checked)}
-                            className="rounded border-gray-300"
+                            className="rounded border-gray-300 dark:border-accent bg-white dark:bg-gray-800"
                         />
-                        <label htmlFor="unassignedOnly" className="text-sm font-medium text-gray-700">
+                        <label htmlFor="unassignedOnly" className="text-sm font-medium text-gray-700 dark:text-muted">
                             Unassigned Only
                         </label>
                     </div>
@@ -215,7 +215,7 @@ const LoadsPage = () => {
             </div>
 
             {error && (
-                <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-6">
+                <div className="bg-red-100 dark:bg-red-900/20 border border-red-400 dark:border-red-600 text-red-700 dark:text-red-400 px-4 py-3 rounded mb-6">
                     Error: {error}
                 </div>
             )}
@@ -223,11 +223,11 @@ const LoadsPage = () => {
             {/* Loads Grid */}
             <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
                 {loads.map((load, index) => (
-                    <div key={load.load_id || `load-${index}`} className="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow duration-200">
+                    <div key={load.load_id || `load-${index}`} className="bg-white dark:bg-gray-900 rounded-xl shadow-lg border border-gray-200 dark:border-accent p-6 hover:shadow-xl transition-shadow duration-200">
                         <div className="flex items-start justify-between mb-4">
                             <div>
-                                <h3 className="text-lg font-bold text-gray-900">{load.load_number || `Load #${load.load_id.slice(-8)}`}</h3>
-                                <p className="text-sm text-gray-600">{load.customer_name}</p>
+                                <h3 className="text-lg font-bold text-gray-900 dark:text-foreground">{load.load_number || `Load #${load.load_id.slice(-8)}`}</h3>
+                                <p className="text-sm text-gray-600 dark:text-muted">{load.customer_name}</p>
                             </div>
                             <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(load.status)}`}>
                                 {load.status}
@@ -236,33 +236,33 @@ const LoadsPage = () => {
                         
                         <div className="space-y-2 mb-4">
                             <div className="flex justify-between text-sm">
-                                <span className="text-gray-600">Rate:</span>
+                                <span className="text-gray-600 dark:text-muted">Rate:</span>
                                 <span className="font-medium text-green-600">{formatCurrency(load.rate)}</span>
                             </div>
                             <div className="flex justify-between text-sm">
-                                <span className="text-gray-600">Distance:</span>
+                                <span className="text-gray-600 dark:text-muted">Distance:</span>
                                 <span className="font-medium">{load.distance} mi</span>
                             </div>
                             <div className="flex justify-between text-sm">
-                                <span className="text-gray-600">Weight:</span>
+                                <span className="text-gray-600 dark:text-muted">Weight:</span>
                                 <span className="font-medium">{load.weight ? `${load.weight} lbs` : 'N/A'}</span>
                             </div>
                         </div>
                         
                         {/* Route Info */}
-                        <div className="mb-4 text-sm">
-                            <div className="text-gray-600 mb-1">Route:</div>
-                            <div className="font-medium text-blue-600">
-                                📍 {load.pickup_city}, {load.pickup_state}
+                        <div className="mb-4">
+                            <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-muted mb-2">
+                                <span>📍</span>
+                                <span>{load.pickup_address?.split(',')[0] || 'N/A'}</span>
                             </div>
-                            <div className="text-gray-400 text-center my-1">↓</div>
-                            <div className="font-medium text-red-600">
-                                🎯 {load.delivery_city}, {load.delivery_state}
+                            <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-muted">
+                                <span>🎯</span>
+                                <span>{load.delivery_address?.split(',')[0] || 'N/A'}</span>
                             </div>
                         </div>
                         
                         {/* Dates */}
-                        <div className="mb-4 text-xs text-gray-500">
+                        <div className="mb-4 text-xs text-gray-500 dark:text-gray-400">
                             <div>Pickup: {formatDate(load.pickup_date)}</div>
                             <div>Delivery: {formatDate(load.delivery_date)}</div>
                         </div>
@@ -291,28 +291,28 @@ const LoadsPage = () => {
             </div>
             
             {loads.length === 0 && !loading && (
-                <div className="bg-white rounded-xl shadow-lg p-12 text-center">
+                <div className="bg-white dark:bg-gray-900 rounded-xl shadow-lg border border-gray-200 dark:border-accent p-12 text-center">
                     <div className="text-6xl mb-4">📦</div>
-                    <h3 className="text-xl font-semibold text-gray-900 mb-2">No Loads Found</h3>
-                    <p className="text-gray-600">Try adjusting your filters or check back later.</p>
+                    <h3 className="text-xl font-semibold text-gray-900 dark:text-foreground mb-2">No loads found</h3>
+                    <p className="text-gray-600 dark:text-muted">Try adjusting your filters or check back later.</p>
                 </div>
             )}
 
             {/* Load Details Modal */}
             {selectedLoad && (
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-                    <div className="bg-white rounded-xl shadow-xl max-w-4xl w-full max-h-96 overflow-y-auto">
+                    <div className="bg-white dark:bg-gray-900 rounded-xl shadow-xl border border-gray-200 dark:border-accent max-w-4xl w-full max-h-96 overflow-y-auto">
                         <div className="p-6">
                             <div className="flex items-start justify-between mb-6">
                                 <div>
-                                    <h2 className="text-2xl font-bold text-gray-900">
+                                    <h2 className="text-2xl font-bold text-gray-900 dark:text-foreground">
                                         {selectedLoad.load_number || `Load #${selectedLoad.load_id.slice(-8)}`}
                                     </h2>
-                                    <p className="text-gray-600">{selectedLoad.customer_name}</p>
+                                    <p className="text-gray-600 dark:text-muted">{selectedLoad.customer_name}</p>
                                 </div>
                                 <button 
                                     onClick={() => setSelectedLoad(null)}
-                                    className="text-gray-400 hover:text-gray-600 text-2xl"
+                                    className="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 text-2xl"
                                 >
                                     ×
                                 </button>

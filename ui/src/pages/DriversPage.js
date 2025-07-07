@@ -51,11 +51,11 @@ const DriversPage = () => {
         const colors = {
             'AVAILABLE': 'bg-green-100 text-green-800',
             'ON_DUTY': 'bg-blue-100 text-blue-800',
-            'OFF_DUTY': 'bg-gray-100 text-gray-800',
+            'OFF_DUTY': 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200',
             'DRIVING': 'bg-yellow-100 text-yellow-800',
             'INACTIVE': 'bg-red-100 text-red-800'
         };
-        return colors[status] || 'bg-gray-100 text-gray-800';
+        return colors[status] || 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200';
     };
 
     const formatLastUpdate = (timestamp) => {
@@ -67,7 +67,7 @@ const DriversPage = () => {
         return (
             <div className="p-8">
                 <div className="flex items-center justify-center h-64">
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
                 </div>
             </div>
         );
@@ -76,17 +76,17 @@ const DriversPage = () => {
     return (
         <div className="p-8">
             <div className="mb-8">
-                <h1 className="text-3xl font-bold text-gray-900">Drivers</h1>
-                <p className="text-gray-600">Manage your driver workforce and schedules</p>
+                <h1 className="text-3xl font-bold text-gray-900 dark:text-foreground">Drivers</h1>
+                <p className="text-gray-600 dark:text-muted">Manage your driver workforce and schedules</p>
             </div>
 
             {/* Filters */}
-            <div className="bg-white rounded-xl shadow-lg p-6 mb-6">
+            <div className="bg-white dark:bg-gray-900 rounded-xl shadow-lg border border-gray-200 dark:border-accent p-6 mb-6">
                 <div className="flex items-center justify-between mb-4">
-                    <h2 className="text-xl font-bold text-gray-900">Driver Filters</h2>
+                    <h2 className="text-xl font-bold text-gray-900 dark:text-foreground">Driver Filters</h2>
                     <button 
                         onClick={fetchDrivers}
-                        className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg transition-colors duration-200"
+                        className="bg-primary hover:bg-primary/80 text-background px-4 py-2 rounded-lg transition-colors duration-200"
                     >
                         🔄 Refresh
                     </button>
@@ -94,11 +94,11 @@ const DriversPage = () => {
                 
                 <div className="flex flex-wrap gap-4">
                     <div className="flex items-center space-x-2">
-                        <label className="text-sm font-medium text-gray-700">Status:</label>
+                        <label className="text-sm font-medium text-gray-700 dark:text-muted">Status:</label>
                         <select 
                             value={filterStatus} 
                             onChange={(e) => setFilterStatus(e.target.value)}
-                            className="border border-gray-300 rounded-md px-3 py-1 text-sm"
+                            className="border border-gray-300 dark:border-accent rounded-md px-3 py-1 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-foreground"
                         >
                             <option value="all">All Statuses</option>
                             <option value="available">Available</option>
@@ -115,9 +115,9 @@ const DriversPage = () => {
                             id="availableOnly" 
                             checked={showAvailableOnly}
                             onChange={(e) => setShowAvailableOnly(e.target.checked)}
-                            className="rounded border-gray-300"
+                            className="rounded border-gray-300 dark:border-accent bg-white dark:bg-gray-800"
                         />
-                        <label htmlFor="availableOnly" className="text-sm font-medium text-gray-700">
+                        <label htmlFor="availableOnly" className="text-sm font-medium text-gray-700 dark:text-muted">
                             Available Only
                         </label>
                     </div>
@@ -125,7 +125,7 @@ const DriversPage = () => {
             </div>
 
             {error && (
-                <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-6">
+                <div className="bg-red-100 dark:bg-red-900/20 border border-red-400 dark:border-red-600 text-red-700 dark:text-red-400 px-4 py-3 rounded mb-6">
                     Error: {error}
                 </div>
             )}
@@ -133,11 +133,11 @@ const DriversPage = () => {
             {/* Drivers Grid */}
             <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
                 {drivers.map((driver, index) => (
-                    <div key={driver.driver_id || `driver-${index}`} className="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow duration-200">
+                    <div key={driver.driver_id || `driver-${index}`} className="bg-white dark:bg-gray-900 rounded-xl shadow-lg border border-gray-200 dark:border-accent p-6 hover:shadow-xl transition-shadow duration-200">
                         <div className="flex items-start justify-between mb-4">
                             <div>
-                                <h3 className="text-lg font-bold text-gray-900">{driver.name}</h3>
-                                <p className="text-sm text-gray-600">{driver.carrier_name || 'Independent'}</p>
+                                <h3 className="text-lg font-bold text-gray-900 dark:text-foreground">{driver.name}</h3>
+                                <p className="text-sm text-gray-600 dark:text-muted">{driver.carrier_name || 'Independent'}</p>
                             </div>
                             <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(driver.status)}`}>
                                 {driver.status}
@@ -146,22 +146,22 @@ const DriversPage = () => {
                         
                         <div className="space-y-2 mb-4">
                             <div className="flex justify-between text-sm">
-                                <span className="text-gray-600">License:</span>
+                                <span className="text-gray-600 dark:text-muted">License:</span>
                                 <span className="font-medium">{driver.license_number}</span>
                             </div>
                             <div className="flex justify-between text-sm">
-                                <span className="text-gray-600">Phone:</span>
+                                <span className="text-gray-600 dark:text-muted">Phone:</span>
                                 <span className="font-medium">{driver.phone}</span>
                             </div>
                             <div className="flex justify-between text-sm">
-                                <span className="text-gray-600">Active Loads:</span>
+                                <span className="text-gray-600 dark:text-muted">Active Loads:</span>
                                 <span className="font-medium">{driver.active_loads}</span>
                             </div>
                         </div>
                         
                         {/* Hours of Service */}
                         <div className="mb-4">
-                            <div className="text-sm text-gray-600 mb-1">Hours of Service</div>
+                            <div className="text-sm text-gray-600 dark:text-muted mb-1">Hours of Service</div>
                             <div className="flex justify-between text-xs">
                                 <span>Driven: {(driver.hours_driven_today ?? 0).toFixed(1)}h</span>
                                 <span>Remaining: {(driver.hours_remaining_today ?? 0).toFixed(1)}h</span>
@@ -176,7 +176,7 @@ const DriversPage = () => {
 
                         {/* Location Info */}
                         {driver.current_location?.latitude && driver.current_location?.longitude && (
-                            <div className="text-xs text-gray-500 mb-4">
+                            <div className="text-xs text-gray-500 dark:text-gray-400 mb-4">
                                 Location: {driver.current_location.latitude.toFixed(4)}, {driver.current_location.longitude.toFixed(4)}<br/>
                                 Updated: {formatLastUpdate(driver.last_location_update)}
                             </div>
@@ -195,8 +195,8 @@ const DriversPage = () => {
             {drivers.length === 0 && !loading && (
                 <div className="bg-white rounded-xl shadow-lg p-12 text-center">
                     <div className="text-6xl mb-4">👥</div>
-                    <h3 className="text-xl font-semibold text-gray-900 mb-2">No Drivers Found</h3>
-                    <p className="text-gray-600">Try adjusting your filters or check back later.</p>
+                    <h3 className="text-xl font-semibold text-gray-900 dark:text-foreground mb-2">No Drivers Found</h3>
+                    <p className="text-gray-600 dark:text-muted">Try adjusting your filters or check back later.</p>
                 </div>
             )}
 
@@ -207,12 +207,12 @@ const DriversPage = () => {
                         <div className="p-6">
                             <div className="flex items-start justify-between mb-6">
                                 <div>
-                                    <h2 className="text-2xl font-bold text-gray-900">{selectedDriver.name}</h2>
-                                    <p className="text-gray-600">{selectedDriver.carrier_name || 'Independent Driver'}</p>
+                                    <h2 className="text-2xl font-bold text-gray-900 dark:text-foreground">{selectedDriver.name}</h2>
+                                    <p className="text-gray-600 dark:text-muted">{selectedDriver.carrier_name || 'Independent Driver'}</p>
                                 </div>
                                 <button 
                                     onClick={() => setSelectedDriver(null)}
-                                    className="text-gray-400 hover:text-gray-600 text-2xl"
+                                    className="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 text-2xl"
                                 >
                                     ×
                                 </button>

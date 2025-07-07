@@ -1,4 +1,6 @@
+/** @type {import('tailwindcss').Config} */
 module.exports = {
+  darkMode: 'class',
   content: ["./src/**/*.{html,js,ts,jsx,tsx}"],
   theme: {
     fontFamily: {
@@ -48,6 +50,12 @@ module.exports = {
         'text-gray': '#444444',
         'orange': '#C15701',
         'light-blue': '#BFD6E5',
+        // Dark mode CXT Software palette
+        'background': '#030705',
+        'foreground': '#FFFFFF',
+        'muted': '#BCC1C9',
+        'primary': '#3EFF93',
+        'accent': '#565E67',
         'secondary-green': '#63A44B',
         'powder-blue': '#96A5B3',
         'powder-green': '#ECF3E8',

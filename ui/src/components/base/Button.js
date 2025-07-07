@@ -8,13 +8,13 @@ const Button = React.forwardRef(({
   children, 
   ...props 
 }, ref) => {
-  const baseClasses = "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2";
+  const baseClasses = "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 outline-none focus-visible:ring-2 focus-visible:ring-primary dark:focus-visible:ring-primary focus-visible:ring-offset-2 dark:focus-visible:ring-offset-background";
   
   const variants = {
-    default: "bg-blue-600 text-white hover:bg-blue-700",
-    ghost: "hover:bg-gray-100 text-gray-900",
-    outline: "border border-gray-200 bg-white text-gray-900 hover:bg-gray-50",
-    secondary: "bg-gray-100 text-gray-900 hover:bg-gray-200",
+    default: "bg-primary text-background hover:bg-primary/80 dark:bg-primary dark:text-background dark:hover:bg-primary/80",
+    ghost: "hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-900 dark:text-foreground",
+    outline: "border border-gray-200 dark:border-accent bg-white dark:bg-gray-900 text-gray-900 dark:text-foreground hover:bg-gray-50 dark:hover:bg-gray-800",
+    secondary: "bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-foreground hover:bg-gray-200 dark:hover:bg-gray-700",
   };
   
   const sizes = {

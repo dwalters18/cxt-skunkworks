@@ -355,18 +355,18 @@ const EventConsole = ({ apiBase }) => {
             {/* Event Statistics */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
                 <div className="bg-gray-100 p-4 rounded-lg flex flex-col items-center">
-                    <div className="text-2xl font-bold text-gray-800">{events.length}</div>
-                    <div className="text-sm text-gray-500">Total Events</div>
+                    <div className="text-2xl font-bold text-gray-800 dark:text-foreground">{events.length}</div>
+                    <div className="text-sm text-gray-500 dark:text-gray-400">Total Events</div>
                 </div>
                 <div className="bg-gray-100 p-4 rounded-lg flex flex-col items-center">
-                    <div className="text-2xl font-bold text-gray-800">{eventTopics.length}</div>
-                    <div className="text-sm text-gray-500">Active Topics</div>
+                    <div className="text-2xl font-bold text-gray-800 dark:text-foreground">{eventTopics.length}</div>
+                    <div className="text-sm text-gray-500 dark:text-gray-400">Active Topics</div>
                 </div>
                 <div className="bg-gray-100 p-4 rounded-lg flex flex-col items-center">
                     <div className="text-2xl font-bold text-gray-800">
                         {events.filter(e => new Date(e.timestamp) > new Date(Date.now() - 300000)).length}
                     </div>
-                    <div className="text-sm text-gray-500">Last 5 Minutes</div>
+                    <div className="text-sm text-gray-500 dark:text-gray-400">Last 5 Minutes</div>
                 </div>
                 <div className="bg-gray-100 p-4 rounded-lg flex flex-col items-center">
                     <div className={`w-3 h-3 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'} animate-pulse`}>
@@ -409,7 +409,7 @@ const EventConsole = ({ apiBase }) => {
                                 >
                                     ● {event.event_type}
                                 </span>
-                                <span className="text-sm text-gray-500">{event.source}</span>
+                                <span className="text-sm text-gray-500 dark:text-gray-400">{event.source}</span>
                                 <span className="text-xs text-gray-400 ml-auto">
                                     {formatTimestamp(event.timestamp)}
                                 </span>
@@ -425,7 +425,7 @@ const EventConsole = ({ apiBase }) => {
                     ))}
                     
                     {events.length === 0 && (
-                        <div className="text-center text-gray-500 py-4">
+                        <div className="text-center text-gray-500 dark:text-gray-400 py-4">
                             <p>No events to display. Events will appear here in real-time.</p>
                             {!isAutoRefresh && (
                                 <p>Enable auto-refresh to see simulated events.</p>

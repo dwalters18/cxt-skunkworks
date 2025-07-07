@@ -88,11 +88,11 @@ const FleetPage = () => {
     const getStatusColor = (status) => {
         const colors = {
             'ACTIVE': 'bg-green-100 text-green-800',
-            'INACTIVE': 'bg-gray-100 text-gray-800',
+            'INACTIVE': 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200',
             'MAINTENANCE': 'bg-yellow-100 text-yellow-800',
             'OUT_OF_SERVICE': 'bg-red-100 text-red-800'
         };
-        return colors[status] || 'bg-gray-100 text-gray-800';
+        return colors[status] || 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200';
     };
 
     const formatLastUpdate = (timestamp) => {
@@ -108,7 +108,7 @@ const FleetPage = () => {
         return (
             <div className="p-8">
                 <div className="flex items-center justify-center h-64">
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600"></div>
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
                 </div>
             </div>
         );
@@ -118,41 +118,41 @@ const FleetPage = () => {
         <div className="space-y-6">
             {/* Header */}
             <div>
-                <h1 className="text-3xl font-bold text-gray-900">Fleet</h1>
-                <p className="text-gray-600 mt-1">Monitor and manage your vehicle fleet</p>
+                <h1 className="text-3xl font-bold text-gray-900 dark:text-foreground">Fleet</h1>
+                <p className="text-gray-600 dark:text-muted mt-1">Monitor and manage your vehicle fleet</p>
             </div>
 
             {/* Fleet Summary Cards */}
             <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
-                <div className="bg-white rounded-lg shadow p-4">
-                    <div className="text-2xl font-bold text-gray-900">{vehicleCounts.total}</div>
-                    <div className="text-sm text-gray-600">Total Vehicles</div>
+                <div className="bg-white dark:bg-gray-900 rounded-lg shadow border border-gray-200 dark:border-accent p-4">
+                    <div className="text-2xl font-bold text-gray-900 dark:text-foreground">{vehicleCounts.total}</div>
+                    <div className="text-sm text-gray-600 dark:text-muted">Total Vehicles</div>
                 </div>
-                <div className="bg-white rounded-lg shadow p-4">
-                    <div className="text-2xl font-bold text-green-600">{vehicleCounts.active}</div>
-                    <div className="text-sm text-gray-600">Active</div>
+                <div className="bg-white dark:bg-gray-900 rounded-lg shadow border border-gray-200 dark:border-accent p-4">
+                    <div className="text-2xl font-bold text-green-600 dark:text-primary">{vehicleCounts.active}</div>
+                    <div className="text-sm text-gray-600 dark:text-muted">Active</div>
                 </div>
-                <div className="bg-white rounded-lg shadow p-4">
-                    <div className="text-2xl font-bold text-gray-600">{vehicleCounts.inactive}</div>
-                    <div className="text-sm text-gray-600">Inactive</div>
+                <div className="bg-white dark:bg-gray-900 rounded-lg shadow border border-gray-200 dark:border-accent p-4">
+                    <div className="text-2xl font-bold text-gray-600 dark:text-muted">{vehicleCounts.inactive}</div>
+                    <div className="text-sm text-gray-600 dark:text-muted">Inactive</div>
                 </div>
-                <div className="bg-white rounded-lg shadow p-4">
-                    <div className="text-2xl font-bold text-yellow-600">{vehicleCounts.maintenance}</div>
-                    <div className="text-sm text-gray-600">Maintenance</div>
+                <div className="bg-white dark:bg-gray-900 rounded-lg shadow border border-gray-200 dark:border-accent p-4">
+                    <div className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">{vehicleCounts.maintenance}</div>
+                    <div className="text-sm text-gray-600 dark:text-muted">Maintenance</div>
                 </div>
-                <div className="bg-white rounded-lg shadow p-4">
-                    <div className="text-2xl font-bold text-red-600">{vehicleCounts.out_of_service}</div>
-                    <div className="text-sm text-gray-600">Out of Service</div>
+                <div className="bg-white dark:bg-gray-900 rounded-lg shadow border border-gray-200 dark:border-accent p-4">
+                    <div className="text-2xl font-bold text-red-600 dark:text-red-400">{vehicleCounts.out_of_service}</div>
+                    <div className="text-sm text-gray-600 dark:text-muted">Out of Service</div>
                 </div>
             </div>
 
             {/* Filters */}
-            <div className="bg-white rounded-xl shadow-lg p-6 mb-6">
+            <div className="bg-white dark:bg-gray-900 rounded-xl shadow-lg border border-gray-200 dark:border-accent p-6 mb-6">
                 <div className="flex items-center justify-between mb-4">
-                    <h2 className="text-xl font-bold text-gray-900">Fleet Filters</h2>
+                    <h2 className="text-xl font-bold text-gray-900 dark:text-foreground">Fleet Filters</h2>
                     <button 
                         onClick={fetchVehicles}
-                        className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors duration-200"
+                        className="bg-primary hover:bg-primary/80 text-background px-4 py-2 rounded-lg transition-colors duration-200"
                     >
                         🔄 Refresh
                     </button>
@@ -160,11 +160,11 @@ const FleetPage = () => {
                 
                 <div className="flex flex-wrap gap-4">
                     <div className="flex items-center space-x-2">
-                        <label className="text-sm font-medium text-gray-700">Status:</label>
+                        <label className="text-sm font-medium text-gray-700 dark:text-muted">Status:</label>
                         <select 
                             value={statusFilter} 
                             onChange={(e) => setStatusFilter(e.target.value)}
-                            className="border border-gray-300 rounded-md px-3 py-1 text-sm"
+                            className="border border-gray-300 dark:border-accent rounded-md px-3 py-1 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-foreground"
                         >
                             <option value="all">All Statuses</option>
                             <option value="active">Active</option>
@@ -177,7 +177,7 @@ const FleetPage = () => {
             </div>
 
             {error && (
-                <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-6">
+                <div className="bg-red-100 dark:bg-red-900/20 border border-red-400 dark:border-red-600 text-red-700 dark:text-red-400 px-4 py-3 rounded mb-6">
                     Error: {error}
                 </div>
             )}
@@ -185,11 +185,11 @@ const FleetPage = () => {
             {/* Vehicles Grid */}
             <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
                 {vehicles.map((vehicle, index) => (
-                    <div key={vehicle.vehicle_id || `vehicle-${index}`} className="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow duration-200">
+                    <div key={vehicle.vehicle_id || `vehicle-${index}`} className="bg-white dark:bg-gray-900 rounded-xl shadow-lg border border-gray-200 dark:border-accent p-6 hover:shadow-xl transition-shadow duration-200">
                         <div className="flex items-start justify-between mb-4">
                             <div>
-                                <h3 className="text-lg font-bold text-gray-900">{vehicle.vehicle_number}</h3>
-                                <p className="text-sm text-gray-600">{vehicle.make} {vehicle.model} ({vehicle.year})</p>
+                                <h3 className="text-lg font-bold text-gray-900 dark:text-foreground">{vehicle.vehicle_number}</h3>
+                                <p className="text-sm text-gray-600 dark:text-muted">{vehicle.make} {vehicle.model} ({vehicle.year})</p>
                             </div>
                             <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(vehicle.status)}`}>
                                 {vehicle.status}
@@ -198,24 +198,24 @@ const FleetPage = () => {
                         
                         <div className="space-y-2 mb-4">
                             <div className="flex justify-between text-sm">
-                                <span className="text-gray-600">VIN:</span>
+                                <span className="text-gray-600 dark:text-muted">VIN:</span>
                                 <span className="font-medium text-xs">{vehicle.vin}</span>
                             </div>
                             <div className="flex justify-between text-sm">
-                                <span className="text-gray-600">License:</span>
+                                <span className="text-gray-600 dark:text-muted">License:</span>
                                 <span className="font-medium">{vehicle.license_plate}</span>
                             </div>
                             <div className="flex justify-between text-sm">
-                                <span className="text-gray-600">Mileage:</span>
+                                <span className="text-gray-600 dark:text-muted">Mileage:</span>
                                 <span className="font-medium">{formatMileage(vehicle.mileage)} mi</span>
                             </div>
                         </div>
                         
                         {/* Location Info */}
                         {vehicle.current_location && vehicle.current_location.latitude && (
-                            <div className="mb-4 p-2 bg-blue-50 rounded-lg">
-                                <div className="text-sm font-medium text-blue-800">Current Location:</div>
-                                <div className="text-xs text-blue-600">
+                            <div className="mb-4 p-2 bg-blue-50 dark:bg-primary/10 rounded-lg">
+                                <div className="text-sm font-medium text-blue-800 dark:text-primary">Current Location:</div>
+                                <div className="text-xs text-blue-600 dark:text-primary/80">
                                     {vehicle.current_location.latitude.toFixed(4)}, {vehicle.current_location.longitude.toFixed(4)}
                                 </div>
                                 <div className="text-xs text-blue-500">
@@ -249,7 +249,7 @@ const FleetPage = () => {
                                             e.target.value = ''; // Reset select
                                         }
                                     }}
-                                    className="bg-gray-100 hover:bg-gray-200 text-gray-800 py-2 px-3 rounded-lg text-sm cursor-pointer"
+                                    className="bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 py-2 px-3 rounded-lg text-sm cursor-pointer"
                                 >
                                     <option value="">Update Status</option>
                                     <option value="ACTIVE">Active</option>
@@ -266,8 +266,8 @@ const FleetPage = () => {
             {vehicles.length === 0 && !loading && (
                 <div className="bg-white rounded-xl shadow-lg p-12 text-center">
                     <div className="text-6xl mb-4">🚛</div>
-                    <h3 className="text-xl font-semibold text-gray-900 mb-2">No Vehicles Found</h3>
-                    <p className="text-gray-600">Try adjusting your filters or check back later.</p>
+                    <h3 className="text-xl font-semibold text-gray-900 dark:text-foreground mb-2">No Vehicles Found</h3>
+                    <p className="text-gray-600 dark:text-muted">Try adjusting your filters or check back later.</p>
                 </div>
             )}
 
@@ -278,12 +278,12 @@ const FleetPage = () => {
                         <div className="p-6">
                             <div className="flex items-start justify-between mb-6">
                                 <div>
-                                    <h2 className="text-2xl font-bold text-gray-900">{selectedVehicle.vehicle_number}</h2>
-                                    <p className="text-gray-600">{selectedVehicle.make} {selectedVehicle.model} ({selectedVehicle.year})</p>
+                                    <h2 className="text-2xl font-bold text-gray-900 dark:text-foreground">{selectedVehicle.vehicle_number}</h2>
+                                    <p className="text-gray-600 dark:text-muted">{selectedVehicle.make} {selectedVehicle.model} ({selectedVehicle.year})</p>
                                 </div>
                                 <button 
                                     onClick={() => setSelectedVehicle(null)}
-                                    className="text-gray-400 hover:text-gray-600 text-2xl"
+                                    className="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 text-2xl"
                                 >
                                     ×
                                 </button>
@@ -320,8 +320,8 @@ const FleetPage = () => {
                                             </div>
                                         ) : (
                                             <div className="p-3 bg-gray-50 rounded-lg">
-                                                <div className="font-medium text-gray-800">Location Unknown</div>
-                                                <div className="text-xs text-gray-600">No recent location updates</div>
+                                                <div className="font-medium text-gray-800 dark:text-gray-200">Location Unknown</div>
+                                                <div className="text-xs text-gray-600 dark:text-muted">No recent location updates</div>
                                             </div>
                                         )}
                                         

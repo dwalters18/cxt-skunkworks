@@ -40,12 +40,12 @@ export function AppLayout({ children, currentPath, onNavigate }) {
   const currentPage = getCurrentPage();
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-background">
       {/* Desktop Sidebar */}
-      <aside className="fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-gray-200 lg:block hidden">
+      <aside className="fixed inset-y-0 left-0 z-50 w-64 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-accent lg:block hidden">
         <div className="flex flex-col h-full">
           {/* Logo */}
-          <div className="flex items-center gap-2 p-6 border-b border-gray-200">
+          <div className="flex items-center gap-2 p-6 border-b border-gray-200 dark:border-accent">
             <img src="/images/operations-logo.svg" alt="Operations Logo" className="w-8 h-8" />
           </div>
 
@@ -59,8 +59,8 @@ export function AppLayout({ children, currentPath, onNavigate }) {
                   key={item.id}
                   variant={isActive ? "default" : "ghost"}
                   className={cn(
-                    "w-full justify-start gap-3 h-12",
-                    isActive && "bg-blue-600 text-white hover:bg-blue-700"
+                    "w-full justify-start gap-3 h-12 text-gray-700 dark:text-muted hover:text-gray-900 dark:hover:text-foreground",
+                    isActive && "bg-primary text-background hover:bg-primary/70 dark:bg-primary dark:hover:bg-primary/70 dark:text-background"
                   )}
                   onClick={() => onNavigate(item.path)}
                 >
@@ -72,10 +72,10 @@ export function AppLayout({ children, currentPath, onNavigate }) {
           </nav>
 
           {/* Status */}
-          <div className="p-4 border-t border-gray-200">
+          <div className="p-4 border-t border-gray-200 dark:border-accent">
             <div className="flex items-center gap-2">
-              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-              <span className="text-sm text-gray-600">System Online</span>
+              <div className="w-2 h-2 bg-primary rounded-full animate-pulse"></div>
+              <span className="text-sm text-gray-600 dark:text-muted">System Online</span>
             </div>
           </div>
         </div>
@@ -85,11 +85,11 @@ export function AppLayout({ children, currentPath, onNavigate }) {
       {sidebarOpen && (
         <div className="fixed inset-0 z-50 lg:hidden">
           <div className="absolute inset-0 bg-black bg-opacity-50" onClick={() => setSidebarOpen(false)} />
-          <aside className="absolute left-0 top-0 bottom-0 w-64 bg-white border-r border-gray-200">
+          <aside className="absolute left-0 top-0 bottom-0 w-64 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-accent">
             <div className="flex flex-col h-full">
               {/* Logo */}
-              <div className="flex items-center justify-between p-6 border-b border-gray-200">
-                <img src="/images/operations-logo.svg" alt="Operations Logo" className="w-8 h-8" />
+              <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-accent">
+                <img src="/images/operations-logo.svg" alt="Operations Logo" className="w-16 h-16" />
                 <Button
                   variant="ghost"
                   size="icon"
@@ -109,8 +109,8 @@ export function AppLayout({ children, currentPath, onNavigate }) {
                       key={item.id}
                       variant={isActive ? "default" : "ghost"}
                       className={cn(
-                        "w-full justify-start gap-3 h-12",
-                        isActive && "bg-blue-600 text-white hover:bg-blue-700"
+                        "w-full justify-start gap-3 h-12 text-gray-700 dark:text-muted hover:text-gray-900 dark:hover:text-foreground",
+                        isActive && "bg-primary text-background hover:bg-primary/80 dark:bg-primary dark:text-background"
                       )}
                       onClick={() => {
                         onNavigate(item.path);
@@ -125,10 +125,10 @@ export function AppLayout({ children, currentPath, onNavigate }) {
               </nav>
 
               {/* Status */}
-              <div className="p-4 border-t border-gray-200">
+              <div className="p-4 border-t border-gray-200 dark:border-accent">
                 <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                  <span className="text-sm text-gray-600">System Online</span>
+                  <div className="w-2 h-2 bg-primary rounded-full animate-pulse"></div>
+                  <span className="text-sm text-gray-600 dark:text-muted">System Online</span>
                 </div>
               </div>
             </div>
@@ -139,7 +139,7 @@ export function AppLayout({ children, currentPath, onNavigate }) {
       {/* Main Content */}
       <div className="lg:pl-64">
         {/* Top Header */}
-        <header className="bg-white border-b border-gray-200 px-6 py-4">
+        <header className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-accent px-6 py-4">
           <div className="flex items-center justify-between">
             {/* Mobile menu button */}
             <Button
@@ -154,11 +154,11 @@ export function AppLayout({ children, currentPath, onNavigate }) {
             {/* Search */}
             <div className="flex-1 max-w-lg mx-4">
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-muted" />
                 <input
                   type="text"
                   placeholder="Search loads, drivers, vehicles..."
-                  className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full pl-10 pr-4 py-2 border border-gray-200 dark:border-accent rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-foreground placeholder-gray-400 dark:placeholder-muted focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
                 />
               </div>
             </div>
@@ -169,15 +169,15 @@ export function AppLayout({ children, currentPath, onNavigate }) {
                 <Bell className="w-5 h-5" />
               </Button>
               
-              <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
-                <span className="text-white text-sm font-medium">AD</span>
+              <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center">
+                <span className="text-background text-sm font-medium">AD</span>
               </div>
             </div>
           </div>
         </header>
 
         {/* Page Content */}
-        <main className="p-6">
+        <main className="p-6 bg-gray-50 dark:bg-background min-h-screen">
           {children}
         </main>
       </div>

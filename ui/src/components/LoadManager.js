@@ -109,7 +109,7 @@ const LoadManager = ({ apiBase }) => {
     return (
         <div className="p-6 bg-gray-50 min-h-screen space-y-6">
             <div className="flex items-center justify-between mb-4">
-                <h2 className="text-2xl font-bold text-gray-800">Load Management</h2>
+                <h2 className="text-2xl font-bold text-gray-800 dark:text-foreground">Load Management</h2>
                 <button 
                     className="btn-primary"
                     onClick={() => setShowCreateForm(true)}

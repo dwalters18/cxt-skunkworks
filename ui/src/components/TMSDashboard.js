@@ -61,28 +61,28 @@ const TMSDashboard = () => {
             {/* Dashboard Overview Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
                 <div className="bg-white p-6 rounded-lg shadow flex items-center space-x-4">
-                    <div className="text-3xl text-gray-500">📦</div>
+                    <div className="text-3xl text-gray-500 dark:text-gray-400">📦</div>
                     <div className="flex flex-col">
                         <h3 className="text-gray-600 text-sm font-medium mb-1">Total Loads</h3>
-                        <div className="text-2xl font-bold text-gray-800">{dashboardData.totalLoads}</div>
+                        <div className="text-2xl font-bold text-gray-800 dark:text-foreground">{dashboardData.totalLoads}</div>
                     </div>
                 </div>
                 <div className="bg-white p-6 rounded-lg shadow flex items-center space-x-4">
-                    <div className="text-3xl text-gray-500">🚀</div>
+                    <div className="text-3xl text-gray-500 dark:text-gray-400">🚀</div>
                     <div className="flex flex-col">
                         <h3 className="text-gray-600 text-sm font-medium mb-1">Active Loads</h3>
-                        <div className="text-2xl font-bold text-gray-800">{dashboardData.activeLoads}</div>
+                        <div className="text-2xl font-bold text-gray-800 dark:text-foreground">{dashboardData.activeLoads}</div>
                     </div>
                 </div>
                 <div className="bg-white p-6 rounded-lg shadow flex items-center space-x-4">
-                    <div className="text-3xl text-gray-500">🚛</div>
+                    <div className="text-3xl text-gray-500 dark:text-gray-400">🚛</div>
                     <div className="flex flex-col">
                         <h3 className="text-gray-600 text-sm font-medium mb-1">Total Vehicles</h3>
-                        <div className="text-2xl font-bold text-gray-800">{dashboardData.totalVehicles}</div>
+                        <div className="text-2xl font-bold text-gray-800 dark:text-foreground">{dashboardData.totalVehicles}</div>
                     </div>
                 </div>
                 <div className="bg-white p-6 rounded-lg shadow flex items-center space-x-4">
-                    <div className="text-3xl text-gray-500">📡</div>
+                    <div className="text-3xl text-gray-500 dark:text-gray-400">📡</div>
                     <div className="flex flex-col">
                         <h3 className="text-gray-600 text-sm font-medium mb-1">System Status</h3>
                         <div className="text-green-500 font-bold">Online</div>

@@ -137,7 +137,7 @@ const AnalyticsDashboard = ({ apiBase }) => {
     return (
         <div className="p-6 bg-white rounded-lg shadow space-y-6">
             <div className="flex items-center justify-between mb-4">
-                <h2 className="text-2xl font-bold text-gray-800">Analytics Dashboard</h2>
+                <h2 className="text-2xl font-bold text-gray-800 dark:text-foreground">Analytics Dashboard</h2>
                 <div className="flex items-center space-x-4">
                     <select
                         value={timeRange}
@@ -154,7 +154,7 @@ const AnalyticsDashboard = ({ apiBase }) => {
                 </div>
             </div>
 
-            {loading && <div className="text-center text-gray-500 py-4">Loading analytics...</div>}
+            {loading && <div className="text-center text-gray-500 dark:text-gray-400 py-4">Loading analytics...</div>}
 
             {/* Key Performance Indicators */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
