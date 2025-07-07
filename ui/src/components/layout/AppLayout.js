@@ -39,11 +39,34 @@ export function AppLayout({ children, currentPath, onNavigate }) {
   };
   
   const currentPage = getCurrentPage();
+  const isDispatchPage = currentPage === 'dispatch';
+
+  // Handle floating menu button click (exit immersive mode)
+  const handleImmersiveMenuClick = () => {
+    onNavigate('/dashboard');
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-background">
-      {/* Desktop Sidebar */}
-      <aside className="fixed inset-y-0 left-0 z-50 w-64 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-accent lg:block hidden">
+      {/* Floating Menu Button for Dispatch (Immersive Mode) */}
+      {isDispatchPage && (
+        <div className="fixed top-6 left-6 z-50 animate-in fade-in-0 slide-in-from-left-4 duration-300">
+          <Button
+            variant="default"
+            size="icon"
+            className="w-12 h-12 rounded-full shadow-lg hover:shadow-xl transition-all duration-200 bg-primary hover:bg-primary/80"
+            onClick={handleImmersiveMenuClick}
+          >
+            <Menu className="w-6 h-6" />
+          </Button>
+        </div>
+      )}
+
+      {/* Desktop Sidebar - Hidden in Dispatch Mode */}
+      <aside className={cn(
+        "fixed inset-y-0 left-0 z-40 w-64 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-accent lg:block hidden transition-transform duration-300 ease-in-out",
+        isDispatchPage ? "-translate-x-full" : "translate-x-0"
+      )}>
         <div className="flex flex-col h-full">
           {/* Logo */}
           <div className="flex items-center gap-2 p-6 border-b border-gray-200 dark:border-accent">
@@ -82,11 +105,11 @@ export function AppLayout({ children, currentPath, onNavigate }) {
         </div>
       </aside>
 
-      {/* Mobile Sidebar */}
-      {sidebarOpen && (
-        <div className="fixed inset-0 z-50 lg:hidden">
+      {/* Mobile Sidebar - Hidden in Dispatch Mode */}
+      {sidebarOpen && !isDispatchPage && (
+        <div className="fixed inset-0 z-50 lg:hidden animate-in fade-in-0 duration-200">
           <div className="absolute inset-0 bg-black bg-opacity-50" onClick={() => setSidebarOpen(false)} />
-          <aside className="absolute left-0 top-0 bottom-0 w-64 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-accent">
+          <aside className="absolute left-0 top-0 bottom-0 w-64 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-accent animate-in slide-in-from-left duration-300">
             <div className="flex flex-col h-full">
               {/* Logo */}
               <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-accent">
@@ -138,9 +161,15 @@ export function AppLayout({ children, currentPath, onNavigate }) {
       )}
 
       {/* Main Content */}
-      <div className="lg:pl-64">
-        {/* Top Header */}
-        <header className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-accent px-6 py-4">
+      <div className={cn(
+        "transition-all duration-300 ease-in-out",
+        isDispatchPage ? "pl-0" : "lg:pl-64"
+      )}>
+        {/* Top Header - Hidden in Dispatch Mode */}
+        <header className={cn(
+          "bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-accent px-6 py-4 transition-all duration-300 ease-in-out",
+          isDispatchPage ? "-translate-y-full opacity-0 h-0 py-0 overflow-hidden" : "translate-y-0 opacity-100"
+        )}>
           <div className="flex items-center justify-between">
             {/* Mobile menu button */}
             <Button
@@ -178,7 +207,10 @@ export function AppLayout({ children, currentPath, onNavigate }) {
         </header>
 
         {/* Page Content */}
-        <main className="p-6 bg-gray-50 dark:bg-background min-h-screen">
+        <main className={cn(
+          "bg-gray-50 dark:bg-background transition-all duration-300 ease-in-out",
+          isDispatchPage ? "p-0 min-h-screen" : "p-6 min-h-screen"
+        )}>
           {children}
         </main>
       </div>
