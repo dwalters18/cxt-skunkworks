@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { cn } from '../base/utils';
 import { Button } from '../base/Button';
+import OperationsLogo from '../OperationsLogo';
 import { 
   Search, 
   Home, 
@@ -46,7 +47,7 @@ export function AppLayout({ children, currentPath, onNavigate }) {
         <div className="flex flex-col h-full">
           {/* Logo */}
           <div className="flex items-center gap-2 p-6 border-b border-gray-200 dark:border-accent">
-            <img src="/images/operations-logo.svg" alt="Operations Logo" className="w-8 h-8" />
+            <OperationsLogo className="w-8 h-8" />
           </div>
 
           {/* Navigation */}
@@ -89,7 +90,7 @@ export function AppLayout({ children, currentPath, onNavigate }) {
             <div className="flex flex-col h-full">
               {/* Logo */}
               <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-accent">
-                <img src="/images/operations-logo.svg" alt="Operations Logo" className="w-16 h-16" />
+                <OperationsLogo className="w-8 h-8" />
                 <Button
                   variant="ghost"
                   size="icon"
