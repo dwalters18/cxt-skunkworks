@@ -79,7 +79,7 @@ async def get_dashboard_data(
                 event_type,
                 COUNT(*) as event_count
             FROM load_events 
-            WHERE created_at >= NOW() - INTERVAL '7 days'
+            WHERE time >= NOW() - INTERVAL '7 days'
             GROUP BY event_type
             ORDER BY event_count DESC
             LIMIT 10

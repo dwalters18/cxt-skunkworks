@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 
 const AnalyticsPage = () => {
     const [dashboardData, setDashboardData] = useState(null);
@@ -9,7 +9,7 @@ const AnalyticsPage = () => {
 
     const API_BASE = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 
-    const fetchDashboardData = async () => {
+    const fetchDashboardData = useCallback(async () => {
         try {
             const response = await fetch(`${API_BASE}/api/analytics/dashboard`);
             if (!response.ok) throw new Error('Failed to fetch dashboard data');
@@ -19,9 +19,9 @@ const AnalyticsPage = () => {
         } catch (err) {
             console.error('Error fetching dashboard data:', err);
         }
-    };
+    }, [API_BASE]);
 
-    const fetchPerformanceData = async () => {
+    const fetchPerformanceData = useCallback(async () => {
         try {
             const response = await fetch(`${API_BASE}/api/routes/performance?time_range=${timeFilter}`);
             if (!response.ok) throw new Error('Failed to fetch performance data');
@@ -31,9 +31,9 @@ const AnalyticsPage = () => {
         } catch (err) {
             console.error('Error fetching performance data:', err);
         }
-    };
+    }, [API_BASE, timeFilter]);
 
-    const fetchData = async () => {
+    const fetchData = useCallback(async () => {
         try {
             setLoading(true);
             setError(null);
@@ -43,11 +43,11 @@ const AnalyticsPage = () => {
         } finally {
             setLoading(false);
         }
-    };
+    }, [fetchDashboardData, fetchPerformanceData]);
 
     useEffect(() => {
         fetchData();
-    }, [timeFilter]);
+    }, [fetchData]);
 
     const formatCurrency = (amount) => {
         return new Intl.NumberFormat('en-US', {
@@ -119,28 +119,28 @@ const AnalyticsPage = () => {
             {dashboardData && (
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
                     <div className="bg-white dark:bg-gray-900 rounded-lg shadow border border-gray-200 dark:border-accent p-4">
-                        <div className="text-2xl font-bold text-blue-600 dark:text-primary">{dashboardData.total_loads}</div>
+                        <div className="text-2xl font-bold text-blue-600 dark:text-primary">{dashboardData.summary?.total_loads || 0}</div>
                         <div className="text-sm text-gray-600 dark:text-muted">Total Loads</div>
                         <div className="text-xs text-green-500 dark:text-primary/80 mt-1">
-                            {dashboardData.loads_delivered} delivered
+                            {dashboardData.loads?.delivered || 0} delivered
                         </div>
                     </div>
                     <div className="bg-white dark:bg-gray-900 rounded-lg shadow border border-gray-200 dark:border-accent p-4">
-                        <div className="text-2xl font-bold text-green-600 dark:text-primary">{dashboardData.active_drivers}</div>
+                        <div className="text-2xl font-bold text-green-600 dark:text-primary">{dashboardData.drivers?.available || 0}</div>
                         <div className="text-sm text-gray-600 dark:text-muted">Active Drivers</div>
                         <div className="text-xs text-gray-500 dark:text-muted/80 mt-1">
-                            of {dashboardData.total_drivers} total
+                            of {dashboardData.drivers?.total || 0} total
                         </div>
                     </div>
                     <div className="bg-white dark:bg-gray-900 rounded-lg shadow border border-gray-200 dark:border-accent p-4">
-                        <div className="text-2xl font-bold text-purple-600 dark:text-primary">{dashboardData.active_vehicles}</div>
+                        <div className="text-2xl font-bold text-purple-600 dark:text-primary">{(dashboardData.vehicles?.assigned || 0) + (dashboardData.vehicles?.in_transit || 0)}</div>
                         <div className="text-sm text-gray-600 dark:text-muted">Active Vehicles</div>
                         <div className="text-xs text-gray-500 dark:text-muted/80 mt-1">
-                            of {dashboardData.total_vehicles} total
+                            of {dashboardData.vehicles?.total || 0} total
                         </div>
                     </div>
                     <div className="bg-white dark:bg-gray-900 rounded-lg shadow border border-gray-200 dark:border-accent p-4">
-                        <div className="text-2xl font-bold text-orange-600 dark:text-primary">{formatCurrency(dashboardData.total_revenue || 0)}</div>
+                        <div className="text-2xl font-bold text-orange-600 dark:text-primary">{formatCurrency(dashboardData.summary?.total_revenue || 0)}</div>
                         <div className="text-sm text-gray-600 dark:text-muted">Total Revenue</div>
                         <div className="text-xs text-gray-500 dark:text-muted/80 mt-1">
                             from delivered loads

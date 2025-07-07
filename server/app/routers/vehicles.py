@@ -137,18 +137,21 @@ async def get_vehicle_tracking(
 ):
     """Get vehicle tracking history."""
     try:
-        query = """
+        query = f"""
             SELECT 
-                vehicle_id, latitude, longitude, speed, heading, 
-                fuel_level, timestamp, created_at
+                vehicle_id, 
+                ST_Y(location::geometry) as latitude, 
+                ST_X(location::geometry) as longitude, 
+                speed, heading, altitude, fuel_level, engine_hours,
+                time, driver_id, load_id
             FROM vehicle_tracking 
             WHERE vehicle_id = $1 
-                AND timestamp >= NOW() - INTERVAL '$2 hours'
-            ORDER BY timestamp DESC
+                AND time >= NOW() - INTERVAL '{hours} hours'
+            ORDER BY time DESC
             LIMIT 1000
         """
         
-        tracking_data = await timescale_repo.execute_query(query, [vehicle_id, hours])
+        tracking_data = await timescale_repo.execute_query(query, vehicle_id)
         
         return {
             "vehicle_id": vehicle_id,
