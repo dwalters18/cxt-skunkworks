@@ -6,7 +6,7 @@ import MapContainer from './map/MapContainer';
 
 const API_BASE = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 
-const DispatchMapView = ({ onTransitionToManagement, visibleRoutes }) => {
+const DispatchMapView = ({ onTransitionToManagement, visibleRoutes, isDarkMode }) => {
     // Use custom hooks for data management
     const { 
         events, 
@@ -171,6 +171,7 @@ const DispatchMapView = ({ onTransitionToManagement, visibleRoutes }) => {
                         onVehicleSelectionChange={setSelectedVehicleForOptimization}
                         onRouteOptimization={optimizeLoadRoute}
                         isOptimizing={isOptimizing}
+                        isDarkMode={isDarkMode}
                     />
                 </div>
             </div>

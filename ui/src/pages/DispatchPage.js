@@ -171,16 +171,12 @@ const DispatchPage = () => {
                             <div className={`p-6 border-b ${
                                 isDarkMode ? 'border-gray-700/30' : 'border-white/10'
                             }`}>
-                                <h2 className={`text-lg font-semibold mb-4 drop-shadow-sm ${
-                                    isDarkMode ? 'text-white' : 'text-gray-700 dark:text-white'
-                                }`}>Dispatch Control</h2>
+                                <h2 className={`text-lg font-semibold mb-4 drop-shadow-sm text-gray-700 dark:text-white`}>Dispatch Control</h2>
                                 
                                 {/* Search and Filter */}
                                 <div className="space-y-3">
                                     <div className="relative">
-                                        <Search className={`absolute left-4 top-1/2 transform -translate-y-1/2 w-4 h-4 ${
-                                            isDarkMode ? 'text-gray-400' : 'text-white/70'
-                                        }`} />
+                                        <Search className={`absolute left-4 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-800 dark:text-gray-200`} />
                                         <input
                                             type="text"
                                             placeholder="Search loads..."
@@ -189,7 +185,7 @@ const DispatchPage = () => {
                                             className={`w-full pl-12 pr-4 py-3 backdrop-blur-sm border rounded-xl transition-all duration-200 ${
                                                 isDarkMode 
                                                     ? 'bg-gray-800/40 border-gray-600/50 text-white placeholder-gray-400 focus:ring-2 focus:ring-primary/50 focus:border-primary/50'
-                                                    : 'bg-white/10 border-white/20 text-white placeholder-white/60 focus:ring-2 focus:ring-primary/50 focus:border-primary/50'
+                                                    : 'bg-white/10 border-white/20 text-gray-900 dark:text-foreground placeholder-white/60 focus:ring-2 focus:ring-primary/50 focus:border-primary/50'
                                             }`}
                                         />
                                     </div>
@@ -200,7 +196,7 @@ const DispatchPage = () => {
                                         className={`w-full px-4 py-3 backdrop-blur-sm border rounded-xl transition-all duration-200 ${
                                             isDarkMode 
                                                 ? 'bg-gray-800/40 border-gray-600/50 text-white focus:ring-2 focus:ring-primary/50 focus:border-primary/50'
-                                                : 'bg-white/10 border-white/20 text-white focus:ring-2 focus:ring-primary/50 focus:border-primary/50'
+                                                : 'bg-white/10 border-white/20 text-gray-900 dark:text-foreground focus:ring-2 focus:ring-primary/50 focus:border-primary/50'
                                         }`}
                                     >
                                         <option value="all" className="bg-gray-800 text-white">All Statuses</option>
@@ -227,11 +223,15 @@ const DispatchPage = () => {
                                         onClick={() => setSelectedTab(tab.id)}
                                         className={`flex-1 flex items-center justify-center gap-2 py-4 px-4 text-sm font-medium transition-all duration-200 ${
                                             selectedTab === tab.id
-                                                ? `text-primary border-b-2 border-primary ${
-                                                    isDarkMode ? 'bg-primary/10' : 'bg-primary/10'
+                                                ? `${
+                                                    isDarkMode ? 'text-primary' : 'text-green-700'
+                                                } border-b-2 ${
+                                                    isDarkMode ? 'border-primary' : 'border-green-700'
+                                                } ${
+                                                    isDarkMode ? 'bg-primary/10' : 'bg-green-700/10'
                                                 } backdrop-blur-sm`
                                                 : `${
-                                                    isDarkMode ? 'text-gray-300 hover:text-white hover:bg-gray-800/20' : 'text-white/70 hover:text-white hover:bg-white/5'
+                                                    isDarkMode ? 'text-gray-200 hover:text-white hover:bg-gray-800/20' : 'text-gray-800 hover:text-gray-900 hover:bg-white/10'
                                                 }`
                                         }`}
                                     >
