@@ -6,7 +6,7 @@ import MapContainer from './map/MapContainer';
 
 const API_BASE = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 
-const DispatchMapView = ({ onTransitionToManagement, visibleRoutes, isDarkMode }) => {
+const DispatchMapView = ({ onTransitionToManagement, visibleRoutes, onRouteVisibilityChange, onMapLoad, isDarkMode }) => {
     // Use custom hooks for data management
     const { 
         events, 
@@ -116,26 +116,55 @@ const DispatchMapView = ({ onTransitionToManagement, visibleRoutes, isDarkMode }
 
     return (
         <div className="relative w-screen h-screen overflow-hidden bg-gradient-to-br from-slate-900 to-slate-800 font-sans text-white">
-            {/* Gamification Header */}
-            <div className="absolute top-0 left-0 right-0 h-16 bg-gradient-to-r from-slate-800 to-slate-700 border-b border-slate-600 flex items-center justify-between px-8 z-30">
-                <div className="flex items-center space-x-4">
-                    <span className="text-sm font-medium text-slate-300">Dispatch Score</span>
-                    <span className="text-2xl font-bold text-emerald-400">{gamificationScore}</span>
-                </div>
-                <div className="flex items-center space-x-2">
-                    {achievements.slice(-3).map(achievement => (
-                        <div key={achievement.id} className="bg-gradient-to-r from-blue-500 to-purple-500 text-white px-3 py-1 rounded-full text-xs font-medium animate-pulse">
-                            {achievement.title}
+            {/* Enhanced Analytics Header */}
+            <div className="absolute top-0 left-0 right-0 h-20 bg-gradient-to-r from-slate-800 to-slate-700 border-b border-slate-600 px-8 z-30">
+                <div className="flex items-center justify-between h-full">
+                    {/* Left Section - Key Metrics */}
+                    <div className="flex items-center space-x-8">
+                        <div className="text-center">
+                            <div className="text-2xl font-bold text-blue-400">{loads?.filter(l => l.status === 'assigned' || l.status === 'in_transit').length || 0}</div>
+                            <div className="text-xs text-slate-300 uppercase tracking-wide">Active Loads</div>
                         </div>
-                    ))}
-                </div>
-                <div className="flex items-center space-x-2">
-                    <div className={`w-3 h-3 rounded-full animate-pulse ${
-                        isConnected ? 'bg-green-400 shadow-lg shadow-green-400/50' : 'bg-red-400 shadow-lg shadow-red-400/50'
-                    }`}></div>
-                    <span className={`font-medium ${
-                        isConnected ? 'text-green-400' : 'text-red-400'
-                    }`}>{isConnected ? 'LIVE' : 'OFFLINE'}</span>
+                        <div className="text-center">
+                            <div className="text-2xl font-bold text-green-400">{vehicles?.filter(v => v.status === 'available').length || 0}</div>
+                            <div className="text-xs text-slate-300 uppercase tracking-wide">Available Trucks</div>
+                        </div>
+                        <div className="text-center">
+                            <div className="text-2xl font-bold text-purple-400">{drivers?.filter(d => d.status === 'available').length || 0}</div>
+                            <div className="text-xs text-slate-300 uppercase tracking-wide">Available Drivers</div>
+                        </div>
+                        <div className="text-center">
+                            <div className="text-2xl font-bold text-emerald-400">{dashboardData?.on_time_percentage ? `${Math.round(dashboardData.on_time_percentage)}%` : 'N/A'}</div>
+                            <div className="text-xs text-slate-300 uppercase tracking-wide">On-Time Rate</div>
+                        </div>
+                    </div>
+                    
+                    {/* Center Section - Achievements */}
+                    <div className="flex items-center space-x-2">
+                        {achievements.slice(-2).map(achievement => (
+                            <div key={achievement.id} className="bg-gradient-to-r from-blue-500 to-purple-500 text-white px-3 py-1 rounded-full text-xs font-medium animate-pulse">
+                                {achievement.title}
+                            </div>
+                        ))}
+                    </div>
+                    
+                    {/* Right Section - Connection & Revenue */}
+                    <div className="flex items-center space-x-6">
+                        <div className="text-center">
+                            <div className="text-2xl font-bold text-yellow-400">
+                                ${dashboardData?.total_revenue ? (dashboardData.total_revenue / 1000).toFixed(0) + 'K' : '0'}
+                            </div>
+                            <div className="text-xs text-slate-300 uppercase tracking-wide">Total Revenue</div>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                            <div className={`w-3 h-3 rounded-full animate-pulse ${
+                                isConnected ? 'bg-green-400 shadow-lg shadow-green-400/50' : 'bg-red-400 shadow-lg shadow-red-400/50'
+                            }`}></div>
+                            <span className={`font-medium text-sm ${
+                                isConnected ? 'text-green-400' : 'text-red-400'
+                            }`}>{isConnected ? 'LIVE' : 'OFFLINE'}</span>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -154,7 +183,7 @@ const DispatchMapView = ({ onTransitionToManagement, visibleRoutes, isDarkMode }
 
             <div className="flex h-full">
                 {/* Map Container with all markers and routes */}
-                <div className="flex-1 relative" style={{ marginTop: realTimeAlerts.length > 0 ? '120px' : '64px' }}>
+                <div className="flex-1 relative" style={{ marginTop: realTimeAlerts.length > 0 ? '140px' : '80px' }}>
                     <MapContainer
                         vehicles={vehicles}
                         loads={loads}
@@ -171,6 +200,7 @@ const DispatchMapView = ({ onTransitionToManagement, visibleRoutes, isDarkMode }
                         onVehicleSelectionChange={setSelectedVehicleForOptimization}
                         onRouteOptimization={optimizeLoadRoute}
                         isOptimizing={isOptimizing}
+                        onMapLoad={onMapLoad}
                         isDarkMode={isDarkMode}
                     />
                 </div>

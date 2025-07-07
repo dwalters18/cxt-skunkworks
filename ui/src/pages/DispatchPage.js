@@ -6,20 +6,12 @@ import { useDarkMode } from '../contexts/DarkModeContext';
 import { 
   Menu, 
   X, 
-  MapPin, 
-  Truck, 
-  Package, 
   Route,
   Search,
-  RefreshCw,
-  Filter,
-  Phone,
-  Clock,
-  Navigation,
-  Circle,
-  CheckCircle,
-  AlertTriangle,
-  Play
+  Package,
+  Truck,
+  MapPin,
+  Navigation
 } from 'lucide-react';
 
 const DispatchPage = () => {
@@ -33,6 +25,7 @@ const DispatchPage = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState('all');
     const [visibleRoutes, setVisibleRoutes] = useState(new Set());
+    const [mapRef, setMapRef] = useState(null);
 
     // Use the existing useMapData hook to get real data
     const { 
@@ -67,6 +60,35 @@ const DispatchPage = () => {
             setVisibleRoutes(initialVisible);
         }
     }, [routes]);
+
+    // Map pan and zoom functionality
+    const panToLocation = (lat, lng, zoom = 15) => {
+        if (mapRef && lat && lng) {
+            mapRef.panTo({ lat, lng });
+            mapRef.setZoom(zoom);
+        }
+    };
+
+    // Helper function to get coordinates from entity
+    const getEntityCoordinates = (entity, type) => {
+        if (type === 'load') {
+            // Try pickup location first, then delivery location
+            const pickup = entity.pickup_location || entity.pickupLocation;
+            const delivery = entity.delivery_location || entity.deliveryLocation;
+            
+            if (pickup && pickup.lat && pickup.lng) {
+                return { lat: pickup.lat, lng: pickup.lng };
+            } else if (delivery && delivery.lat && delivery.lng) {
+                return { lat: delivery.lat, lng: delivery.lng };
+            }
+        } else if (type === 'vehicle') {
+            const location = entity.current_location || entity.currentLocation || entity.location;
+            if (location && location.lat && location.lng) {
+                return { lat: location.lat, lng: location.lng };
+            }
+        }
+        return null;
+    };
 
     // Toggle between immersive and management modes
     const toggleMode = () => {
@@ -149,7 +171,11 @@ const DispatchPage = () => {
         <div className="h-screen flex bg-gray-50 relative">
             {/* Full Screen Map with Custom DispatchMapView */}
             <div className="flex-1 relative">
-                <DispatchMapView visibleRoutes={visibleRoutes} isDarkMode={isDarkMode} />
+                <DispatchMapView 
+                    visibleRoutes={visibleRoutes} 
+                    onMapLoad={setMapRef}
+                    isDarkMode={isDarkMode} 
+                />
 
                 {/* Floating Control Panel */}
                 <div className="absolute top-24 right-16 w-96 z-50">
@@ -272,7 +298,13 @@ const DispatchPage = () => {
                                                                         ? 'bg-gray-800/40 border-gray-600/50 hover:bg-gray-700/40' 
                                                                         : 'bg-white/10 border-white/20 hover:bg-white/20'
                                                             }`}
-                                                            onClick={() => setSelectedLoad(load.id)}
+                                                            onClick={() => {
+                                                                setSelectedLoad(load.id);
+                                                                const coords = getEntityCoordinates(load, 'load');
+                                                                if (coords) {
+                                                                    panToLocation(coords.lat, coords.lng, 16);
+                                                                }
+                                                            }}
                                                         >
                                                             <div className="flex items-start justify-between mb-2">
                                                                 <div className="flex items-center gap-2">
@@ -355,7 +387,13 @@ const DispatchPage = () => {
                                                                         ? 'bg-gray-800/40 border-gray-600/50 hover:bg-gray-700/40' 
                                                                         : 'bg-white/10 border-white/20 hover:bg-white/20'
                                                             }`}
-                                                            onClick={() => setSelectedVehicle(vehicle.id)}
+                                                            onClick={() => {
+                                                                setSelectedVehicle(vehicle.id);
+                                                                const coords = getEntityCoordinates(vehicle, 'vehicle');
+                                                                if (coords) {
+                                                                    panToLocation(coords.lat, coords.lng, 16);
+                                                                }
+                                                            }}
                                                         >
                                                             <div className="flex items-start justify-between mb-2">
                                                                 <div className="flex items-center gap-2">

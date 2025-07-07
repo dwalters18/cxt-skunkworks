@@ -54,10 +54,11 @@ export function AppLayout({ children, currentPath, onNavigate }) {
           <Button
             variant="default"
             size="icon"
-            className="w-12 h-12 rounded-full shadow-lg hover:shadow-xl transition-all duration-200 bg-primary hover:bg-primary/80"
+            className="rounded-md shadow-lg hover:shadow-xl transition-all duration-200 bg-primary hover:bg-primary/80"
             onClick={handleImmersiveMenuClick}
           >
             <Menu className="w-6 h-6" />
+            Menu
           </Button>
         </div>
       )}

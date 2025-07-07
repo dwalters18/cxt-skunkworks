@@ -116,6 +116,7 @@ const MapContainer = ({
     onOptimizeRoute,
     isOptimizing,
     onCloseInfoWindow,
+    onMapLoad,
     isDarkMode = false
 }) => {
     const [map, setMap] = useState(null);
@@ -137,7 +138,10 @@ const MapContainer = ({
 
     const onLoad = React.useCallback(function callback(map) {
         setMap(map);
-    }, []);
+        if (onMapLoad) {
+            onMapLoad(map);
+        }
+    }, [onMapLoad]);
 
     const onUnmount = React.useCallback(function callback(map) {
         setMap(null);
