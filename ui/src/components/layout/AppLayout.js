@@ -58,7 +58,6 @@ export function AppLayout({ children, currentPath, onNavigate }) {
             onClick={handleImmersiveMenuClick}
           >
             <Menu className="w-6 h-6" />
-            Menu
           </Button>
         </div>
       )}

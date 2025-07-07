@@ -112,7 +112,7 @@ const LoadInfoWindow = ({
                             <option value="">Choose a vehicle...</option>
                             {vehicles.map((vehicle) => (
                                 <option key={vehicle.id} value={vehicle.id}>
-                                    {vehicle.license_plate} - {vehicle.vehicle_type}
+                                    {vehicle.vehicle_number} - {vehicle.vehicle_type}
                                 </option>
                             ))}
                         </select>
