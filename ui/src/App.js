@@ -8,9 +8,10 @@ import { AppLayout } from './components/layout/AppLayout';
 import DispatchPage from './pages/DispatchPage';
 import DashboardPage from './pages/DashboardPage';
 import AnalyticsPage from './pages/AnalyticsPage';
-import LoadsPage from './pages/LoadsPage';
+import OrdersPage from './pages/OrdersPage';
 import FleetPage from './pages/FleetPage';
 import DriversPage from './pages/DriversPage';
+import EventsPage from './pages/EventsPage';
 import SettingsPage from './pages/SettingsPage';
 
 function App() {
@@ -30,10 +31,7 @@ function App() {
       <DarkModeProvider>
         <SettingsProvider>
           <WebSocketProvider>
-            <SplashOverlay 
-              onGetStarted={handleGetStarted}
-              isTransitioning={isTransitioning}
-            />
+            <SplashOverlay onGetStarted={handleGetStarted} isTransitioning={isTransitioning} />
           </WebSocketProvider>
         </SettingsProvider>
       </DarkModeProvider>
@@ -53,32 +51,21 @@ function App() {
   );
 }
 
-// Component to handle navigation within Router context
 function AppWithLayout() {
   const navigate = useNavigate();
   const location = useLocation();
-  
-  const handleNavigate = (path) => {
-    navigate(path);
-  };
 
   return (
-    <AppLayout currentPath={location.pathname} onNavigate={handleNavigate}>
+    <AppLayout currentPath={location.pathname} onNavigate={navigate}>
       <Routes>
-        {/* Default to Dispatch */}
         <Route index element={<DispatchPage />} />
-        
-        {/* Main Dispatch Command Center */}
         <Route path="dispatch" element={<DispatchPage />} />
-        
-        {/* Dashboard and Analytics */}
         <Route path="dashboard" element={<DashboardPage />} />
         <Route path="analytics" element={<AnalyticsPage />} />
-        
-        {/* Management Sections */}
-        <Route path="loads" element={<LoadsPage />} />
+        <Route path="orders" element={<OrdersPage />} />
         <Route path="fleet" element={<FleetPage />} />
         <Route path="drivers" element={<DriversPage />} />
+        <Route path="events" element={<EventsPage />} />
         <Route path="settings" element={<SettingsPage />} />
       </Routes>
     </AppLayout>

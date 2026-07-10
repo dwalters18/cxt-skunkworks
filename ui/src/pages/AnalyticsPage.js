@@ -1,315 +1,187 @@
+/**
+ * Analytics — honest views over real data only: event throughput by type,
+ * per-minute volume, and order/stop outcomes from the summary endpoint.
+ * No chart library; bars are plain divs.
+ */
 import React, { useState, useEffect, useCallback } from 'react';
+import { cn } from '../components/base/utils';
+import api from '../api/client';
+import { eventTone } from './DashboardPage';
+import { BarChart3, Activity, Package, MapPin } from 'lucide-react';
+
+const SOURCE_BAR_TONES = {
+  'lip-api': 'bg-emerald-500 dark:bg-primary',
+  'lip-cdc-normalizer': 'bg-gray-400',
+  'lip-simulator': 'bg-violet-500',
+  'lip-seeder': 'bg-amber-500',
+};
+
+const ORDER_STATUS_BARS = [
+  ['created', 'bg-orange-400'],
+  ['assigned', 'bg-sky-400'],
+  ['in_progress', 'bg-emerald-500 dark:bg-primary'],
+  ['completed', 'bg-gray-400'],
+  ['cancelled', 'bg-red-400'],
+];
+
+const fmtMinute = (iso) => new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+function Card({ icon: Icon, title, subtitle, children }) {
+  return (
+    <div className="bg-white dark:bg-gray-900 rounded-lg shadow-sm border border-gray-200 dark:border-accent p-5">
+      <div className="flex items-center gap-2 mb-1">
+        <Icon className="w-4 h-4 text-primary" />
+        <h2 className="text-sm font-semibold text-gray-900 dark:text-foreground">{title}</h2>
+      </div>
+      {subtitle && <p className="text-xs text-gray-500 dark:text-muted mb-3">{subtitle}</p>}
+      {children}
+    </div>
+  );
+}
+
+function ProportionRow({ label, count, total, barClass }) {
+  const pct = total > 0 ? (100 * count) / total : 0;
+  return (
+    <div className="flex items-center gap-3 text-xs">
+      <span className="w-28 shrink-0 text-gray-600 dark:text-muted capitalize">{label.replace('_', ' ')}</span>
+      <div className="flex-1 h-2 rounded bg-gray-100 dark:bg-gray-800 overflow-hidden">
+        <div className={cn('h-full rounded', barClass)} style={{ width: `${pct}%` }} />
+      </div>
+      <span className="w-10 text-right tabular-nums text-gray-900 dark:text-foreground font-medium">{count}</span>
+    </div>
+  );
+}
 
 const AnalyticsPage = () => {
-    const [dashboardData, setDashboardData] = useState(null);
-    const [performanceData, setPerformanceData] = useState(null);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
-    const [timeFilter, setTimeFilter] = useState('7d');
+  const [buckets, setBuckets] = useState([]);
+  const [volume, setVolume] = useState([]);
+  const [summary, setSummary] = useState(null);
+  const [error, setError] = useState(null);
 
-    const API_BASE = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
-
-    const fetchDashboardData = useCallback(async () => {
-        try {
-            const response = await fetch(`${API_BASE}/api/analytics/dashboard`);
-            if (!response.ok) throw new Error('Failed to fetch dashboard data');
-            
-            const data = await response.json();
-            setDashboardData(data);
-        } catch (err) {
-            console.error('Error fetching dashboard data:', err);
-        }
-    }, [API_BASE]);
-
-    const fetchPerformanceData = useCallback(async () => {
-        try {
-            const response = await fetch(`${API_BASE}/api/routes/performance?time_range=${timeFilter}`);
-            if (!response.ok) throw new Error('Failed to fetch performance data');
-            
-            const data = await response.json();
-            setPerformanceData(data);
-        } catch (err) {
-            console.error('Error fetching performance data:', err);
-        }
-    }, [API_BASE, timeFilter]);
-
-    const fetchData = useCallback(async () => {
-        try {
-            setLoading(true);
-            setError(null);
-            await Promise.all([fetchDashboardData(), fetchPerformanceData()]);
-        } catch (err) {
-            setError(err.message);
-        } finally {
-            setLoading(false);
-        }
-    }, [fetchDashboardData, fetchPerformanceData]);
-
-    useEffect(() => {
-        fetchData();
-    }, [fetchData]);
-
-    const formatCurrency = (amount) => {
-        return new Intl.NumberFormat('en-US', {
-            style: 'currency',
-            currency: 'USD'
-        }).format(amount);
-    };
-
-    const formatPercentage = (value) => {
-        return `${(value * 100).toFixed(1)}%`;
-    };
-
-    const formatDistance = (miles) => {
-        return new Intl.NumberFormat('en-US').format(miles);
-    };
-
-    if (loading) {
-        return (
-            <div className="p-8">
-                <div className="flex items-center justify-center h-64">
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-                </div>
-            </div>
-        );
+  const fetchAll = useCallback(async () => {
+    try {
+      const [byType, vol, sum] = await Promise.all([
+        api.eventsByType(24),
+        api.eventVolume(60),
+        api.analyticsSummary(),
+      ]);
+      setBuckets((byType.buckets || []).slice().sort((a, b) => b.count - a.count));
+      setVolume(vol.points || []);
+      setSummary(sum);
+      setError(null);
+    } catch (e) {
+      setError(e.message);
     }
+  }, []);
 
-    return (
-        <div className="p-8">
-            <div className="mb-8">
-                <h1 className="text-3xl font-bold text-gray-900 dark:text-foreground">Analytics</h1>
-                <p className="text-gray-600 dark:text-muted mt-1">Comprehensive performance analytics and insights</p>
+  useEffect(() => {
+    fetchAll();
+    const poll = setInterval(fetchAll, 15000);
+    return () => clearInterval(poll);
+  }, [fetchAll]);
+
+  const maxBucket = Math.max(1, ...buckets.map((b) => b.count));
+  const maxVolume = Math.max(1, ...volume.map((p) => p.count));
+  const orders = summary?.orders;
+  const stops = summary?.stops;
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-foreground">Analytics</h1>
+        <p className="text-gray-600 dark:text-muted mt-1">Measured from the backbone and the system of record — nothing synthetic</p>
+      </div>
+
+      {error && (
+        <div className="px-3 py-2 text-xs rounded bg-red-500/10 text-red-500 dark:text-red-400 border border-red-500/30">{error}</div>
+      )}
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <Card icon={BarChart3} title="Events by type (24h)" subtitle="Bar color groups producers; tag shows the source system">
+          {buckets.length === 0 ? (
+            <p className="text-sm text-gray-500 dark:text-muted">No events in the last 24 hours</p>
+          ) : (
+            <div className="space-y-2">
+              {buckets.map((b) => (
+                <div key={`${b.event_type}:${b.source_system}`} className="flex items-center gap-2 text-xs">
+                  <span className={cn('w-52 shrink-0 font-mono truncate', eventTone(b.event_type))} title={b.event_type}>
+                    {b.event_type}
+                  </span>
+                  <span className="w-32 shrink-0 rounded text-[10px] px-1.5 py-0.5 bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-muted text-center truncate">
+                    {b.source_system}
+                  </span>
+                  <div className="flex-1 h-2.5 rounded bg-gray-100 dark:bg-gray-800 overflow-hidden">
+                    <div
+                      className={cn('h-full rounded', SOURCE_BAR_TONES[b.source_system] || 'bg-sky-500')}
+                      style={{ width: `${Math.max(2, (100 * b.count) / maxBucket)}%` }}
+                    />
+                  </div>
+                  <span className="w-14 text-right tabular-nums text-gray-900 dark:text-foreground font-medium">
+                    {b.count.toLocaleString()}
+                  </span>
+                </div>
+              ))}
             </div>
+          )}
+        </Card>
 
-            {/* Time Filter */}
-            <div className="bg-white dark:bg-gray-900 rounded-xl shadow-lg border border-gray-200 dark:border-accent p-6 mb-6">
-                <div className="flex items-center justify-between">
-                    <h2 className="text-xl font-bold text-gray-900 dark:text-foreground">Analytics Dashboard</h2>
-                    <div className="flex items-center space-x-4">
-                        <div className="flex items-center space-x-2">
-                            <label className="text-sm font-medium text-gray-700 dark:text-muted">Time Period:</label>
-                            <select 
-                                value={timeFilter} 
-                                onChange={(e) => setTimeFilter(e.target.value)}
-                                className="border border-gray-300 dark:border-accent rounded-md px-3 py-1 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-foreground"
-                            >
-                                <option value="1d">Last 24 Hours</option>
-                                <option value="7d">Last 7 Days</option>
-                                <option value="30d">Last 30 Days</option>
-                                <option value="90d">Last 90 Days</option>
-                            </select>
-                        </div>
-                        <button 
-                            onClick={fetchData}
-                            className="bg-primary hover:bg-primary/80 text-background px-4 py-2 rounded-lg transition-colors duration-200"
-                        >
-                            🔄 Refresh
-                        </button>
-                    </div>
-                </div>
+        <Card icon={Activity} title="Event volume (last 60 min)" subtitle="Every event on every canonical topic, per minute">
+          {volume.length === 0 ? (
+            <p className="text-sm text-gray-500 dark:text-muted">No events in the last hour</p>
+          ) : (
+            <>
+              <div className="flex items-end gap-px h-28">
+                {volume.map((p) => (
+                  <div
+                    key={p.minute}
+                    title={`${fmtMinute(p.minute)} — ${p.count} events`}
+                    className="flex-1 rounded-t bg-emerald-500/80 dark:bg-primary/70 hover:bg-emerald-500 dark:hover:bg-primary min-w-0"
+                    style={{ height: `${Math.max(3, (100 * p.count) / maxVolume)}%` }}
+                  />
+                ))}
+              </div>
+              <div className="mt-2 flex justify-between text-[10px] text-gray-500 dark:text-muted">
+                <span>{fmtMinute(volume[0].minute)}</span>
+                <span>peak {maxVolume.toLocaleString()}/min</span>
+                <span>{fmtMinute(volume[volume.length - 1].minute)}</span>
+              </div>
+            </>
+          )}
+        </Card>
+
+        <Card icon={Package} title="Order status distribution" subtitle={orders ? `${orders.total} orders in the world model` : undefined}>
+          {!orders ? (
+            <p className="text-sm text-gray-500 dark:text-muted">Loading…</p>
+          ) : (
+            <div className="space-y-2">
+              {ORDER_STATUS_BARS.map(([key, barClass]) => (
+                <ProportionRow key={key} label={key} count={orders[key] || 0} total={orders.total} barClass={barClass} />
+              ))}
             </div>
+          )}
+        </Card>
 
-            {error && (
-                <div className="bg-red-100 dark:bg-red-900/20 border border-red-400 dark:border-red-600 text-red-700 dark:text-red-400 px-4 py-3 rounded mb-6">
-                    Error: {error}
-                </div>
-            )}
-
-            {/* Key Performance Indicators */}
-            {dashboardData && (
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-                    <div className="bg-white dark:bg-gray-900 rounded-lg shadow border border-gray-200 dark:border-accent p-4">
-                        <div className="text-2xl font-bold text-blue-600 dark:text-primary">{dashboardData.summary?.total_loads || 0}</div>
-                        <div className="text-sm text-gray-600 dark:text-muted">Total Loads</div>
-                        <div className="text-xs text-green-500 dark:text-primary/80 mt-1">
-                            {dashboardData.loads?.delivered || 0} delivered
-                        </div>
-                    </div>
-                    <div className="bg-white dark:bg-gray-900 rounded-lg shadow border border-gray-200 dark:border-accent p-4">
-                        <div className="text-2xl font-bold text-green-600 dark:text-primary">{dashboardData.drivers?.available || 0}</div>
-                        <div className="text-sm text-gray-600 dark:text-muted">Active Drivers</div>
-                        <div className="text-xs text-gray-500 dark:text-muted/80 mt-1">
-                            of {dashboardData.drivers?.total || 0} total
-                        </div>
-                    </div>
-                    <div className="bg-white dark:bg-gray-900 rounded-lg shadow border border-gray-200 dark:border-accent p-4">
-                        <div className="text-2xl font-bold text-purple-600 dark:text-primary">{(dashboardData.vehicles?.assigned || 0) + (dashboardData.vehicles?.in_transit || 0)}</div>
-                        <div className="text-sm text-gray-600 dark:text-muted">Active Vehicles</div>
-                        <div className="text-xs text-gray-500 dark:text-muted/80 mt-1">
-                            of {dashboardData.vehicles?.total || 0} total
-                        </div>
-                    </div>
-                    <div className="bg-white dark:bg-gray-900 rounded-lg shadow border border-gray-200 dark:border-accent p-4">
-                        <div className="text-2xl font-bold text-orange-600 dark:text-primary">{formatCurrency(dashboardData.summary?.total_revenue || 0)}</div>
-                        <div className="text-sm text-gray-600 dark:text-muted">Total Revenue</div>
-                        <div className="text-xs text-gray-500 dark:text-muted/80 mt-1">
-                            from delivered loads
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {/* Performance Metrics */}
-            {performanceData && (
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-                    <div className="bg-white dark:bg-gray-900 rounded-xl shadow-lg border border-gray-200 dark:border-accent p-6">
-                        <h2 className="text-xl font-bold text-gray-900 dark:text-foreground mb-4">Route Performance</h2>
-                        <div className="space-y-4">
-                            <div className="flex justify-between items-center p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                                <div>
-                                    <div className="font-medium text-blue-800 dark:text-blue-300">Average Route Efficiency</div>
-                                    <div className="text-sm text-blue-600 dark:text-blue-500">Distance optimization vs actual</div>
-                                </div>
-                                <div className="text-2xl font-bold text-blue-600 dark:text-blue-300">
-                                    {formatPercentage(performanceData.route_efficiency || 0.85)}
-                                </div>
-                            </div>
-                            
-                            <div className="flex justify-between items-center p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
-                                <div>
-                                    <div className="font-medium text-green-800 dark:text-green-300">On-Time Delivery Rate</div>
-                                    <div className="text-sm text-green-600 dark:text-green-500">Deliveries completed on schedule</div>
-                                </div>
-                                <div className="text-2xl font-bold text-green-600 dark:text-green-300">
-                                    {formatPercentage(performanceData.on_time_delivery || 0.92)}
-                                </div>
-                            </div>
-                            
-                            <div className="flex justify-between items-center p-3 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
-                                <div>
-                                    <div className="font-medium text-purple-800 dark:text-purple-300">Fuel Efficiency</div>
-                                    <div className="text-sm text-purple-600 dark:text-purple-500">Miles per gallon average</div>
-                                </div>
-                                <div className="text-2xl font-bold text-purple-600 dark:text-purple-300">
-                                    {(performanceData.fuel_efficiency || 6.8).toFixed(1)} MPG
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="bg-white dark:bg-gray-900 rounded-xl shadow-lg border border-gray-200 dark:border-accent p-6">
-                        <h2 className="text-xl font-bold text-gray-900 dark:text-foreground mb-4">Fleet Utilization</h2>
-                        <div className="space-y-4">
-                            <div className="flex justify-between items-center p-3 bg-orange-50 dark:bg-orange-900/20 rounded-lg">
-                                <div>
-                                    <div className="font-medium text-orange-800 dark:text-orange-300">Vehicle Utilization</div>
-                                    <div className="text-sm text-orange-600 dark:text-orange-500">Active vehicles vs total fleet</div>
-                                </div>
-                                <div className="text-2xl font-bold text-orange-600 dark:text-orange-300">
-                                    {formatPercentage(performanceData.vehicle_utilization || 0.78)}
-                                </div>
-                            </div>
-                            
-                            <div className="flex justify-between items-center p-3 bg-red-50 dark:bg-red-900/20 rounded-lg">
-                                <div>
-                                    <div className="font-medium text-red-800 dark:text-red-300">Driver Utilization</div>
-                                    <div className="text-sm text-red-600 dark:text-red-500">Active drivers vs available</div>
-                                </div>
-                                <div className="text-2xl font-bold text-red-600 dark:text-red-300">
-                                    {formatPercentage(performanceData.driver_utilization || 0.83)}
-                                </div>
-                            </div>
-                            
-                            <div className="flex justify-between items-center p-3 bg-gray-50 dark:bg-gray-900/20 rounded-lg">
-                                <div>
-                                    <div className="font-medium text-gray-800 dark:text-gray-300">Average Load Weight</div>
-                                    <div className="text-sm text-gray-600 dark:text-gray-500">Per delivery load</div>
-                                </div>
-                                <div className="text-2xl font-bold text-gray-600 dark:text-gray-300">
-                                    {(performanceData.avg_load_weight || 15420).toLocaleString()} lbs
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {/* Revenue and Cost Analysis */}
-            {performanceData && (
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    <div className="bg-white dark:bg-gray-900 rounded-xl shadow-lg border border-gray-200 dark:border-accent p-6">
-                        <h3 className="text-lg font-bold text-gray-900 dark:text-foreground mb-4">Revenue Metrics</h3>
-                        <div className="space-y-3">
-                            <div className="flex justify-between">
-                                <span className="text-gray-600 dark:text-muted">Total Revenue:</span>
-                                <span className="font-bold text-green-600 dark:text-green-300">
-                                    {formatCurrency(performanceData.total_revenue || 285420)}
-                                </span>
-                            </div>
-                            <div className="flex justify-between">
-                                <span className="text-gray-600 dark:text-muted">Avg per Load:</span>
-                                <span className="font-bold dark:text-green-300">
-                                    {formatCurrency(performanceData.avg_revenue_per_load || 2450)}
-                                </span>
-                            </div>
-                            <div className="flex justify-between">
-                                <span className="text-gray-600 dark:text-muted">Per Mile:</span>
-                                <span className="font-bold dark:text-green-300">
-                                    {formatCurrency(performanceData.revenue_per_mile || 2.15)}
-                                </span>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div className="bg-white dark:bg-gray-900 rounded-xl shadow-lg border border-gray-200 dark:border-accent p-6">
-                        <h3 className="text-lg font-bold text-gray-900 dark:text-foreground mb-4">Cost Analysis</h3>
-                        <div className="space-y-3">
-                            <div className="flex justify-between">
-                                <span className="text-gray-600 dark:text-muted">Fuel Costs:</span>
-                                <span className="font-bold text-red-600 dark:text-red-300">
-                                    {formatCurrency(performanceData.fuel_costs || 42180)}
-                                </span>
-                            </div>
-                            <div className="flex justify-between">
-                                <span className="text-gray-600 dark:text-muted">Maintenance:</span>
-                                <span className="font-bold dark:text-red-300">
-                                    {formatCurrency(performanceData.maintenance_costs || 18650)}
-                                </span>
-                            </div>
-                            <div className="flex justify-between">
-                                <span className="text-gray-600 dark:text-muted">Driver Pay:</span>
-                                <span className="font-bold dark:text-red-300">
-                                    {formatCurrency(performanceData.driver_costs || 125480)}
-                                </span>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div className="bg-white dark:bg-gray-900 rounded-xl shadow-lg border border-gray-200 dark:border-accent p-6">
-                        <h3 className="text-lg font-bold text-gray-900 dark:text-foreground mb-4">Distance Metrics</h3>
-                        <div className="space-y-3">
-                            <div className="flex justify-between">
-                                <span className="text-gray-600 dark:text-muted">Total Miles:</span>
-                                <span className="font-bold text-blue-600 dark:text-blue-300">
-                                    {formatDistance(performanceData.total_miles || 132840)} mi
-                                </span>
-                            </div>
-                            <div className="flex justify-between">
-                                <span className="text-gray-600">Avg per Load:</span>
-                                <span className="font-bold">
-                                    {formatDistance(performanceData.avg_miles_per_load || 875)} mi
-                                </span>
-                            </div>
-                            <div className="flex justify-between">
-                                <span className="text-gray-600">Empty Miles %:</span>
-                                <span className="font-bold">
-                                    {formatPercentage(performanceData.empty_miles_ratio || 0.12)}
-                                </span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {!dashboardData && !performanceData && !loading && (
-                <div className="bg-white dark:bg-gray-900 rounded-xl shadow-lg border border-gray-200 dark:border-accent p-12 text-center">
-                    <div className="text-6xl mb-4">📈</div>
-                    <h3 className="text-xl font-semibold text-gray-900 dark:text-foreground mb-2">No Analytics Data Available</h3>
-                    <p className="text-gray-600 dark:text-muted">Performance data will appear here once operations begin.</p>
-                </div>
-            )}
-        </div>
-    );
+        <Card icon={MapPin} title="Stop completion" subtitle="Service-window performance across all stops">
+          {!stops ? (
+            <p className="text-sm text-gray-500 dark:text-muted">Loading…</p>
+          ) : (
+            <div className="space-y-2">
+              <ProportionRow label="completed" count={stops.completed} total={stops.total} barClass="bg-emerald-500 dark:bg-primary" />
+              <ProportionRow label="in window" count={stops.completed_in_window} total={stops.total} barClass="bg-sky-400" />
+              <div className="pt-2 flex items-baseline gap-2">
+                <span className="text-2xl font-bold text-gray-900 dark:text-foreground">
+                  {stops.onTimePercentage == null ? '—' : `${Math.round(stops.onTimePercentage)}%`}
+                </span>
+                <span className="text-xs text-gray-500 dark:text-muted">
+                  on-time · {stops.completed_in_window} of {stops.completed} completed stops inside their window
+                </span>
+              </div>
+            </div>
+          )}
+        </Card>
+      </div>
+    </div>
+  );
 };
 
 export default AnalyticsPage;

@@ -1,162 +1,131 @@
-# TMS Event-Driven Architecture
+# cxt-skunkworks — Logistics Intelligence Platform (POC)
 
-A comprehensive Transportation Management System (TMS) built with modern event-driven architecture using Kafka, Flink, and multiple specialized databases.
+A demo-scale proof of the **LIP pattern**: a deterministic courier world
+(Austin, TX) whose every change flows through **one canonical event envelope**
+over Kafka — API intent events, Debezium CDC observations, and simulator
+telemetry alike — projected live into Postgres, TimescaleDB, and Neo4j, with a
+React dispatch UI on top.
 
-## 🚀 Architecture Overview
+This is a teaching/demo POC, not production: optimized for demo reliability,
+code clarity, and concept fidelity. Start with [ARCHITECTURE.md](ARCHITECTURE.md)
+(the system as seven planes), [EVENT-CATALOG.md](EVENT-CATALOG.md) (the
+contract), and [DEMO-NOTES.md](DEMO-NOTES.md) (what to show and how).
 
-This project demonstrates a full-scale TMS implementation with:
+## Quickstart
 
-- **Event-Driven Design**: Kafka for event streaming with Flink for real-time stream processing
-- **Polyglot Persistence**: Multiple specialized databases for different data patterns
-- **Microservices**: FastAPI-based services with Docker containerization
-- **Modern Frontend**: React-based dashboard for operations management
+Prerequisites: Docker Desktop (or Docker Engine + Compose v2), `make`, and
+~6 GB free RAM for the stack.
 
-## 🏗️ Technology Stack
-
-### Backend Services
-- **FastAPI**: Python-based API gateway and services
-- **Apache Kafka**: Event streaming platform with KRaft mode (no ZooKeeper dependency)
-- **Apache Flink**: Stream processing for real-time analytics and event processing
-
-### Data Layer
-- **PostgreSQL**: OLTP database with CDC (Change Data Capture) support
-- **Neo4j**: Graph database for routing, networks, and relationships
-- **TimescaleDB**: Time-series database for tracking data and metrics
-- **Debezium**: CDC connector for real-time data streaming
-
-### Frontend
-- **React**: Modern web application with comprehensive TMS functionality
-- **Docker**: Containerized deployment with Nginx
-
-### Infrastructure
-- **Docker Compose**: Full-stack orchestration
-- **Kafka UI**: Web interface for Kafka cluster management
-
-## 📋 Features
-
-### Load Management
-- Load creation and lifecycle management
-- Status tracking and updates
-- Route optimization
-- Customer and carrier management
-
-### Vehicle Tracking
-- Real-time GPS tracking
-- Location history and analytics
-- Speed and heading monitoring
-- Fleet management dashboard
-
-### Event Console
-- Live event stream visualization
-- Event publishing and testing
-- Topic monitoring and management
-- Real-time system debugging
-
-### Analytics Dashboard
-- KPI monitoring and reporting
-- Performance metrics and charts
-- System health indicators
-- Status distribution analytics
-
-## 🚀 Getting Started
-
-### Prerequisites
-- Docker and Docker Compose
-- Git
-
-### Quick Start
-
-1. **Clone the repository**
-   ```bash
-   git clone https://github.com/your-username/cxt-skunkworks.git
-   cd cxt-skunkworks
-   ```
-
-2. **Configure environment**
-   ```bash
-   cp server/app/.env.example server/app/.env
-   # Edit .env with your configuration
-   ```
-
-3. **Start the full stack**
-   ```bash
-   docker-compose up -d
-   ```
-
-4. **Access the applications**
-   - **TMS Dashboard**: http://localhost:3000
-   - **API Documentation**: http://localhost:8000/docs
-   - **Kafka UI**: http://localhost:8080
-   - **Flink Dashboard**: http://localhost:8081
-   - **Neo4j Browser**: http://localhost:7474
-
-## 🔧 Development
-
-### Service Ports
-| Service | Port | Description |
-|---------|------|-------------|
-| React UI | 3000 | Main TMS Dashboard |
-| FastAPI | 8000 | API Gateway |
-| Kafka UI | 8080 | Kafka Management |
-| Flink UI | 8081 | Stream Processing Dashboard |
-| Neo4j | 7474 | Graph Database Browser |
-| PostgreSQL | 5432 | OLTP Database |
-| TimescaleDB | 5433 | Time-Series Database |
-| Kafka | 9092 | Event Streaming |
-| Debezium | 8083 | CDC Connector |
-
-### Project Structure
-```
-├── ui/                     # React frontend application
-│   ├── src/components/     # TMS dashboard components
-│   └── Dockerfile         # Frontend container
-├── server/                # Backend services
-│   ├── app/              # FastAPI application
-│   ├── database/         # Database initialization scripts
-│   └── Dockerfile        # Backend container
-└── docker-compose.yml   # Full stack orchestration
+```bash
+git clone <this-repo>
+cd cxt-skunkworks
+export GOOGLE_MAPS_API_KEY=...   # optional — map tiles; everything else works without it
+make up          # builds images, starts everything in dependency order, waits until healthy
 ```
 
-## 🎯 Event-Driven Workflows
+> The Maps JS key is the only optional ingredient: without it the dispatch map
+> shows a fallback panel while every other surface (orders, events, analytics,
+> graph) works fully. Put it in the environment (above) or in a git-ignored
+> `ui/.env` as `REACT_APP_GOOGLE_MAPS_API_KEY=...`.
 
-### Load Management Events
-- `load.created` - New load entered into system
-- `load.assigned` - Load assigned to carrier/driver
-- `load.picked_up` - Pickup completed
-- `load.delivered` - Delivery completed
-- `load.status_changed` - Status updates
+First run takes a few minutes (image builds + healthcheck-gated startup). When
+`make up` prints the URL block, open:
 
-### Vehicle Tracking Events
-- `vehicle.location_updated` - GPS position updates
-- `vehicle.status_changed` - Vehicle availability changes
-- `vehicle.maintenance_due` - Maintenance scheduling
+| URL | What |
+|---|---|
+| http://localhost:3000 | **The demo UI** — dispatch map over the seeded world |
+| http://localhost:8000/docs | API (OpenAPI) |
+| http://localhost:8080 | Kafka UI — topics and raw envelopes |
+| http://localhost:7474 | Neo4j browser (`neo4j` / `lip_graph_password`) |
 
-### System Events
-- `system.health_check` - System monitoring
-- `analytics.metrics_updated` - Real-time analytics
+You should see two routes already mid-shift with drivers moving on the map.
+No `.env` files, no manual steps — if you needed a second command, that's a bug.
 
-## 📊 Monitoring & Operations
+> Plain `docker compose up -d --build` works too; `make up` just adds the
+> wait-for-healthy and the URL summary.
 
-- **Real-time Dashboards**: Monitor all system operations through the React UI
-- **Event Streaming**: View live event flows through the Event Console
-- **Database Health**: Monitor all database connections and performance
-- **System Metrics**: Track KPIs and operational metrics
+## The three commands that matter
 
-## 🤝 Contributing
+```bash
+make reset    # demo reset: every store, topic, and projection back to the seed
+              # world (austin-v1) in under a minute — run before every demo
+make audit    # prove every event on every canonical topic conforms to envelope v1
+make test     # contract unit tests (envelope + catalog) inside the api container
+```
 
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Test with the full Docker stack
-5. Submit a pull request
+All targets: `make help`.
 
-## 📄 License
+## The world
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+One tenant (`cxt-demo`), one depot, 10 customers, **8 drivers, 5 vehicles,
+5 routes, 30 orders** (66 parcels) across Austin. Deterministic: same IDs,
+names, and coordinates every reset; stop time-windows are relative to today so
+the world never looks stale. The world is defined in
+[`scripts/generate_seed.py`](scripts/generate_seed.py) → committed as
+[`server/database/postgres/seed.sql`](server/database/postgres/seed.sql)
+(`make seed-regen` after editing the generator).
 
-## 🔗 Related Documentation
+## Canonical vocabulary (load-bearing)
 
-- [Kafka Documentation](https://kafka.apache.org/documentation/)
-- [Flink Documentation](https://nightlies.apache.org/flink/flink-docs-stable/)
-- [FastAPI Documentation](https://fastapi.tiangolo.com/)
-- [React Documentation](https://react.dev/)
+**Customer · Order · Stop · Route · Driver · Vehicle · Parcel · Depot** —
+orders have a pickup stop and a delivery stop; stops belong to routes; parcels
+belong to orders. This vocabulary is used identically in the schema, the API,
+the events, and the UI.
+
+## Canonical events (the contract)
+
+Every event on every `lip.*` topic is an **envelope v1**:
+
+```json
+{
+  "eventId": "…", "eventType": "order.created", "eventVersion": "1.0",
+  "sourceSystem": "lip-api", "tenantId": "cxt-demo",
+  "entityRefs": [{"type": "order", "id": "…"}],
+  "occurredAt": "…", "observedAt": "…",
+  "payload": { "…": "…" }, "traceId": "…"
+}
+```
+
+Producers: `lip-api` (intent), `lip-cdc-normalizer` (observations from
+Debezium), `lip-simulator` (telemetry), `lip-seeder` (genesis at reset).
+Publish-side validation rejects malformed events — try it live on the
+**Event Console** page (`/events`). Full schemas + examples:
+[EVENT-CATALOG.md](EVENT-CATALOG.md).
+
+## Repo map
+
+```
+├── docker-compose.yml       # the whole stack, healthcheck-ordered
+├── Makefile                 # up / reset / audit / test / logs / nuke
+├── ARCHITECTURE.md          # the system as seven planes (start here)
+├── EVENT-CATALOG.md         # generated event contract reference
+├── DEMO-NOTES.md            # demo scripting notes
+├── scripts/generate_seed.py # the deterministic world generator
+├── infra/debezium/          # CDC connector config
+├── server/
+│   ├── app/core/            # envelope v1 + event catalog (THE contract)
+│   ├── app/eventbus/        # validated publisher, consumer helper, topic admin
+│   ├── app/services/        # world model reads/mutations (all event-emitting)
+│   ├── app/routers/         # REST + WebSocket
+│   ├── app/workers/         # normalizer (CDC), projector (projections), simulator
+│   ├── app/tools/           # demo_reset, topic_audit, create_topics, render_catalog
+│   └── database/            # postgres init+seed, timescale init
+└── ui/                      # React app (CRA + Tailwind + Google Maps)
+```
+
+## Local development (outside Docker)
+
+```bash
+# API (needs the datastores running: docker compose up -d postgres timescaledb neo4j kafka kafka-init)
+cd server && pip install -r requirements.txt
+cd app && uvicorn main:app --reload            # http://localhost:8000
+
+# UI (CRA dev server proxies /api to :8000)
+cd ui && npm install && npm start              # http://localhost:3000
+```
+
+Contract tests without any services: `cd server/app && python -m pytest tests -q`.
+
+## License
+
+MIT — see [LICENSE](LICENSE).

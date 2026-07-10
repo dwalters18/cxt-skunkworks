@@ -1,155 +1,180 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import DispatchMapView from '../components/DispatchMapView';
+/**
+ * Dispatch Board — the live map over the seeded Austin world.
+ *
+ * Data flow (the demo story in one page):
+ *   - initial world state via REST (/api/routes, /api/orders/unassigned, ...)
+ *   - live movement from the canonical event feed: driver.location-updated
+ *     moves the dots; stop/order/route events trigger a world refresh
+ *   - actions (assign order, start route) POST to the API, which emits events
+ *     the map then reacts to — the full loop in one screen
+ */
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import MapContainer, { routeColor } from '../components/map/MapContainer';
 import FloatingControlPanel from '../components/dispatch/FloatingControlPanel';
-import { useMapData } from '../hooks/useMapData';
 import { useDarkMode } from '../contexts/DarkModeContext';
-// Icons now handled by FloatingControlPanel component
+import { useWebSocket } from '../contexts/WebSocketContext';
+import api from '../api/client';
+
+const REFRESH_EVENTS = new Set([
+  'order.created',
+  'order.assigned',
+  'order.completed',
+  'order.cancelled',
+  'stop.status-updated',
+  'route.planned',
+  'route.started',
+  'route.completed',
+  'driver.status-updated',
+  'system.demo-reset',
+]);
 
 const DispatchPage = () => {
-    const { isDarkMode } = useDarkMode();
-    const [selectedLoad, setSelectedLoad] = useState(null);
-    const [selectedVehicle, setSelectedVehicle] = useState(null);
-    const [searchTerm, setSearchTerm] = useState('');
-    const [statusFilter, setStatusFilter] = useState('all');
-    const [visibleRoutes, setVisibleRoutes] = useState(new Set());
-    const [mapRef, setMapRef] = useState(null);
+  const { isDarkMode } = useDarkMode();
+  const { addEventListener, isConnected } = useWebSocket();
 
-    // Use the existing useMapData hook to get real data
-    const {
-        loads,
-        vehicles,
-        routes,
-        isLoading: dataLoading,
-        // Fetch functions
-        fetchLoads,
-        fetchVehicles,
-        fetchRoutes
-    } = useMapData();
+  const [routes, setRoutes] = useState([]);
+  const [unassignedOrders, setUnassignedOrders] = useState([]);
+  const [depots, setDepots] = useState([]);
+  const [drivers, setDrivers] = useState([]);
+  const [driverPositions, setDriverPositions] = useState({});
+  const [selectedRouteId, setSelectedRouteId] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [actionError, setActionError] = useState(null);
+  const refreshTimer = useRef(null);
 
-    // Combined fetch function
-    const fetchMapData = useCallback(async () => {
-        await Promise.all([
-            fetchLoads(),
-            fetchVehicles(),
-            fetchRoutes()
-        ]);
-    }, [fetchLoads, fetchVehicles, fetchRoutes]);
+  const fetchWorld = useCallback(async () => {
+    try {
+      const [routesRes, unassignedRes, depotsRes, driversRes] = await Promise.all([
+        api.listRoutes(),
+        api.unassignedOrders(),
+        api.listDepots(),
+        api.listDrivers(),
+      ]);
+      const routeList = routesRes.routes || [];
+      setRoutes(routeList);
+      setUnassignedOrders(unassignedRes.orders || []);
+      setDepots(depotsRes.depots || []);
+      setDrivers(driversRes.drivers || []);
 
-    // Initialize data on component mount
-    useEffect(() => {
-        fetchMapData();
-        const interval = setInterval(fetchMapData, 5000);
-        return () => clearInterval(interval);
-    }, [fetchMapData]);
-
-    // Initialize visible routes when routes data changes
-    useEffect(() => {
-        if (routes && routes.length > 0) {
-            const initialVisible = new Set();
-            routes.forEach(route => {
-                // ACTIVE routes are always visible by default
-                if (route.status === 'active' || route.status === 'ACTIVE') {
-                    initialVisible.add(route.id);
-                }
-            });
-            setVisibleRoutes(initialVisible);
-        }
-    }, [routes]);
-
-    // Map pan and zoom functionality
-    const panToLocation = (lat, lng, zoom = 15) => {
-        if (mapRef && lat && lng) {
-            mapRef.panTo({ lat, lng });
-            mapRef.setZoom(zoom);
-        }
-    };
-
-    // Helper function to get coordinates from entity
-    const getEntityCoordinates = (entity, type) => {
-        if (type === 'load') {
-            // Try pickup location first, then delivery location
-            const pickup = entity.pickup_location || entity.pickupLocation;
-            const delivery = entity.delivery_location || entity.deliveryLocation;
-            
-            if (pickup && pickup.lat && pickup.lng) {
-                return { lat: pickup.lat, lng: pickup.lng };
-            } else if (delivery && delivery.lat && delivery.lng) {
-                return { lat: delivery.lat, lng: delivery.lng };
-            }
-        } else if (type === 'vehicle') {
-            const location = entity.current_location || entity.currentLocation || entity.location;
-            if (location && location.lat && location.lng) {
-                return { lat: location.lat, lng: location.lng };
-            }
-        }
-        return null;
-    };
-
-
-
-
-
-    const toggleRouteVisibility = (routeId, routeStatus) => {
-        // ACTIVE routes cannot be hidden
-        if (routeStatus === 'active' || routeStatus === 'ACTIVE') {
+      // Seed driver dots from the world model; live events take over from here.
+      const colorByDriver = {};
+      routeList.forEach((r, idx) => {
+        if (r.driver?.id) colorByDriver[r.driver.id] = routeColor(idx);
+      });
+      setDriverPositions((prev) => {
+        const next = { ...prev };
+        (driversRes.drivers || []).forEach((d) => {
+          if (d.status === 'OFF_DUTY') {
+            delete next[d.id];
             return;
-        }
-
-        setVisibleRoutes(prev => {
-            const newVisible = new Set(prev);
-            if (newVisible.has(routeId)) {
-                newVisible.delete(routeId);
-            } else {
-                newVisible.add(routeId);
-            }
-            return newVisible;
+          }
+          const existing = next[d.id];
+          next[d.id] = {
+            latitude: existing?.live ? existing.latitude : d.latitude,
+            longitude: existing?.live ? existing.longitude : d.longitude,
+            live: existing?.live || false,
+            name: d.name,
+            routeNumber: d.activeRouteNumber,
+            color: colorByDriver[d.id] || '#9CA3AF',
+            speedMph: existing?.speedMph,
+          };
         });
+        return next;
+      });
+      setLoading(false);
+    } catch (e) {
+      console.error('world fetch failed', e);
+      setLoading(false);
+    }
+  }, []);
+
+  // Debounced refresh so a burst of events causes one refetch.
+  const scheduleRefresh = useCallback(() => {
+    if (refreshTimer.current) return;
+    refreshTimer.current = setTimeout(() => {
+      refreshTimer.current = null;
+      fetchWorld();
+    }, 400);
+  }, [fetchWorld]);
+
+  useEffect(() => {
+    fetchWorld();
+    const poll = setInterval(fetchWorld, 30000); // safety net if WS drops
+    return () => {
+      clearInterval(poll);
+      if (refreshTimer.current) clearTimeout(refreshTimer.current);
     };
+  }, [fetchWorld]);
 
+  useEffect(() => {
+    const unsubscribe = addEventListener((envelope) => {
+      if (envelope.eventType === 'driver.location-updated') {
+        const p = envelope.payload;
+        setDriverPositions((prev) => {
+          const existing = prev[p.driverId] || {};
+          return {
+            ...prev,
+            [p.driverId]: {
+              ...existing,
+              latitude: p.location.latitude,
+              longitude: p.location.longitude,
+              speedMph: p.speedMph,
+              live: true,
+            },
+          };
+        });
+      } else if (REFRESH_EVENTS.has(envelope.eventType)) {
+        scheduleRefresh();
+      }
+    });
+    return unsubscribe;
+  }, [addEventListener, scheduleRefresh]);
 
+  const handleAssignOrder = async (orderId, routeId) => {
+    setActionError(null);
+    try {
+      await api.assignOrder(orderId, routeId);
+    } catch (e) {
+      setActionError(e.message);
+    }
+  };
 
-    // Handle load assignment
-    const handleAssignLoad = (loadId, vehicleId) => {
-        // This would typically make an API call to assign the load
-        console.log(`Assigning load ${loadId} to vehicle ${vehicleId}`);
-        // Refresh data after assignment
-        fetchMapData();
-    };
+  const handleStartRoute = async (routeId) => {
+    setActionError(null);
+    try {
+      await api.startRoute(routeId);
+    } catch (e) {
+      setActionError(e.message);
+    }
+  };
 
-    return (
-        <div className="h-screen flex bg-gray-50 relative">
-            {/* Full Screen Map with Custom DispatchMapView */}
-            <div className="flex-1 relative">
-                <DispatchMapView 
-                    visibleRoutes={visibleRoutes} 
-                    onMapLoad={setMapRef}
-                    isDarkMode={isDarkMode} 
-                />
-
-                {/* Floating Control Panel */}
-                <FloatingControlPanel 
-                    isDarkMode={isDarkMode}
-                    loads={loads}
-                    vehicles={vehicles}
-                    routes={routes}
-                    visibleRoutes={visibleRoutes}
-                    selectedLoad={selectedLoad}
-                    selectedVehicle={selectedVehicle}
-                    searchTerm={searchTerm}
-                    setSearchTerm={setSearchTerm}
-                    statusFilter={statusFilter}
-                    setStatusFilter={setStatusFilter}
-                    setSelectedLoad={setSelectedLoad}
-                    setSelectedVehicle={setSelectedVehicle}
-                    panToLocation={panToLocation}
-                    toggleRouteVisibility={toggleRouteVisibility}
-                    handleAssignLoad={handleAssignLoad}
-                    dataLoading={dataLoading}
-                    getEntityCoordinates={getEntityCoordinates}
-                />
-            </div>
-        </div>
-    );
+  return (
+    <div className="h-screen flex bg-gray-50 dark:bg-background relative">
+      <div className="flex-1 relative">
+        <MapContainer
+          depots={depots}
+          routes={routes}
+          unassignedOrders={unassignedOrders}
+          driverPositions={driverPositions}
+          selectedRouteId={selectedRouteId}
+          isDarkMode={isDarkMode}
+          onSelectRoute={setSelectedRouteId}
+        />
+        <FloatingControlPanel
+          routes={routes}
+          unassignedOrders={unassignedOrders}
+          drivers={drivers}
+          selectedRouteId={selectedRouteId}
+          onSelectRoute={setSelectedRouteId}
+          onAssignOrder={handleAssignOrder}
+          onStartRoute={handleStartRoute}
+          loading={loading}
+          wsConnected={isConnected}
+          actionError={actionError}
+        />
+      </div>
+    </div>
+  );
 };
 
 export default DispatchPage;

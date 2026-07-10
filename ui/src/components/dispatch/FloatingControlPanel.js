@@ -1,418 +1,219 @@
+/**
+ * Floating dispatch panel — routes with live progress, and the unassigned-order
+ * queue with assign/start actions. Sits over the map.
+ */
 import React, { useState } from 'react';
-import { 
-  Search,
-  Package,
-  Truck,
-  Route,
-  MapPin,
-  Navigation
-} from 'lucide-react';
+import { cn } from '../base/utils';
+import { routeColor } from '../map/MapContainer';
+import { ChevronDown, ChevronUp, Play, Wifi, WifiOff, Package, RouteIcon } from 'lucide-react';
 
-const FloatingControlPanel = ({ 
-    isDarkMode,
-    loads = [],
-    vehicles = [],
-    routes = [],
-    visibleRoutes,
-    selectedLoad,
-    selectedVehicle,
-    searchTerm,
-    setSearchTerm,
-    statusFilter,
-    setStatusFilter,
-    setSelectedLoad,
-    setSelectedVehicle,
-    panToLocation,
-    toggleRouteVisibility,
-    handleAssignLoad,
-    dataLoading,
-    getEntityCoordinates
-}) => {
-    const [selectedTab, setSelectedTab] = useState('loads');
+const STATUS_STYLES = {
+  ACTIVE: 'bg-primary/20 text-primary',
+  PLANNED: 'bg-sky-400/20 text-sky-400',
+  COMPLETED: 'bg-gray-400/20 text-gray-400',
+};
 
-    // Utility functions
-    const getStatusColor = (status) => {
-        switch (status?.toUpperCase()) {
-            case 'DELIVERED':
-                return 'bg-green-100 text-green-800';
-            case 'IN_TRANSIT':
-                return 'bg-blue-100 text-blue-800';
-            case 'ASSIGNED':
-                return 'bg-yellow-100 text-yellow-800';
-            case 'UNASSIGNED':
-                return 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200';
-            case 'CANCELLED':
-                return 'bg-red-100 text-red-800';
-            case 'ACTIVE':
-                return 'bg-green-100 text-green-800';
-            case 'COMPLETED':
-                return 'bg-blue-100 text-blue-800';
-            case 'PENDING':
-                return 'bg-yellow-100 text-yellow-800';
-            default:
-                return 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200';
-        }
-    };
-
-    const getPriorityColor = (priority) => {
-        const colors = {
-            'High': 'bg-red-100 text-red-800',
-            'high': 'bg-red-100 text-red-800',
-            'Medium': 'bg-yellow-100 text-yellow-800',
-            'medium': 'bg-yellow-100 text-yellow-800',
-            'Low': 'bg-green-100 text-green-800',
-            'low': 'bg-green-100 text-green-800'
-        };
-        return colors[priority] || 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200';
-    };
-
-    const filteredLoads = Array.isArray(loads) ? loads.filter(load => {
-        const matchesSearch = (load.number || load.id || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-                             (load.customer || '').toLowerCase().includes(searchTerm.toLowerCase());
-        const matchesStatus = statusFilter === 'all' || (load.status || '').toLowerCase() === statusFilter.toLowerCase();
-        return matchesSearch && matchesStatus;
-    }) : [];
-
-    return (
-        <div className="absolute top-24 right-16 w-96 z-50">
-            <div className={`${
-                isDarkMode 
-                    ? 'bg-gray-900/20 border-gray-700/30' 
-                    : 'bg-white/10 border-white/20'
-            } backdrop-blur-xl rounded-2xl shadow-2xl overflow-hidden`}>
-                {/* Glass effect overlay */}
-                <div className={`absolute inset-0 ${
-                    isDarkMode 
-                        ? 'bg-gradient-to-br from-gray-800/30 via-gray-900/10 to-transparent' 
-                        : 'bg-gradient-to-br from-white/20 via-white/5 to-transparent'
-                } pointer-events-none`}></div>
-                
-                {/* Panel Content */}
-                <div className="relative z-10">
-                    {/* Panel Header */}
-                    <div className={`p-6 border-b ${
-                        isDarkMode ? 'border-gray-700/30' : 'border-white/10'
-                    }`}>
-                        <h2 className={`text-lg font-semibold mb-4 drop-shadow-sm text-gray-700 dark:text-white`}>Dispatch Control</h2>
-                        
-                        {/* Search and Filter */}
-                        <div className="space-y-3">
-                            <div className="relative">
-                                <Search className={`absolute left-4 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-800 dark:text-gray-200`} />
-                                <input
-                                    type="text"
-                                    placeholder="Search loads..."
-                                    value={searchTerm}
-                                    onChange={(e) => setSearchTerm(e.target.value)}
-                                    className={`w-full pl-12 pr-4 py-3 backdrop-blur-sm border rounded-xl transition-all duration-200 ${
-                                        isDarkMode 
-                                            ? 'bg-gray-800/40 border-gray-600/50 text-white placeholder-gray-400 focus:ring-2 focus:ring-primary/50 focus:border-primary/50'
-                                            : 'bg-white/10 border-white/20 text-gray-900 dark:text-foreground placeholder-white/60 focus:ring-2 focus:ring-primary/50 focus:border-primary/50'
-                                    }`}
-                                />
-                            </div>
-                            
-                            <select
-                                value={statusFilter}
-                                onChange={(e) => setStatusFilter(e.target.value)}
-                                className={`w-full px-4 py-3 backdrop-blur-sm border rounded-xl transition-all duration-200 ${
-                                    isDarkMode 
-                                        ? 'bg-gray-800/40 border-gray-600/50 text-white focus:ring-2 focus:ring-primary/50 focus:border-primary/50'
-                                        : 'bg-white/10 border-white/20 text-gray-900 dark:text-foreground focus:ring-2 focus:ring-primary/50 focus:border-primary/50'
-                                }`}
-                            >
-                                <option value="all" className="bg-gray-800 text-white">All Statuses</option>
-                                <option value="unassigned" className="bg-gray-800 text-white">Unassigned</option>
-                                <option value="assigned" className="bg-gray-800 text-white">Assigned</option>
-                                <option value="pending" className="bg-gray-800 text-white">Pending</option>
-                                <option value="active" className="bg-gray-800 text-white">Active</option>
-                                <option value="completed" className="bg-gray-800 text-white">Completed</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    {/* Tab Navigation */}
-                    <div className={`flex border-b ${
-                        isDarkMode ? 'border-gray-700/30' : 'border-white/10'
-                    }`}>
-                        {[
-                            { id: 'loads', label: 'Loads', icon: Package },
-                            { id: 'vehicles', label: 'Vehicles', icon: Truck },
-                            { id: 'routes', label: 'Routes', icon: Route }
-                        ].map(tab => (
-                            <button
-                                key={tab.id}
-                                onClick={() => setSelectedTab(tab.id)}
-                                className={`flex-1 flex items-center justify-center gap-2 py-4 px-4 text-sm font-medium transition-all duration-200 ${
-                                    selectedTab === tab.id
-                                        ? `${
-                                            isDarkMode ? 'text-primary' : 'text-green-700'
-                                        } border-b-2 ${
-                                            isDarkMode ? 'border-primary' : 'border-green-700'
-                                        } ${
-                                            isDarkMode ? 'bg-primary/10' : 'bg-green-700/10'
-                                        } backdrop-blur-sm`
-                                        : `${
-                                            isDarkMode ? 'text-gray-200 hover:text-white hover:bg-gray-800/20' : 'text-gray-800 hover:text-gray-900 hover:bg-white/10'
-                                        }`
-                                }`}
-                            >
-                                <tab.icon className="w-4 h-4" />
-                                {tab.label}
-                            </button>
-                        ))}
-                    </div>
-
-                    {/* Tab Content */}
-                    <div className="max-h-96 overflow-auto p-6">
-                        {dataLoading ? (
-                            <div className="flex items-center justify-center h-32">
-                                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-                                <span className={`ml-2 ${
-                                    isDarkMode ? 'text-gray-300' : 'text-white/80'
-                                }`}>Loading...</span>
-                            </div>
-                        ) : (
-                            <>
-                                {selectedTab === 'loads' && (
-                                    <div className="space-y-3">
-                                        {filteredLoads.length === 0 ? (
-                                            <div className={`text-center py-8 ${
-                                                isDarkMode ? 'text-gray-400' : 'text-white/60'
-                                            }`}>
-                                                <Package className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                                                <p>No loads found</p>
-                                            </div>
-                                        ) : (
-                                            filteredLoads.map((load) => (
-                                                <div 
-                                                    key={load.id} 
-                                                    className={`border rounded-lg p-4 cursor-pointer transition-all hover:shadow-md ${
-                                                        selectedLoad === load.id 
-                                                            ? 'ring-2 ring-primary bg-primary/10' 
-                                                            : isDarkMode 
-                                                                ? 'bg-gray-800/40 border-gray-600/50 hover:bg-gray-700/40' 
-                                                                : 'bg-white/10 border-white/20 hover:bg-white/20'
-                                                    }`}
-                                                    onClick={() => {
-                                                        setSelectedLoad(load.id);
-                                                        const coords = getEntityCoordinates(load, 'load');
-                                                        if (coords) {
-                                                            panToLocation(coords.lat, coords.lng, 16);
-                                                        }
-                                                    }}
-                                                >
-                                                    <div className="flex items-start justify-between mb-2">
-                                                        <div className="flex items-center gap-2">
-                                                            <Package className="w-4 h-4 text-gray-500 dark:text-gray-400" />
-                                                            <span className={`font-medium ${
-                                                                isDarkMode ? 'text-gray-200' : 'text-gray-700 dark:text-white'
-                                                            }`}>{load.number || load.id}</span>
-                                                        </div>
-                                                        <div className="flex gap-1">
-                                                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(load.status)}`}>
-                                                                {load.status || 'Unknown'}
-                                                            </span>
-                                                            {load.priority && (
-                                                                <span className={`px-2 py-1 rounded-full text-xs font-medium ${getPriorityColor(load.priority)}`}>
-                                                                    {load.priority}
-                                                                </span>
-                                                            )}
-                                                        </div>
-                                                    </div>
-                                                    
-                                                    <div className="space-y-2 text-sm">
-                                                        <div className="flex items-center gap-2">
-                                                            <MapPin className="w-3 h-3 text-green-500" />
-                                                            <span className={`text-gray-600 dark:text-muted ${
-                                                                isDarkMode ? 'text-gray-400' : 'text-gray-600 dark:text-muted'
-                                                            }`}>{load.pickup_address || load.origin || 'N/A'}</span>
-                                                        </div>
-                                                        <div className="flex items-center gap-2">
-                                                            <MapPin className="w-3 h-3 text-red-500" />
-                                                            <span className={`text-gray-600 dark:text-muted ${
-                                                                isDarkMode ? 'text-gray-400' : 'text-gray-600 dark:text-muted'
-                                                            }`}>{load.delivery_address || load.destination || 'N/A'}</span>
-                                                        </div>
-                                                        <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400">
-                                                            <span>{load.customer || 'N/A'}</span>
-                                                            <span>{load.rate ? `$${load.rate.toLocaleString()}` : 'N/A'}</span>
-                                                        </div>
-                                                    </div>
-
-                                                    {((load.status || '').toLowerCase() === 'unassigned' || (load.status || '').toLowerCase() === 'pending') && vehicles && (
-                                                        <div className="mt-3 pt-3 border-t">
-                                                            <select 
-                                                                className={`w-full px-3 py-1 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 ${
-                                                                    isDarkMode ? 'bg-gray-800/40 text-white' : 'bg-white/10 text-gray-700 dark:text-white'
-                                                                }`}
-                                                                onChange={(e) => e.target.value && handleAssignLoad(load.id, e.target.value)}
-                                                            >
-                                                                <option value="">Assign vehicle...</option>
-                                                                {Array.isArray(vehicles) ? vehicles.filter(v => (v.status || '').toLowerCase() === 'available').map(vehicle => (
-                                                                    <option key={vehicle.id} value={vehicle.id}>
-                                                                        {vehicle.number || vehicle.id} - {vehicle.driver || 'Unknown Driver'}
-                                                                    </option>
-                                                                )) : []}
-                                                            </select>
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            ))
-                                        )}
-                                    </div>
-                                )}
-
-                                {selectedTab === 'vehicles' && (
-                                    <div className="space-y-3">
-                                        {!Array.isArray(vehicles) || vehicles.length === 0 ? (
-                                            <div className={`text-center py-8 ${
-                                                isDarkMode ? 'text-gray-400' : 'text-white/60'
-                                            }`}>
-                                                <Truck className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                                                <p>No vehicles found</p>
-                                            </div>
-                                        ) : (
-                                            vehicles.map((vehicle) => (
-                                                <div 
-                                                    key={vehicle.id}
-                                                    className={`border rounded-lg p-4 cursor-pointer transition-all hover:shadow-md ${
-                                                        selectedVehicle === vehicle.id 
-                                                            ? 'ring-2 ring-primary bg-primary/10' 
-                                                            : isDarkMode 
-                                                                ? 'bg-gray-800/40 border-gray-600/50 hover:bg-gray-700/40' 
-                                                                : 'bg-white/10 border-white/20 hover:bg-white/20'
-                                                    }`}
-                                                    onClick={() => {
-                                                        setSelectedVehicle(vehicle.id);
-                                                        const coords = getEntityCoordinates(vehicle, 'vehicle');
-                                                        if (coords) {
-                                                            panToLocation(coords.lat, coords.lng, 16);
-                                                        }
-                                                    }}
-                                                >
-                                                    <div className="flex items-start justify-between mb-2">
-                                                        <div className="flex items-center gap-2">
-                                                            <Truck className="w-4 h-4 text-gray-500 dark:text-gray-400" />
-                                                            <span className={`font-medium ${
-                                                                isDarkMode ? 'text-gray-200' : 'text-gray-700 dark:text-white'
-                                                            }`}>{vehicle.number || vehicle.id}</span>
-                                                        </div>
-                                                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(vehicle.status)}`}>
-                                                            {vehicle.status || 'Unknown'}
-                                                        </span>
-                                                    </div>
-                                                    
-                                                    <div className="space-y-2 text-sm">
-                                                        <div className="flex items-center gap-2">
-                                                            <span className={`text-gray-600 dark:text-muted ${
-                                                                isDarkMode ? 'text-gray-400' : 'text-gray-600 dark:text-muted'
-                                                            }`}>{vehicle.driver || 'Unassigned'}</span>
-                                                        </div>
-                                                        <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400">
-                                                            <span>{vehicle.type || 'Unknown Type'}</span>
-                                                            <span>{vehicle.speed || 0} mph</span>
-                                                        </div>
-                                                        <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400">
-                                                            <span>Updated: {vehicle.lastUpdate || vehicle.last_update || 'N/A'}</span>
-                                                            <span className="flex items-center gap-1">
-                                                                <Navigation className="w-3 h-3" />
-                                                                {vehicle.heading || 0}°
-                                                            </span>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            ))
-                                        )}
-                                    </div>
-                                )}
-
-                                {selectedTab === 'routes' && (
-                                    <div className="space-y-3">
-                                        {!Array.isArray(routes) || routes.length === 0 ? (
-                                            <div className={`text-center py-8 ${
-                                                isDarkMode ? 'text-gray-400' : 'text-white/60'
-                                            }`}>
-                                                <Route className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                                                <p>No routes found</p>
-                                            </div>
-                                        ) : (
-                                            routes.map((route) => {
-                                                const isVisible = visibleRoutes && visibleRoutes.has ? visibleRoutes.has(route.id) : false;
-                                                const isActive = route.status === 'active' || route.status === 'ACTIVE';
-                                                const canToggle = !isActive;
-                                                
-                                                return (
-                                                    <div 
-                                                        key={route.id} 
-                                                        className={`border rounded-lg p-4 transition-all ${
-                                                            canToggle ? 'cursor-pointer hover:shadow-md' : 'cursor-default'
-                                                        } ${
-                                                            isVisible ? 'bg-white border-blue-200' : 'bg-gray-50 border-gray-200'
-                                                        } ${
-                                                            isActive ? 'ring-2 ring-green-200' : ''
-                                                        } ${
-                                                            isDarkMode 
-                                                                ? 'bg-gray-800/40 border-gray-600/50' 
-                                                                : 'bg-white/10 border-white/20'
-                                                        }`}
-                                                        onClick={() => toggleRouteVisibility(route.id, route.status)}
-                                                    >
-                                                        <div className="flex items-start justify-between mb-2">
-                                                            <div className="flex items-center gap-2">
-                                                                <div className="flex items-center gap-1">
-                                                                    <Route className={`w-4 h-4 ${
-                                                                        isVisible ? 'text-blue-500' : 'text-gray-400'
-                                                                    }`} />
-                                                                    <div className={`w-2 h-2 rounded-full ${
-                                                                        isVisible ? 'bg-blue-500' : 'bg-gray-400'
-                                                                    }`}></div>
-                                                                </div>
-                                                                <span className={`font-medium ${
-                                                                    isVisible ? 'text-gray-900 dark:text-foreground' : 'text-gray-500 dark:text-gray-400'
-                                                                }`}>{route.name || route.id}</span>
-                                                                {isActive && (
-                                                                    <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full font-medium">
-                                                                        ALWAYS VISIBLE
-                                                                    </span>
-                                                                )}
-                                                            </div>
-                                                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(route.status)}`}>
-                                                                {route.status || 'Unknown'}
-                                                            </span>
-                                                        </div>
-                                                        
-                                                        <div className="space-y-2 text-sm">
-                                                            <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400">
-                                                                <span>Waypoints: {route.waypoints?.length || 0}</span>
-                                                                <span>Distance: {route.distance ? `${route.distance} km` : 'N/A'}</span>
-                                                            </div>
-                                                            <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400">
-                                                                <span>Efficiency: {route.efficiency || 'N/A'}%</span>
-                                                                <span>ETA: {route.estimated_time || route.estimatedTime || 'N/A'}</span>
-                                                            </div>
-                                                        </div>
-                                                        
-                                                        {canToggle && (
-                                                            <div className="mt-2 pt-2 border-t">
-                                                                <span className="text-xs text-gray-400">
-                                                                    Click to {isVisible ? 'hide' : 'show'} on map
-                                                                </span>
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                );
-                                            })
-                                        )}
-                                    </div>
-                                )}
-                            </>
-                        )}
-                    </div>
-                </div>
-            </div>
+function RouteRow({ route, index, isSelected, onSelect, onStart }) {
+  const color = routeColor(index);
+  const canStart = route.status === 'PLANNED' && route.driver && route.vehicle && route.stopsTotal > 0;
+  return (
+    <button
+      onClick={() => onSelect(route.id)}
+      className={cn(
+        'w-full text-left px-3 py-2 rounded-md border transition-colors',
+        isSelected
+          ? 'border-primary/60 bg-primary/10'
+          : 'border-transparent hover:bg-gray-100 dark:hover:bg-gray-800'
+      )}
+    >
+      <div className="flex items-center gap-2">
+        <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: color }} />
+        <span className="font-semibold text-sm text-gray-900 dark:text-foreground">{route.routeNumber}</span>
+        <span className={cn('text-[10px] px-1.5 py-0.5 rounded-full font-semibold', STATUS_STYLES[route.status] || '')}>
+          {route.status}
+        </span>
+        <span className="ml-auto text-xs text-gray-500 dark:text-muted">
+          {route.stopsCompleted}/{route.stopsTotal} stops
+        </span>
+        {canStart && (
+          <span
+            role="button"
+            title="Start route"
+            onClick={(e) => {
+              e.stopPropagation();
+              onStart(route.id);
+            }}
+            className="p-1 rounded bg-primary/20 hover:bg-primary/40 text-primary"
+          >
+            <Play className="w-3.5 h-3.5" />
+          </span>
+        )}
+      </div>
+      <div className="mt-1 flex items-center gap-2 text-xs text-gray-500 dark:text-muted">
+        <span>{route.driver ? route.driver.name : 'no driver'}</span>
+        <span>·</span>
+        <span>{route.vehicle ? route.vehicle.vehicleNumber : 'no vehicle'}</span>
+      </div>
+      {route.stopsTotal > 0 && (
+        <div className="mt-1.5 h-1 rounded bg-gray-200 dark:bg-gray-800 overflow-hidden">
+          <div
+            className="h-full rounded"
+            style={{ width: `${(100 * route.stopsCompleted) / route.stopsTotal}%`, backgroundColor: color }}
+          />
         </div>
-    );
+      )}
+    </button>
+  );
+}
+
+function UnassignedRow({ order, routes, onAssign }) {
+  const [routeId, setRouteId] = useState('');
+  const assignable = routes.filter((r) => r.status !== 'COMPLETED');
+  return (
+    <div className="px-3 py-2 rounded-md border border-transparent hover:bg-gray-100 dark:hover:bg-gray-800">
+      <div className="flex items-center gap-2">
+        <Package className="w-3.5 h-3.5 text-orange-400 shrink-0" />
+        <span className="font-semibold text-sm text-gray-900 dark:text-foreground">{order.orderNumber}</span>
+        <span className="text-xs text-gray-500 dark:text-muted truncate">{order.customer?.name}</span>
+        <span className="ml-auto text-xs text-gray-500 dark:text-muted">{order.parcelCount}×</span>
+      </div>
+      <div className="mt-1 text-xs text-gray-500 dark:text-muted truncate">→ {order.delivery?.address}</div>
+      <div className="mt-1.5 flex items-center gap-1.5">
+        <select
+          value={routeId}
+          onChange={(e) => setRouteId(e.target.value)}
+          className="flex-1 text-xs px-2 py-1 rounded border border-gray-200 dark:border-accent bg-white dark:bg-gray-900 text-gray-700 dark:text-foreground"
+        >
+          <option value="">assign to route…</option>
+          {assignable.map((r) => (
+            <option key={r.id} value={r.id}>
+              {r.routeNumber} ({r.status.toLowerCase()}, {r.stopsTotal} stops)
+            </option>
+          ))}
+        </select>
+        <button
+          disabled={!routeId}
+          onClick={() => routeId && onAssign(order.id, routeId)}
+          className={cn(
+            'text-xs px-2.5 py-1 rounded font-semibold',
+            routeId
+              ? 'bg-primary text-background hover:bg-primary/80'
+              : 'bg-gray-200 dark:bg-gray-800 text-gray-400 cursor-not-allowed'
+          )}
+        >
+          Assign
+        </button>
+      </div>
+    </div>
+  );
+}
+
+const FloatingControlPanel = ({
+  routes,
+  unassignedOrders,
+  drivers,
+  selectedRouteId,
+  onSelectRoute,
+  onAssignOrder,
+  onStartRoute,
+  loading,
+  wsConnected,
+  actionError,
+}) => {
+  const [collapsed, setCollapsed] = useState(false);
+  const [tab, setTab] = useState('routes');
+  const activeCount = routes.filter((r) => r.status === 'ACTIVE').length;
+
+  return (
+    <div className="absolute top-6 right-6 z-40 w-[340px] max-h-[85vh] flex flex-col rounded-lg shadow-2xl border border-gray-200 dark:border-accent bg-white/95 dark:bg-gray-900/95 backdrop-blur">
+      {/* Header */}
+      <div className="flex items-center gap-2 px-4 py-3 border-b border-gray-200 dark:border-accent">
+        <RouteIcon className="w-4 h-4 text-primary" />
+        <span className="font-bold text-sm text-gray-900 dark:text-foreground">Dispatch — Austin</span>
+        <span title={wsConnected ? 'live event feed connected' : 'event feed disconnected'} className="ml-1">
+          {wsConnected ? <Wifi className="w-3.5 h-3.5 text-primary" /> : <WifiOff className="w-3.5 h-3.5 text-red-400" />}
+        </span>
+        <button
+          onClick={() => setCollapsed(!collapsed)}
+          className="ml-auto p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 dark:text-muted"
+        >
+          {collapsed ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />}
+        </button>
+      </div>
+
+      {!collapsed && (
+        <>
+          {/* Tabs */}
+          <div className="flex px-2 pt-2 gap-1">
+            <button
+              onClick={() => setTab('routes')}
+              className={cn(
+                'flex-1 text-xs font-semibold px-3 py-1.5 rounded-md',
+                tab === 'routes'
+                  ? 'bg-primary/15 text-primary'
+                  : 'text-gray-500 dark:text-muted hover:bg-gray-100 dark:hover:bg-gray-800'
+              )}
+            >
+              Routes ({activeCount} active)
+            </button>
+            <button
+              onClick={() => setTab('orders')}
+              className={cn(
+                'flex-1 text-xs font-semibold px-3 py-1.5 rounded-md',
+                tab === 'orders'
+                  ? 'bg-orange-400/15 text-orange-400'
+                  : 'text-gray-500 dark:text-muted hover:bg-gray-100 dark:hover:bg-gray-800'
+              )}
+            >
+              Unassigned ({unassignedOrders.length})
+            </button>
+          </div>
+
+          {actionError && (
+            <div className="mx-3 mt-2 px-3 py-2 text-xs rounded bg-red-500/10 text-red-400 border border-red-500/30">
+              {actionError}
+            </div>
+          )}
+
+          <div className="flex-1 overflow-y-auto p-2 space-y-1">
+            {loading ? (
+              <div className="text-center text-xs text-gray-500 dark:text-muted py-6">Loading world…</div>
+            ) : tab === 'routes' ? (
+              routes.length === 0 ? (
+                <div className="text-center text-xs text-gray-500 dark:text-muted py-6">No routes yet</div>
+              ) : (
+                routes.map((route, idx) => (
+                  <RouteRow
+                    key={route.id}
+                    route={route}
+                    index={idx}
+                    isSelected={route.id === selectedRouteId}
+                    onSelect={onSelectRoute}
+                    onStart={onStartRoute}
+                  />
+                ))
+              )
+            ) : unassignedOrders.length === 0 ? (
+              <div className="text-center text-xs text-gray-500 dark:text-muted py-6">
+                Every order is on a route 🎉
+              </div>
+            ) : (
+              unassignedOrders.map((order) => (
+                <UnassignedRow key={order.id} order={order} routes={routes} onAssign={onAssignOrder} />
+              ))
+            )}
+          </div>
+
+          {/* Footer: driver duty summary */}
+          <div className="px-4 py-2 border-t border-gray-200 dark:border-accent text-[11px] text-gray-500 dark:text-muted">
+            {drivers.filter((d) => d.status === 'ON_ROUTE').length} driving ·{' '}
+            {drivers.filter((d) => d.status === 'AVAILABLE').length} available ·{' '}
+            {drivers.filter((d) => d.status === 'OFF_DUTY').length} off duty
+          </div>
+        </>
+      )}
+    </div>
+  );
 };
 
 export default FloatingControlPanel;

@@ -1,207 +1,127 @@
-// ui/src/contexts/WebSocketContext.js
-
+/**
+ * WebSocket context — live feed of canonical events.
+ *
+ * Connects to /ws and receives every event on the backbone verbatim in
+ * envelope v1 wire form (camelCase):
+ *   { eventId, eventType, eventVersion, sourceSystem, tenantId,
+ *     entityRefs, occurredAt, observedAt, payload, traceId }
+ *
+ * Consumers filter by envelope.eventType (e.g. 'driver.location-updated').
+ */
 import React, { createContext, useContext, useRef, useCallback, useEffect, useState } from 'react';
 
 const WebSocketContext = createContext(null);
 
 export const useWebSocket = () => {
-    const context = useContext(WebSocketContext);
-    if (!context) {
-        throw new Error('useWebSocket must be used within a WebSocketProvider');
-    }
-    return context;
+  const context = useContext(WebSocketContext);
+  if (!context) {
+    throw new Error('useWebSocket must be used within a WebSocketProvider');
+  }
+  return context;
 };
 
+function defaultWsUrl() {
+  if (process.env.REACT_APP_WEBSOCKET_URL) return process.env.REACT_APP_WEBSOCKET_URL;
+  const proto = window.location.protocol === 'https:' ? 'wss' : 'ws';
+  // In dev (CRA on :3000) the dev server doesn't proxy websockets reliably,
+  // so fall back to the API port directly.
+  const host =
+    window.location.port === '3000' && process.env.NODE_ENV === 'development'
+      ? `${window.location.hostname}:8000`
+      : window.location.host;
+  return `${proto}://${host}/ws`;
+}
+
 export const WebSocketProvider = ({ children }) => {
-    const wsRef = useRef(null);
-    const [isConnected, setIsConnected] = useState(false);
-    const [events, setEvents] = useState([]);
-    const [lastReconnectAttempt, setLastReconnectAttempt] = useState(0);
-    const reconnectTimeoutRef = useRef(null);
-    const eventListenersRef = useRef(new Map());
-    const isConnectingRef = useRef(false); // Prevent multiple connection attempts
-    const mountedRef = useRef(true); // Track if component is mounted
+  const wsRef = useRef(null);
+  const [isConnected, setIsConnected] = useState(false);
+  const [events, setEvents] = useState([]);
+  const reconnectRef = useRef(null);
+  const reconnectDelayRef = useRef(2000);
+  const listenersRef = useRef(new Map());
+  const mountedRef = useRef(true);
 
-    const connectWebSocket = useCallback(() => {
-        // Prevent multiple connection attempts
-        if (!mountedRef.current || isConnectingRef.current) {
-            return;
-        }
-        
-        if (wsRef.current && (wsRef.current.readyState === WebSocket.CONNECTING || wsRef.current.readyState === WebSocket.OPEN)) {
-            return;
-        }
+  const connect = useCallback(() => {
+    if (!mountedRef.current) return;
+    if (wsRef.current && (wsRef.current.readyState === WebSocket.CONNECTING || wsRef.current.readyState === WebSocket.OPEN)) {
+      return;
+    }
+    const url = defaultWsUrl();
+    try {
+      const ws = new WebSocket(url);
+      wsRef.current = ws;
 
-        const wsUrl = `${process.env.REACT_APP_WEBSOCKET_URL || 'ws://localhost:8000/ws'}/events`;
-        console.log('Attempting WebSocket connection...');
-        isConnectingRef.current = true;
-        
+      ws.onopen = () => {
+        if (!mountedRef.current) return;
+        setIsConnected(true);
+        reconnectDelayRef.current = 2000;
+      };
+
+      ws.onmessage = (msg) => {
         try {
-            wsRef.current = new WebSocket(wsUrl);
-            
-            wsRef.current.onopen = () => {
-                if (!mountedRef.current) return;
-                
-                console.log('WebSocket connected');
-                setIsConnected(true);
-                setLastReconnectAttempt(0);
-                isConnectingRef.current = false;
-                
-                // Clear any pending reconnection attempts
-                if (reconnectTimeoutRef.current) {
-                    clearTimeout(reconnectTimeoutRef.current);
-                    reconnectTimeoutRef.current = null;
-                }
-            };
-            
-            wsRef.current.onmessage = (event) => {
-                try {
-                    const data = JSON.parse(event.data);
-                    setEvents(prev => [data, ...prev.slice(0, 99)]); // Keep last 100 events
-                    
-                    // Notify all registered listeners
-                    eventListenersRef.current.forEach((listener, id) => {
-                        listener(data);
-                    });
-                } catch (error) {
-                    console.error('Error parsing WebSocket message:', error);
-                }
-            };
-            
-            wsRef.current.onclose = (event) => {
-                if (!mountedRef.current) return;
-                
-                console.log('WebSocket disconnected:', {
-                    code: event.code,
-                    reason: event.reason || 'No reason provided',
-                    wasClean: event.wasClean,
-                    url: wsUrl
-                });
-                setIsConnected(false);
-                isConnectingRef.current = false;
-                
-                // Only attempt reconnection if not manually closed
-                if (event.code !== 1000) {
-                    scheduleReconnection();
-                }
-            };
-            
-            wsRef.current.onerror = (error) => {
-                if (!mountedRef.current) return;
-                
-                console.error('WebSocket error details:', {
-                    type: error.type,
-                    target: error.target?.readyState,
-                    url: error.target?.url,
-                    isTrusted: error.isTrusted,
-                    message: error.message || 'Connection failed'
-                });
-                setIsConnected(false);
-                isConnectingRef.current = false;
-            };
-        } catch (error) {
-            console.error('Failed to create WebSocket connection:', error);
-            isConnectingRef.current = false;
-            if (mountedRef.current) {
-                scheduleReconnection();
-            }
+          const envelope = JSON.parse(msg.data);
+          if (!envelope.eventType) return;
+          setEvents((prev) => [envelope, ...prev.slice(0, 199)]);
+          listenersRef.current.forEach((listener) => listener(envelope));
+        } catch {
+          // non-JSON frame; ignore
         }
-    }, []); // Remove dependencies to prevent recreation
+      };
 
-    const scheduleReconnection = useCallback(() => {
-        if (!mountedRef.current || isConnectingRef.current) {
-            return;
-        }
-        
-        // Clear any existing timeout
-        if (reconnectTimeoutRef.current) {
-            clearTimeout(reconnectTimeoutRef.current);
-        }
-
-        // Exponential backoff with max delay of 30 seconds
-        const now = Date.now();
-        const timeSinceLastAttempt = now - lastReconnectAttempt;
-        const minDelay = Math.min(3000 * Math.pow(2, Math.floor(timeSinceLastAttempt / 10000)), 30000);
-        
-        console.log(`Scheduling WebSocket reconnection in ${minDelay}ms`);
-        setLastReconnectAttempt(now);
-        
-        reconnectTimeoutRef.current = setTimeout(() => {
-            if (mountedRef.current) {
-                connectWebSocket();
-            }
-        }, minDelay);
-    }, [lastReconnectAttempt]); // Remove connectWebSocket dependency
-
-    const addEventListener = useCallback((listener) => {
-        const id = Math.random().toString(36).substr(2, 9);
-        eventListenersRef.current.set(id, listener);
-        
-        // Return cleanup function
-        return () => {
-            eventListenersRef.current.delete(id);
-        };
-    }, []);
-
-    const disconnect = useCallback(() => {
-        isConnectingRef.current = false;
-        
-        if (reconnectTimeoutRef.current) {
-            clearTimeout(reconnectTimeoutRef.current);
-            reconnectTimeoutRef.current = null;
-        }
-        
-        if (wsRef.current) {
-            wsRef.current.close(1000, 'Manual disconnect');
-            wsRef.current = null;
-        }
-        
+      ws.onclose = () => {
+        if (!mountedRef.current) return;
         setIsConnected(false);
-    }, []);
+        scheduleReconnect();
+      };
 
-    // Initialize WebSocket connection on mount
-    useEffect(() => {
-        mountedRef.current = true;
-        
-        // Small delay to prevent React StrictMode double execution
-        const timer = setTimeout(() => {
-            if (mountedRef.current) {
-                connectWebSocket();
-            }
-        }, 100);
-        
-        // Cleanup on unmount
-        return () => {
-            mountedRef.current = false;
-            clearTimeout(timer);
-            disconnect();
-        };
-    }, []); // Remove dependencies to prevent re-execution
+      ws.onerror = () => {
+        setIsConnected(false);
+      };
+    } catch {
+      scheduleReconnect();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-    // Add visibility change handler to reconnect when tab becomes visible
-    useEffect(() => {
-        const handleVisibilityChange = () => {
-            if (mountedRef.current && document.visibilityState === 'visible' && !isConnected && !isConnectingRef.current) {
-                console.log('Tab became visible, attempting WebSocket reconnection...');
-                connectWebSocket();
-            }
-        };
+  const scheduleReconnect = useCallback(() => {
+    if (!mountedRef.current || reconnectRef.current) return;
+    const delay = reconnectDelayRef.current;
+    reconnectDelayRef.current = Math.min(delay * 2, 30000);
+    reconnectRef.current = setTimeout(() => {
+      reconnectRef.current = null;
+      connect();
+    }, delay);
+  }, [connect]);
 
-        document.addEventListener('visibilitychange', handleVisibilityChange);
-        return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
-    }, [isConnected]); // Remove connectWebSocket dependency
+  const addEventListener = useCallback((listener) => {
+    const id = Math.random().toString(36).slice(2, 11);
+    listenersRef.current.set(id, listener);
+    return () => listenersRef.current.delete(id);
+  }, []);
 
-    const value = {
-        isConnected,
-        events,
-        addEventListener,
-        disconnect,
-        reconnect: connectWebSocket
+  useEffect(() => {
+    mountedRef.current = true;
+    const timer = setTimeout(connect, 100);
+    return () => {
+      mountedRef.current = false;
+      clearTimeout(timer);
+      if (reconnectRef.current) clearTimeout(reconnectRef.current);
+      if (wsRef.current) wsRef.current.close(1000, 'unmount');
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-    return (
-        <WebSocketContext.Provider value={value}>
-            {children}
-        </WebSocketContext.Provider>
-    );
+  useEffect(() => {
+    const onVisible = () => {
+      if (document.visibilityState === 'visible' && !isConnected) connect();
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => document.removeEventListener('visibilitychange', onVisible);
+  }, [isConnected, connect]);
+
+  return (
+    <WebSocketContext.Provider value={{ isConnected, events, addEventListener }}>
+      {children}
+    </WebSocketContext.Provider>
+  );
 };

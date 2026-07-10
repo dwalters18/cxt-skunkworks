@@ -1,0 +1,25 @@
+{
+  "name": "lip-world-cdc",
+  "config": {
+    "connector.class": "io.debezium.connector.postgresql.PostgresConnector",
+    "plugin.name": "pgoutput",
+    "database.hostname": "postgres",
+    "database.port": "5432",
+    "database.user": "lip_user",
+    "database.password": "lip_password",
+    "database.dbname": "lip_world",
+    "topic.prefix": "cdc.raw",
+    "schema.include.list": "public",
+    "table.include.list": "public.customers,public.depots,public.drivers,public.vehicles,public.routes,public.orders,public.stops,public.parcels",
+    "slot.name": "lip_world_cdc",
+    "publication.name": "lip_world_pub",
+    "snapshot.mode": "initial",
+    "tombstones.on.delete": "false",
+    "skipped.operations": "t",
+    "topic.creation.enable": "true",
+    "topic.creation.default.partitions": "1",
+    "topic.creation.default.replication.factor": "1",
+    "topic.creation.default.cleanup.policy": "delete",
+    "heartbeat.interval.ms": "10000"
+  }
+}

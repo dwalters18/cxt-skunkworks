@@ -21,11 +21,11 @@ import {
 const navigationItems = [
   { id: 'dispatch', label: 'Dispatch Board', icon: MapPin, path: '/' },
   { id: 'dashboard', label: 'Dashboard', icon: Home, path: '/dashboard' },
-  { id: 'loads', label: 'Loads', icon: Package, path: '/loads' },
+  { id: 'orders', label: 'Orders', icon: Package, path: '/orders' },
   { id: 'drivers', label: 'Drivers', icon: Users, path: '/drivers' },
   { id: 'fleet', label: 'Fleet', icon: Truck, path: '/fleet' },
   { id: 'analytics', label: 'Analytics', icon: BarChart3, path: '/analytics' },
-  { id: 'events', label: 'Events', icon: Activity, path: '/events' },
+  { id: 'events', label: 'Event Console', icon: Activity, path: '/events' },
   { id: 'settings', label: 'Settings', icon: Settings, path: '/settings' },
 ];
 
@@ -187,7 +187,7 @@ export function AppLayout({ children, currentPath, onNavigate }) {
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-muted" />
                 <input
                   type="text"
-                  placeholder="Search loads, drivers, vehicles..."
+                  placeholder="Search orders, drivers, vehicles..."
                   className="w-full pl-10 pr-4 py-2 border border-gray-200 dark:border-accent rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-foreground placeholder-gray-400 dark:placeholder-muted focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
                 />
               </div>

@@ -1,151 +1,67 @@
-# server/app/main.py
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
-import uvicorn
+"""LIP demo API — FastAPI entrypoint.
+
+Action plane + experience plane gateway: REST mutations over the world model
+(each emitting canonical events), read endpoints over the three projections,
+and a WebSocket that mirrors the canonical event backbone to the UI.
+"""
+from __future__ import annotations
+
 import asyncio
 import logging
 from contextlib import asynccontextmanager
-from typing import Optional
 
-# Import routers
-from routers import (
-    health,
-    loads,
-    drivers,
-    vehicles,
-    routes,
-    events,
-    analytics,
-    websocket
-)
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
-# Import background services
-from kafka.consumer import get_consumer, TMSEventConsumer
-from kafka.producer import get_producer
+from db.connections import databases
+from eventbus.publisher import get_publisher
+from routers import analytics, customers, drivers, events_api, graph, health, orders, routes_api, stops, vehicles, ws
+from services.wsbus import pump_events_to_websockets
 
-# Configure logging
 logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    level=logging.INFO, format="%(asctime)s %(name)s %(levelname)s %(message)s"
 )
 logger = logging.getLogger(__name__)
-
-# Global instances
-consumer_task: Optional[asyncio.Task] = None
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Manage application lifecycle."""
-    global consumer_task
-    logger.info("=== STARTING TMS EVENT-DRIVEN API ===")
-
-    # Start Kafka producer first to create topics
-    try:
-        logger.info("Step 1: Initializing Kafka producer and creating topics...")
-        producer = await get_producer()
-        logger.info("Step 2: Kafka producer started and topics created successfully")
-    except Exception as e:
-        logger.error(f"ERROR: Failed to initialize Kafka producer: {e}")
-        logger.exception("Kafka producer startup error:")
-        # Don't fail the entire app if Kafka producer fails
-        logger.warning("Continuing without Kafka producer...")
-
-    # Start Kafka consumer in background
-    try:
-        logger.info("Step 3: Initializing Kafka consumer...")
-        consumer = await get_consumer()
-        logger.info("Step 4: Kafka consumer instance created successfully")
-
-        logger.info("Step 5: Starting Kafka consumer background task...")
-
-        # Wrap the consumer start in a safe background task
-        async def safe_consumer_start():
-            try:
-                await consumer.start()
-                logger.info("Kafka consumer started successfully")
-            except Exception as e:
-                logger.error(f"Kafka consumer failed to start: {e}")
-                logger.exception("Kafka consumer startup error:")
-
-        consumer_task = asyncio.create_task(safe_consumer_start())
-        logger.info("Step 6: Kafka consumer background task created")
-
-        # Give it a brief moment to attempt startup, but don't wait for completion
-        await asyncio.sleep(0.5)
-        logger.info("Step 7: Initial startup delay completed")
-
-        logger.info("=== KAFKA CONSUMER STARTUP COMPLETED ===")
-    except Exception as e:
-        logger.error(f"ERROR: Failed to initialize Kafka consumer: {e}")
-        logger.exception("Full exception details:")
-        # Don't fail the entire app if Kafka consumer fails
-        logger.warning("Continuing without Kafka consumer...")
-        consumer_task = None
-
-    logger.info("=== API STARTUP COMPLETED - READY TO SERVE REQUESTS ===")
+    logger.info("LIP API starting")
+    await databases.connect_postgres()
+    await databases.connect_timescale()
+    await databases.connect_neo4j()
+    await get_publisher()
+    ws_pump = asyncio.create_task(pump_events_to_websockets())
+    logger.info("LIP API ready")
     yield
-
-    # Cleanup
-    logger.info("=== SHUTTING DOWN TMS EVENT-DRIVEN API ===")
-    if consumer_task:
-        logger.info("Cancelling Kafka consumer task...")
-        consumer_task.cancel()
-        try:
-            await consumer_task
-        except asyncio.CancelledError:
-            logger.info("Kafka consumer stopped gracefully")
-
-    logger.info("=== SHUTDOWN COMPLETE ===")
+    ws_pump.cancel()
+    try:
+        await ws_pump
+    except asyncio.CancelledError:
+        pass
+    await databases.close()
+    publisher = await get_publisher()
+    await publisher.stop()
+    logger.info("LIP API stopped")
 
 
-# Initialize FastAPI app
-logger.info("Initializing FastAPI application...")
 app = FastAPI(
-    title="TMS Event-Driven API",
-    description="Transportation Management System with Event-Driven Architecture",
+    title="LIP Demo API",
+    description="Logistics Intelligence Platform proof-of-concept — canonical event backbone demo",
     version="1.0.0",
     lifespan=lifespan,
-    redirect_slashes=False  # Allow both /api/loads and /api/loads/ to work
 )
-logger.info("FastAPI application initialized")
 
-# Add CORS middleware
+# The UI is served same-origin through nginx in Docker; CORS covers local dev
+# (CRA dev server on :3000 talking straight to :8000).
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],  # React dev server
+    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
-logger.info("CORS middleware configured for localhost:3000")
 
-# Register routers with /api prefix
-logger.info("Registering API routers...")
-try:
-    logger.info("- Adding health router")
-    app.include_router(health.router, prefix="/api")
-    logger.info("- Adding loads router")
-    app.include_router(loads.router, prefix="/api")
-    logger.info("- Adding drivers router")
-    app.include_router(drivers.router, prefix="/api")
-    logger.info("- Adding vehicles router")
-    app.include_router(vehicles.router, prefix="/api")
-    logger.info("- Adding routes router")
-    app.include_router(routes.router, prefix="/api")
-    logger.info("- Adding events router")
-    app.include_router(events.router, prefix="/api")
-    logger.info("- Adding analytics router")
-    app.include_router(analytics.router, prefix="/api")
-    logger.info("- Adding websocket router")
-    # WebSocket router doesn't need /api prefix
-    app.include_router(websocket.router)
-    logger.info("All routers registered successfully")
-except Exception as e:
-    logger.error(f"ERROR: Failed to register routers: {e}")
-    logger.exception("Router registration error details:")
-    raise
-
-
-if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+for r in (health, orders, routes_api, stops, drivers, vehicles, customers, events_api, analytics, graph):
+    app.include_router(r.router, prefix="/api")
+app.include_router(ws.router)

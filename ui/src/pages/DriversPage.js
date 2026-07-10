@@ -1,254 +1,262 @@
-import React, { useState, useEffect } from 'react';
+/**
+ * Drivers — duty roster with live "last seen" telemetry and the graph-powered
+ * blast-radius panel (what breaks if this driver goes dark).
+ */
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { cn } from '../components/base/utils';
+import { useWebSocket } from '../contexts/WebSocketContext';
+import api from '../api/client';
+import { Phone, Clock, Route as RouteIcon, Network, X, User } from 'lucide-react';
+
+const STATUS_STYLES = {
+  AVAILABLE: 'bg-green-400/15 text-green-600 dark:text-green-400',
+  ON_ROUTE: 'bg-sky-400/15 text-sky-600 dark:text-sky-400',
+  OFF_DUTY: 'bg-gray-400/20 text-gray-600 dark:text-gray-400',
+};
+
+const ROUTE_STATUS_STYLES = {
+  ACTIVE: 'bg-primary/15 text-emerald-600 dark:text-primary',
+  PLANNED: 'bg-sky-400/15 text-sky-600 dark:text-sky-400',
+  COMPLETED: 'bg-gray-400/20 text-gray-600 dark:text-gray-400',
+};
+
+function timeAgo(iso) {
+  if (!iso) return 'never';
+  const s = Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / 1000));
+  if (s < 60) return `${s}s ago`;
+  if (s < 3600) return `${Math.floor(s / 60)}m ago`;
+  if (s < 86400) return `${Math.floor(s / 3600)}h ago`;
+  return `${Math.floor(s / 86400)}d ago`;
+}
+
+function ImpactPanel({ impact, onClose }) {
+  const openOrders = impact.openOrdersAffected || [];
+  const customerName = (c) => (typeof c === 'string' ? c : c?.name);
+  return (
+    <div className="fixed inset-0 z-50">
+      <div className="absolute inset-0 bg-black/50" onClick={onClose} />
+      <div className="absolute inset-y-0 right-0 w-full max-w-md bg-white dark:bg-gray-900 border-l border-gray-200 dark:border-accent shadow-2xl overflow-y-auto">
+        <div className="sticky top-0 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-accent px-6 py-4 flex items-start gap-2">
+          <Network className="w-5 h-5 text-primary mt-0.5" />
+          <div className="flex-1">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-foreground">Blast radius</h2>
+            <p className="text-xs text-gray-500 dark:text-muted">from the world-model graph · {impact.driverName}</p>
+          </div>
+          <button onClick={onClose} className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 dark:text-muted">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        <div className="px-6 py-4 space-y-5">
+          {impact.summary && (
+            <p className="text-sm text-gray-700 dark:text-foreground bg-gray-50 dark:bg-gray-800 rounded-lg p-3">{impact.summary}</p>
+          )}
+
+          <div className="grid grid-cols-3 gap-2 text-center">
+            {[
+              [impact.routes?.length || 0, 'routes'],
+              [impact.stopCount ?? 0, 'stops'],
+              [impact.ordersAffected?.length || 0, 'orders'],
+            ].map(([value, label]) => (
+              <div key={label} className="rounded-lg border border-gray-200 dark:border-accent p-2">
+                <div className="text-xl font-bold text-gray-900 dark:text-foreground">{value}</div>
+                <div className="text-xs text-gray-500 dark:text-muted">{label}</div>
+              </div>
+            ))}
+          </div>
+
+          <div>
+            <h3 className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-muted mb-2">Affected routes</h3>
+            {(impact.routes || []).length === 0 ? (
+              <p className="text-sm text-gray-500 dark:text-muted">None</p>
+            ) : (
+              <div className="space-y-1.5">
+                {impact.routes.map((r) => (
+                  <div key={r.id} className="flex items-center gap-2 text-sm">
+                    <span className="font-semibold text-gray-900 dark:text-foreground">{r.routeNumber}</span>
+                    <span className={cn('rounded-full text-xs px-2 py-0.5 font-semibold', ROUTE_STATUS_STYLES[r.status] || '')}>{r.status}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div>
+            <h3 className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-muted mb-2">
+              Open orders at risk ({openOrders.length})
+            </h3>
+            {openOrders.length === 0 ? (
+              <p className="text-sm text-gray-500 dark:text-muted">No open orders would be affected</p>
+            ) : (
+              <div className="space-y-1.5">
+                {openOrders.map((o) => (
+                  <div key={o.id} className="flex items-center gap-2 text-sm">
+                    <span className="font-semibold text-gray-900 dark:text-foreground">{o.orderNumber}</span>
+                    <span className="rounded-full text-xs px-2 py-0.5 font-semibold bg-orange-400/15 text-orange-600 dark:text-orange-400">
+                      {(o.status || '').replace('_', ' ')}
+                    </span>
+                    <span className="text-xs text-gray-500 dark:text-muted truncate">{customerName(o.customer)}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 const DriversPage = () => {
-    const [drivers, setDrivers] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
-    const [selectedDriver, setSelectedDriver] = useState(null);
-    const [filterStatus, setFilterStatus] = useState('all');
-    const [showAvailableOnly, setShowAvailableOnly] = useState(false);
+  const { addEventListener } = useWebSocket();
+  const [drivers, setDrivers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [actionError, setActionError] = useState(null);
+  const [impact, setImpact] = useState(null);
+  const [impactLoadingId, setImpactLoadingId] = useState(null);
+  const refreshTimer = useRef(null);
 
-    const fetchDrivers = async () => {
-        try {
-            setLoading(true);
-            const params = new URLSearchParams();
-            if (filterStatus !== 'all') {
-                params.append('status', filterStatus.toUpperCase());
-            }
-            if (showAvailableOnly) {
-                params.append('available_only', 'true');
-            }
-            
-            const response = await fetch(`${process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000'}/api/drivers?${params}`);
-            if (!response.ok) throw new Error('Failed to fetch drivers');
-            
-            const data = await response.json();
-            setDrivers(data.drivers || []);
-        } catch (err) {
-            setError(err.message);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const fetchDriverDetails = async (driverId) => {
-        try {
-            const response = await fetch(`${process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000'}/api/drivers/${driverId}`);
-            if (!response.ok) throw new Error('Failed to fetch driver details');
-            
-            const driver = await response.json();
-            setSelectedDriver(driver);
-        } catch (err) {
-            console.error('Error fetching driver details:', err);
-        }
-    };
-
-    useEffect(() => {
-        fetchDrivers();
-    }, [filterStatus, showAvailableOnly]);
-
-    const getStatusColor = (status) => {
-        const colors = {
-            'AVAILABLE': 'bg-green-100 text-green-800',
-            'ON_DUTY': 'bg-blue-100 text-blue-800',
-            'OFF_DUTY': 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200',
-            'DRIVING': 'bg-yellow-100 text-yellow-800',
-            'INACTIVE': 'bg-red-100 text-red-800'
-        };
-        return colors[status] || 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200';
-    };
-
-    const formatLastUpdate = (timestamp) => {
-        if (!timestamp) return 'Never';
-        return new Date(timestamp).toLocaleString();
-    };
-
-    if (loading) {
-        return (
-            <div className="p-8">
-                <div className="flex items-center justify-center h-64">
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-                </div>
-            </div>
-        );
+  const fetchDrivers = useCallback(async () => {
+    try {
+      const res = await api.listDrivers();
+      setDrivers(res.drivers || []);
+    } catch (e) {
+      setActionError(e.message);
+    } finally {
+      setLoading(false);
     }
+  }, []);
 
-    return (
-        <div className="p-8">
-            <div className="mb-8">
-                <h1 className="text-3xl font-bold text-gray-900 dark:text-foreground">Drivers</h1>
-                <p className="text-gray-600 dark:text-muted">Manage your driver workforce and schedules</p>
+  const scheduleRefresh = useCallback(() => {
+    if (refreshTimer.current) return;
+    refreshTimer.current = setTimeout(() => {
+      refreshTimer.current = null;
+      fetchDrivers();
+    }, 500);
+  }, [fetchDrivers]);
+
+  useEffect(() => {
+    fetchDrivers();
+    // Keep the relative "last seen" labels fresh even when telemetry pauses.
+    const tick = setInterval(() => setDrivers((prev) => [...prev]), 30000);
+    return () => {
+      clearInterval(tick);
+      if (refreshTimer.current) clearTimeout(refreshTimer.current);
+    };
+  }, [fetchDrivers]);
+
+  useEffect(() => {
+    const unsubscribe = addEventListener((envelope) => {
+      if (envelope.eventType === 'driver.location-updated') {
+        const { driverId } = envelope.payload;
+        setDrivers((prev) =>
+          prev.map((d) => (d.id === driverId ? { ...d, locationUpdatedAt: envelope.occurredAt } : d))
+        );
+      } else if (envelope.eventType === 'driver.status-updated' || envelope.eventType === 'system.demo-reset') {
+        scheduleRefresh();
+      }
+    });
+    return unsubscribe;
+  }, [addEventListener, scheduleRefresh]);
+
+  const toggleDuty = async (driver) => {
+    setActionError(null);
+    const next = driver.status === 'AVAILABLE' ? 'OFF_DUTY' : 'AVAILABLE';
+    try {
+      await api.updateDriverStatus(driver.id, next);
+      fetchDrivers();
+    } catch (e) {
+      setActionError(e.message);
+    }
+  };
+
+  const showImpact = async (driver) => {
+    setActionError(null);
+    setImpactLoadingId(driver.id);
+    try {
+      setImpact(await api.driverImpact(driver.id));
+    } catch (e) {
+      setActionError(e.message);
+    } finally {
+      setImpactLoadingId(null);
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-foreground">Drivers</h1>
+        <p className="text-gray-600 dark:text-muted mt-1">Duty status, live telemetry, and graph-derived impact</p>
+      </div>
+
+      {actionError && (
+        <div className="px-3 py-2 text-xs rounded bg-red-500/10 text-red-500 dark:text-red-400 border border-red-500/30">{actionError}</div>
+      )}
+
+      {loading ? (
+        <div className="text-center text-gray-500 dark:text-muted py-16">Loading drivers…</div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          {drivers.map((driver) => (
+            <div key={driver.id} className="bg-white dark:bg-gray-900 rounded-lg shadow-sm border border-gray-200 dark:border-accent p-4 flex flex-col gap-3">
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center shrink-0">
+                  <User className="w-5 h-5 text-gray-500 dark:text-muted" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="font-semibold text-gray-900 dark:text-foreground truncate">{driver.name}</div>
+                  <div className="text-xs font-mono text-gray-500 dark:text-muted">{driver.driverNumber}</div>
+                </div>
+                <span className={cn('rounded-full text-xs px-2 py-0.5 font-semibold whitespace-nowrap', STATUS_STYLES[driver.status] || '')}>
+                  {(driver.status || '').replace('_', ' ')}
+                </span>
+              </div>
+
+              <div className="space-y-1 text-xs text-gray-600 dark:text-muted">
+                <div className="flex items-center gap-1.5">
+                  <Phone className="w-3.5 h-3.5" /> {driver.phone || '—'}
+                </div>
+                {driver.activeRouteNumber && (
+                  <div className="flex items-center gap-1.5 text-sky-600 dark:text-sky-400">
+                    <RouteIcon className="w-3.5 h-3.5" /> on {driver.activeRouteNumber}
+                  </div>
+                )}
+                <div className="flex items-center gap-1.5">
+                  <Clock className="w-3.5 h-3.5" /> last seen {timeAgo(driver.locationUpdatedAt)}
+                </div>
+              </div>
+
+              <div className="mt-auto flex items-center gap-2 pt-1">
+                {driver.status !== 'ON_ROUTE' && (
+                  <button
+                    onClick={() => toggleDuty(driver)}
+                    className={cn(
+                      'flex-1 text-xs font-semibold px-3 py-1.5 rounded-md',
+                      driver.status === 'AVAILABLE'
+                        ? 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-muted hover:bg-gray-200 dark:hover:bg-gray-700'
+                        : 'bg-primary/15 text-emerald-600 dark:text-primary hover:bg-primary/25'
+                    )}
+                  >
+                    {driver.status === 'AVAILABLE' ? 'Go off duty' : 'Go available'}
+                  </button>
+                )}
+                <button
+                  onClick={() => showImpact(driver)}
+                  disabled={impactLoadingId === driver.id}
+                  className="flex-1 flex items-center justify-center gap-1 text-xs font-semibold px-3 py-1.5 rounded-md border border-gray-200 dark:border-accent text-gray-700 dark:text-foreground hover:bg-gray-100 dark:hover:bg-gray-800 disabled:opacity-50"
+                >
+                  <Network className="w-3.5 h-3.5 text-primary" />
+                  {impactLoadingId === driver.id ? 'Tracing…' : 'Impact'}
+                </button>
+              </div>
             </div>
-
-            {/* Filters */}
-            <div className="bg-white dark:bg-gray-900 rounded-xl shadow-lg border border-gray-200 dark:border-accent p-6 mb-6">
-                <div className="flex items-center justify-between mb-4">
-                    <h2 className="text-xl font-bold text-gray-900 dark:text-foreground">Driver Filters</h2>
-                    <button 
-                        onClick={fetchDrivers}
-                        className="bg-primary hover:bg-primary/80 text-background px-4 py-2 rounded-lg transition-colors duration-200"
-                    >
-                        🔄 Refresh
-                    </button>
-                </div>
-                
-                <div className="flex flex-wrap gap-4">
-                    <div className="flex items-center space-x-2">
-                        <label className="text-sm font-medium text-gray-700 dark:text-muted">Status:</label>
-                        <select 
-                            value={filterStatus} 
-                            onChange={(e) => setFilterStatus(e.target.value)}
-                            className="border border-gray-300 dark:border-accent rounded-md px-3 py-1 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-foreground"
-                        >
-                            <option value="all">All Statuses</option>
-                            <option value="available">Available</option>
-                            <option value="on_duty">On Duty</option>
-                            <option value="off_duty">Off Duty</option>
-                            <option value="driving">Driving</option>
-                            <option value="inactive">Inactive</option>
-                        </select>
-                    </div>
-                    
-                    <div className="flex items-center space-x-2">
-                        <input 
-                            type="checkbox" 
-                            id="availableOnly" 
-                            checked={showAvailableOnly}
-                            onChange={(e) => setShowAvailableOnly(e.target.checked)}
-                            className="rounded border-gray-300 dark:border-accent bg-white dark:bg-gray-800"
-                        />
-                        <label htmlFor="availableOnly" className="text-sm font-medium text-gray-700 dark:text-muted">
-                            Available Only
-                        </label>
-                    </div>
-                </div>
-            </div>
-
-            {error && (
-                <div className="bg-red-100 dark:bg-red-900/20 border border-red-400 dark:border-red-600 text-red-700 dark:text-red-400 px-4 py-3 rounded mb-6">
-                    Error: {error}
-                </div>
-            )}
-
-            {/* Drivers Grid */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-                {drivers.map((driver, index) => (
-                    <div key={driver.driver_id || `driver-${index}`} className="bg-white dark:bg-gray-900 rounded-xl shadow-lg border border-gray-200 dark:border-accent p-6 hover:shadow-xl transition-shadow duration-200">
-                        <div className="flex items-start justify-between mb-4">
-                            <div>
-                                <h3 className="text-lg font-bold text-gray-900 dark:text-foreground">{driver.name}</h3>
-                                <p className="text-sm text-gray-600 dark:text-muted">{driver.carrier_name || 'Independent'}</p>
-                            </div>
-                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(driver.status)}`}>
-                                {driver.status}
-                            </span>
-                        </div>
-                        
-                        <div className="space-y-2 mb-4">
-                            <div className="flex justify-between text-sm">
-                                <span className="text-gray-600 dark:text-muted">License:</span>
-                                <span className="font-medium">{driver.license_number}</span>
-                            </div>
-                            <div className="flex justify-between text-sm">
-                                <span className="text-gray-600 dark:text-muted">Phone:</span>
-                                <span className="font-medium">{driver.phone}</span>
-                            </div>
-                            <div className="flex justify-between text-sm">
-                                <span className="text-gray-600 dark:text-muted">Active Loads:</span>
-                                <span className="font-medium">{driver.active_loads}</span>
-                            </div>
-                        </div>
-                        
-                        {/* Hours of Service */}
-                        <div className="mb-4">
-                            <div className="text-sm text-gray-600 dark:text-muted mb-1">Hours of Service</div>
-                            <div className="flex justify-between text-xs">
-                                <span>Driven: {(driver.hours_driven_today ?? 0).toFixed(1)}h</span>
-                                <span>Remaining: {(driver.hours_remaining_today ?? 0).toFixed(1)}h</span>
-                            </div>
-                            <div className="w-full bg-gray-200 rounded-full h-2 mt-1">
-                                <div
-                                    className="bg-blue-600 h-2 rounded-full"
-                                    style={{ width: `${((driver.hours_driven_today ?? 0) / 11) * 100}%` }}
-                                ></div>
-                            </div>
-                        </div>
-
-                        {/* Location Info */}
-                        {driver.current_location?.latitude && driver.current_location?.longitude && (
-                            <div className="text-xs text-gray-500 dark:text-gray-400 mb-4">
-                                Location: {driver.current_location.latitude.toFixed(4)}, {driver.current_location.longitude.toFixed(4)}<br/>
-                                Updated: {formatLastUpdate(driver.last_location_update)}
-                            </div>
-                        )}
-                        
-                        <button 
-                            onClick={() => fetchDriverDetails(driver.driver_id)}
-                            className="w-full bg-purple-600 hover:bg-purple-700 text-white py-2 px-4 rounded-lg transition-colors duration-200 text-sm"
-                        >
-                            View Details
-                        </button>
-                    </div>
-                ))}
-            </div>
-            
-            {drivers.length === 0 && !loading && (
-                <div className="bg-white rounded-xl shadow-lg p-12 text-center">
-                    <div className="text-6xl mb-4">👥</div>
-                    <h3 className="text-xl font-semibold text-gray-900 dark:text-foreground mb-2">No Drivers Found</h3>
-                    <p className="text-gray-600 dark:text-muted">Try adjusting your filters or check back later.</p>
-                </div>
-            )}
-
-            {/* Driver Details Modal */}
-            {selectedDriver && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-                    <div className="bg-white rounded-xl shadow-xl max-w-2xl w-full max-h-96 overflow-y-auto">
-                        <div className="p-6">
-                            <div className="flex items-start justify-between mb-6">
-                                <div>
-                                    <h2 className="text-2xl font-bold text-gray-900 dark:text-foreground">{selectedDriver.name}</h2>
-                                    <p className="text-gray-600 dark:text-muted">{selectedDriver.carrier_name || 'Independent Driver'}</p>
-                                </div>
-                                <button 
-                                    onClick={() => setSelectedDriver(null)}
-                                    className="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 text-2xl"
-                                >
-                                    ×
-                                </button>
-                            </div>
-                            
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <div>
-                                    <h3 className="text-lg font-semibold mb-3">Contact Information</h3>
-                                    <div className="space-y-2 text-sm">
-                                        <div><strong>Email:</strong> {selectedDriver.email}</div>
-                                        <div><strong>Phone:</strong> {selectedDriver.phone}</div>
-                                        <div><strong>License:</strong> {selectedDriver.license_number}</div>
-                                        <div><strong>Status:</strong> 
-                                            <span className={`ml-2 px-2 py-1 rounded-full text-xs ${getStatusColor(selectedDriver.status)}`}>
-                                                {selectedDriver.status}
-                                            </span>
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                <div>
-                                    <h3 className="text-lg font-semibold mb-3">Performance Metrics</h3>
-                                    <div className="space-y-2 text-sm">
-                                        <div><strong>Total Loads:</strong> {selectedDriver.performance.total_loads}</div>
-                                        <div><strong>Completed:</strong> {selectedDriver.performance.completed_loads}</div>
-                                        <div><strong>Completion Rate:</strong> {(selectedDriver.performance.completion_rate * 100).toFixed(1)}%</div>
-                                        <div><strong>Avg Delivery Time:</strong> {selectedDriver.performance.avg_delivery_hours.toFixed(1)}h</div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
+          ))}
         </div>
-    );
+      )}
+
+      {impact && <ImpactPanel impact={impact} onClose={() => setImpact(null)} />}
+    </div>
+  );
 };
 
 export default DriversPage;
