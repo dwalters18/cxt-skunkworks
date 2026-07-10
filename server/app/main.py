@@ -21,6 +21,7 @@ from routers import (
 
 # Import background services
 from kafka.consumer import get_consumer, TMSEventConsumer
+from kafka.producer import get_producer
 
 # Configure logging
 logging.basicConfig(
@@ -39,13 +40,24 @@ async def lifespan(app: FastAPI):
     global consumer_task
     logger.info("=== STARTING TMS EVENT-DRIVEN API ===")
 
+    # Start Kafka producer first to create topics
+    try:
+        logger.info("Step 1: Initializing Kafka producer and creating topics...")
+        producer = await get_producer()
+        logger.info("Step 2: Kafka producer started and topics created successfully")
+    except Exception as e:
+        logger.error(f"ERROR: Failed to initialize Kafka producer: {e}")
+        logger.exception("Kafka producer startup error:")
+        # Don't fail the entire app if Kafka producer fails
+        logger.warning("Continuing without Kafka producer...")
+
     # Start Kafka consumer in background
     try:
-        logger.info("Step 1: Initializing Kafka consumer...")
+        logger.info("Step 3: Initializing Kafka consumer...")
         consumer = await get_consumer()
-        logger.info("Step 2: Kafka consumer instance created successfully")
+        logger.info("Step 4: Kafka consumer instance created successfully")
 
-        logger.info("Step 3: Starting Kafka consumer background task...")
+        logger.info("Step 5: Starting Kafka consumer background task...")
 
         # Wrap the consumer start in a safe background task
         async def safe_consumer_start():
@@ -57,11 +69,11 @@ async def lifespan(app: FastAPI):
                 logger.exception("Kafka consumer startup error:")
 
         consumer_task = asyncio.create_task(safe_consumer_start())
-        logger.info("Step 4: Kafka consumer background task created")
+        logger.info("Step 6: Kafka consumer background task created")
 
         # Give it a brief moment to attempt startup, but don't wait for completion
         await asyncio.sleep(0.5)
-        logger.info("Step 5: Initial startup delay completed")
+        logger.info("Step 7: Initial startup delay completed")
 
         logger.info("=== KAFKA CONSUMER STARTUP COMPLETED ===")
     except Exception as e:
