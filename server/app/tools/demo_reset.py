@@ -91,7 +91,8 @@ async def emit_genesis_events(publisher: EventPublisher) -> dict:
 
     orders = await pg.fetch(
         """
-        SELECT o.id, o.order_number, o.notes, c.id AS customer_id, c.name AS customer_name,
+        SELECT o.id, o.order_number, o.service_level, o.notes,
+               c.id AS customer_id, c.name AS customer_name,
                (SELECT COUNT(*) FROM parcels p WHERE p.order_id = o.id) AS parcel_count
         FROM orders o JOIN customers c ON c.id = o.customer_id
         ORDER BY o.order_number
@@ -134,6 +135,7 @@ async def emit_genesis_events(publisher: EventPublisher) -> dict:
                 "orderNumber": o["order_number"],
                 "customerId": str(o["customer_id"]),
                 "customerName": o["customer_name"],
+                "serviceLevel": o["service_level"],
                 "parcelCount": o["parcel_count"],
                 "pickup": snapshot(pair["PICKUP"]),
                 "delivery": snapshot(pair["DELIVERY"]),

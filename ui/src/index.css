@@ -1,17 +1,67 @@
+/* CXT design language: Poppins headings, Inter body, dark-first. */
+@import '@fontsource/inter/400.css';
+@import '@fontsource/inter/500.css';
+@import '@fontsource/inter/600.css';
+@import '@fontsource/poppins/500.css';
+@import '@fontsource/poppins/600.css';
+@import '@fontsource/poppins/700.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+/* Theme tokens (RGB channels so Tailwind opacity modifiers work).
+   Light is the default; the DarkModeContext toggles `dark` on <html>. */
+:root {
+  --c-background: 244 247 244;     /* #F4F7F4 green-tinted off-white */
+  --c-surface: 255 255 255;
+  --c-surface-raised: 246 249 246;
+  --c-foreground: 15 23 18;        /* #0F1712 */
+  --c-muted: 92 104 97;            /* #5C6861 */
+  --c-accent: 221 229 222;         /* #DDE5DE hairlines */
+  --c-primary: 63 119 25;          /* #3F7719 deep CXT green on light */
+}
+
+.dark {
+  --c-background: 6 10 8;          /* #060A08 green-tinted near-black */
+  --c-surface: 12 18 16;           /* #0C1210 */
+  --c-surface-raised: 19 27 23;    /* #131B17 */
+  --c-foreground: 244 247 245;
+  --c-muted: 150 161 155;          /* #96A19B */
+  --c-accent: 36 48 41;            /* #243029 */
+  --c-primary: 117 193 88;         /* #75C158 CXT green on dark */
+}
+
 body {
   margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
+  font-family: 'Inter', system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  background-color: rgb(var(--c-background));
+  color: rgb(var(--c-foreground));
+}
+
+h1, h2, h3, h4, .font-heading {
+  font-family: 'Poppins', 'Inter', sans-serif;
 }
 
 code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
-    monospace;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+/* Thin scrollbars for the board panels, themed via tokens */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgb(var(--c-accent)) transparent;
+}
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+*::-webkit-scrollbar-thumb {
+  background: rgb(var(--c-accent));
+  border-radius: 8px;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
 }

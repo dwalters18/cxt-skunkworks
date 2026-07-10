@@ -2,15 +2,14 @@ import React, { useState } from 'react';
 import { cn } from '../base/utils';
 import { Button } from '../base/Button';
 import OperationsLogo from '../OperationsLogo';
-import { 
-  Search, 
-  Home, 
-  Package, 
-  Users, 
-  Truck, 
-  Route, 
-  BarChart3, 
-  Activity, 
+import {
+  Search,
+  Home,
+  Package,
+  Users,
+  Truck,
+  BarChart3,
+  Activity,
   Settings,
   Menu,
   Bell,
@@ -50,14 +49,14 @@ export function AppLayout({ children, currentPath, onNavigate }) {
     <div className="min-h-screen bg-gray-50 dark:bg-background">
       {/* Floating Menu Button for Dispatch (Immersive Mode) */}
       {isDispatchPage && (
-        <div className="fixed top-6 left-6 z-50 animate-in fade-in-0 slide-in-from-left-4 duration-300">
+        <div className="fixed top-3 left-3 z-50 animate-in fade-in-0 slide-in-from-left-4 duration-300">
           <Button
             variant="default"
             size="icon"
-            className="rounded-md shadow-lg hover:shadow-xl transition-all duration-200 bg-primary hover:bg-primary/80"
+            className="rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 bg-primary hover:bg-primary/80 text-background"
             onClick={handleImmersiveMenuClick}
           >
-            <Menu className="w-6 h-6" />
+            <Menu className="w-5 h-5" />
           </Button>
         </div>
       )}

@@ -153,14 +153,20 @@ are future series material.
 
 **The idea.** Intelligence appears inside the workflows people already live in.
 
-**Here.** The React UI ([ui/](ui/)): the **Dispatch Board** (live Austin map —
-depot, numbered stops, moving drivers, assign/start actions), **Orders** (create,
-assign, cancel — every action becomes visible events), **Drivers** (including
-the graph-powered Impact view), **Fleet**, **Dashboard**, **Analytics**, and
-the **Event Console** — the contract made visible: filter the live backbone by
-namespace and producer, expand any envelope, and publish test events (valid and
-invalid) to see validation work. The UI receives events over `/ws` verbatim in
-wire form; what you see in the console is byte-for-byte what consumers see.
+**Here.** The React UI ([ui/](ui/)): the **Dispatch Board** — three panels
+(unassigned queue with time-window urgency, live Austin map, drivers & routes)
+whose state is a **client-side projection**: a REST snapshot folded forward by
+canonical events via a pure reducer ([ui/src/world/reduce.js](ui/src/world/reduce.js)).
+Actions POST to the API and then *wait for their own events* — no
+write-then-refetch, which is the experience-plane version of the platform's
+core claim. Plus **Order entry** (service levels ROUTINE/RUSH/STAT, address-book
+"geocoding" against the seeded city), **Order detail** (lifecycle, stops with
+manual dev controls, parcels, and the per-order **event tail** — the embryo of
+the evidence timeline), **Drivers** (graph-powered Impact view), **Fleet**,
+**Dashboard**, **Analytics**, and the **Event Console** — the contract made
+visible: filter the live backbone, expand any envelope, and publish test events
+(valid and invalid) to see validation work. The UI receives events over `/ws`
+verbatim in wire form; what you see is byte-for-byte what consumers see.
 
 ## The services (docker-compose.yml)
 

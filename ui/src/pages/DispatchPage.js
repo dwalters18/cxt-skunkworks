@@ -1,178 +1,160 @@
 /**
- * Dispatch Board — the live map over the seeded Austin world.
+ * Dispatch Board — three panels over one projection.
  *
- * Data flow (the demo story in one page):
- *   - initial world state via REST (/api/routes, /api/orders/unassigned, ...)
- *   - live movement from the canonical event feed: driver.location-updated
- *     moves the dots; stop/order/route events trigger a world refresh
- *   - actions (assign order, start route) POST to the API, which emits events
- *     the map then reacts to — the full loop in one screen
+ *   [ Unassigned queue ]  [ Live map ]  [ Drivers & routes ]
+ *
+ * All state comes from useWorldProjection: a REST snapshot folded forward by
+ * canonical events. Actions (assign, start, advance) POST to the API and then
+ * WAIT — the board changes only when the resulting events arrive on the bus,
+ * which is the whole demonstration.
  */
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useMemo, useState, useEffect, useCallback } from 'react';
 import MapContainer, { routeColor } from '../components/map/MapContainer';
-import FloatingControlPanel from '../components/dispatch/FloatingControlPanel';
+import UnassignedPanel from '../components/dispatch/UnassignedPanel';
+import DriversPanel from '../components/dispatch/DriversPanel';
+import DriverSlideOver from '../components/dispatch/DriverSlideOver';
 import { useDarkMode } from '../contexts/DarkModeContext';
-import { useWebSocket } from '../contexts/WebSocketContext';
+import { useWorldProjection } from '../world/useWorldProjection';
+import { selectDriverBoard, selectRouteList, selectUnassignedOrders } from '../world/reduce';
 import api from '../api/client';
-
-const REFRESH_EVENTS = new Set([
-  'order.created',
-  'order.assigned',
-  'order.completed',
-  'order.cancelled',
-  'stop.status-updated',
-  'route.planned',
-  'route.started',
-  'route.completed',
-  'driver.status-updated',
-  'system.demo-reset',
-]);
+import { Activity, Wifi, WifiOff } from 'lucide-react';
 
 const DispatchPage = () => {
   const { isDarkMode } = useDarkMode();
-  const { addEventListener, isConnected } = useWebSocket();
+  const { world, isConnected } = useWorldProjection();
 
-  const [routes, setRoutes] = useState([]);
-  const [unassignedOrders, setUnassignedOrders] = useState([]);
-  const [depots, setDepots] = useState([]);
-  const [drivers, setDrivers] = useState([]);
-  const [driverPositions, setDriverPositions] = useState({});
+  const [selectedOrderId, setSelectedOrderId] = useState(null);
   const [selectedRouteId, setSelectedRouteId] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [actionError, setActionError] = useState(null);
-  const refreshTimer = useRef(null);
+  const [openDriverId, setOpenDriverId] = useState(null);
+  const [assigningOrderIds, setAssigningOrderIds] = useState(new Set());
+  const [banner, setBanner] = useState(null);
+  const [now, setNow] = useState(Date.now());
 
-  const fetchWorld = useCallback(async () => {
-    try {
-      const [routesRes, unassignedRes, depotsRes, driversRes] = await Promise.all([
-        api.listRoutes(),
-        api.unassignedOrders(),
-        api.listDepots(),
-        api.listDrivers(),
-      ]);
-      const routeList = routesRes.routes || [];
-      setRoutes(routeList);
-      setUnassignedOrders(unassignedRes.orders || []);
-      setDepots(depotsRes.depots || []);
-      setDrivers(driversRes.drivers || []);
-
-      // Seed driver dots from the world model; live events take over from here.
-      const colorByDriver = {};
-      routeList.forEach((r, idx) => {
-        if (r.driver?.id) colorByDriver[r.driver.id] = routeColor(idx);
-      });
-      setDriverPositions((prev) => {
-        const next = { ...prev };
-        (driversRes.drivers || []).forEach((d) => {
-          if (d.status === 'OFF_DUTY') {
-            delete next[d.id];
-            return;
-          }
-          const existing = next[d.id];
-          next[d.id] = {
-            latitude: existing?.live ? existing.latitude : d.latitude,
-            longitude: existing?.live ? existing.longitude : d.longitude,
-            live: existing?.live || false,
-            name: d.name,
-            routeNumber: d.activeRouteNumber,
-            color: colorByDriver[d.id] || '#9CA3AF',
-            speedMph: existing?.speedMph,
-          };
-        });
-        return next;
-      });
-      setLoading(false);
-    } catch (e) {
-      console.error('world fetch failed', e);
-      setLoading(false);
-    }
+  // Urgency countdowns tick twice a minute.
+  useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), 30000);
+    return () => clearInterval(t);
   }, []);
 
-  // Debounced refresh so a burst of events causes one refetch.
-  const scheduleRefresh = useCallback(() => {
-    if (refreshTimer.current) return;
-    refreshTimer.current = setTimeout(() => {
-      refreshTimer.current = null;
-      fetchWorld();
-    }, 400);
-  }, [fetchWorld]);
+  const unassigned = useMemo(() => selectUnassignedOrders(world), [world]);
+  const routeList = useMemo(() => selectRouteList(world), [world]);
+  const driverBoard = useMemo(() => selectDriverBoard(world), [world]);
 
-  useEffect(() => {
-    fetchWorld();
-    const poll = setInterval(fetchWorld, 30000); // safety net if WS drops
-    return () => {
-      clearInterval(poll);
-      if (refreshTimer.current) clearTimeout(refreshTimer.current);
-    };
-  }, [fetchWorld]);
+  const routeIndexById = useMemo(
+    () => Object.fromEntries(routeList.map((r, i) => [r.id, i])),
+    [routeList]
+  );
 
+  // The selected order stops being "assigning" the moment its events landed.
   useEffect(() => {
-    const unsubscribe = addEventListener((envelope) => {
-      if (envelope.eventType === 'driver.location-updated') {
-        const p = envelope.payload;
-        setDriverPositions((prev) => {
-          const existing = prev[p.driverId] || {};
-          return {
-            ...prev,
-            [p.driverId]: {
-              ...existing,
-              latitude: p.location.latitude,
-              longitude: p.location.longitude,
-              speedMph: p.speedMph,
-              live: true,
-            },
-          };
-        });
-      } else if (REFRESH_EVENTS.has(envelope.eventType)) {
-        scheduleRefresh();
-      }
+    setAssigningOrderIds((prev) => {
+      if (prev.size === 0) return prev;
+      const next = new Set([...prev].filter((id) => world.orders[id]?.status === 'CREATED'));
+      return next.size === prev.size ? prev : next;
     });
-    return unsubscribe;
-  }, [addEventListener, scheduleRefresh]);
+  }, [world]);
 
-  const handleAssignOrder = async (orderId, routeId) => {
-    setActionError(null);
-    try {
-      await api.assignOrder(orderId, routeId);
-    } catch (e) {
-      setActionError(e.message);
+  const driverPositions = useMemo(() => {
+    const out = {};
+    for (const d of driverBoard) {
+      if (d.status === 'OFF_DUTY' || !d.position) continue;
+      out[d.id] = {
+        latitude: d.position.latitude,
+        longitude: d.position.longitude,
+        speedMph: d.position.speedMph,
+        name: d.name,
+        routeNumber: d.currentRoute?.routeNumber,
+        color: d.currentRoute ? routeColor(routeIndexById[d.currentRoute.id] ?? 0) : '#96A19B',
+      };
     }
-  };
+    return out;
+  }, [driverBoard, routeIndexById]);
 
-  const handleStartRoute = async (routeId) => {
-    setActionError(null);
-    try {
-      await api.startRoute(routeId);
-    } catch (e) {
-      setActionError(e.message);
-    }
-  };
+  const handleAssign = useCallback(
+    async (orderId, driverId) => {
+      if (!orderId || !driverId) return;
+      setBanner(null);
+      setAssigningOrderIds((prev) => new Set(prev).add(orderId));
+      setSelectedOrderId(null);
+      try {
+        await api.assignOrderToDriver(orderId, driverId);
+        // Done. order.assigned (and possibly route.planned) will move the card.
+      } catch (e) {
+        setAssigningOrderIds((prev) => {
+          const next = new Set(prev);
+          next.delete(orderId);
+          return next;
+        });
+        setBanner(e.message);
+      }
+    },
+    []
+  );
+
+  const openDriver = openDriverId ? driverBoard.find((d) => d.id === openDriverId) : null;
+  const openDriverRoute = openDriver?.currentRoute ? world.routes[openDriver.currentRoute.id] : null;
 
   return (
-    <div className="h-screen flex bg-gray-50 dark:bg-background relative">
-      <div className="flex-1 relative">
+    <div className="h-screen flex bg-background overflow-hidden">
+      <UnassignedPanel
+        orders={unassigned}
+        selectedOrderId={selectedOrderId}
+        assigningOrderIds={assigningOrderIds}
+        onSelect={setSelectedOrderId}
+        now={now}
+      />
+
+      <div className="flex-1 relative min-w-0">
+        {/* Board status bar */}
+        <div className="absolute top-0 inset-x-0 z-40 flex items-center gap-3 px-4 py-2.5 bg-surface/90 backdrop-blur border-b border-accent">
+          <h1 className="font-heading font-semibold text-sm text-foreground">Dispatch — Austin</h1>
+          <span className="flex items-center gap-1.5 text-[11px] text-muted">
+            {isConnected ? (
+              <><Wifi className="w-3.5 h-3.5 text-primary" /> live</>
+            ) : (
+              <><WifiOff className="w-3.5 h-3.5 text-danger" /> reconnecting…</>
+            )}
+          </span>
+          <span className="ml-auto flex items-center gap-1.5 text-[11px] text-muted font-mono">
+            <Activity className="w-3.5 h-3.5 text-primary" />
+            projected from {world.eventCount.toLocaleString()} events
+            {world.lastEventType && <span className="text-primary/80">· {world.lastEventType}</span>}
+          </span>
+        </div>
+
+        {banner && (
+          <div className="absolute top-12 inset-x-4 z-40 px-3 py-2 text-xs rounded-xl bg-danger/15 text-danger border border-danger/40 backdrop-blur">
+            {banner}
+            <button className="ml-2 underline" onClick={() => setBanner(null)}>dismiss</button>
+          </div>
+        )}
+
         <MapContainer
-          depots={depots}
-          routes={routes}
-          unassignedOrders={unassignedOrders}
+          depots={world.depots}
+          routes={routeList}
+          unassignedOrders={unassigned}
           driverPositions={driverPositions}
-          selectedRouteId={selectedRouteId}
+          selectedRouteId={selectedRouteId || (openDriverRoute ? openDriverRoute.id : null)}
           isDarkMode={isDarkMode}
           onSelectRoute={setSelectedRouteId}
         />
-        <FloatingControlPanel
-          routes={routes}
-          unassignedOrders={unassignedOrders}
-          drivers={drivers}
-          selectedRouteId={selectedRouteId}
-          onSelectRoute={setSelectedRouteId}
-          onAssignOrder={handleAssignOrder}
-          onStartRoute={handleStartRoute}
-          loading={loading}
-          wsConnected={isConnected}
-          actionError={actionError}
-        />
+
+        {openDriver && (
+          <DriverSlideOver
+            driver={openDriver}
+            route={openDriverRoute}
+            onClose={() => setOpenDriverId(null)}
+          />
+        )}
       </div>
+
+      <DriversPanel
+        drivers={driverBoard}
+        routeIndexById={routeIndexById}
+        selectedOrderId={selectedOrderId}
+        onAssign={handleAssign}
+        onOpenDriver={setOpenDriverId}
+      />
     </div>
   );
 };

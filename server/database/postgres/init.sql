@@ -12,6 +12,7 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE EXTENSION IF NOT EXISTS "postgis";
 
 CREATE TYPE order_status AS ENUM ('CREATED', 'ASSIGNED', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED');
+CREATE TYPE service_level AS ENUM ('ROUTINE', 'RUSH', 'STAT');  -- STAT = medical-critical
 CREATE TYPE stop_kind    AS ENUM ('PICKUP', 'DELIVERY');
 CREATE TYPE stop_status  AS ENUM ('PENDING', 'ARRIVED', 'COMPLETED', 'FAILED');
 CREATE TYPE route_status AS ENUM ('PLANNED', 'ACTIVE', 'COMPLETED');
@@ -95,14 +96,15 @@ CREATE TABLE routes (
 );
 
 CREATE TABLE orders (
-    id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    tenant_id    TEXT NOT NULL REFERENCES tenants(id),
-    order_number TEXT UNIQUE NOT NULL,
-    customer_id  UUID NOT NULL REFERENCES customers(id),
-    status       order_status NOT NULL DEFAULT 'CREATED',
-    notes        TEXT,
-    created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at   TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    tenant_id     TEXT NOT NULL REFERENCES tenants(id),
+    order_number  TEXT UNIQUE NOT NULL,
+    customer_id   UUID NOT NULL REFERENCES customers(id),
+    status        order_status NOT NULL DEFAULT 'CREATED',
+    service_level service_level NOT NULL DEFAULT 'ROUTINE',
+    notes         TEXT,
+    created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 CREATE TABLE stops (

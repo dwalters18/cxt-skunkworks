@@ -121,6 +121,17 @@ const MapContainer = ({
     [visibleRouteIds, selectedRouteId]
   );
 
+  // Nudge the renderer after mount: a map initialized while its flex container
+  // is still settling can sit unpainted until it hears a resize.
+  const onMapLoad = useCallback((map) => {
+    setTimeout(() => {
+      if (window.google?.maps?.event) {
+        window.google.maps.event.trigger(map, 'resize');
+        map.setCenter(AUSTIN_CENTER);
+      }
+    }, 400);
+  }, []);
+
   const showInfo = (position, title, lines) => setInfoWindow({ position, title, lines });
 
   if (!MAPS_KEY || loadError) {
@@ -140,10 +151,12 @@ const MapContainer = ({
 
   return (
     <GoogleMap
+      key={isDarkMode ? 'map-dark' : 'map-light'} // remount on theme change: in-place style swaps leave stale tiles
       mapContainerStyle={{ width: '100%', height: '100%' }}
       center={AUSTIN_CENTER}
       zoom={13}
       options={mapOptions}
+      onLoad={onMapLoad}
     >
       {/* Depot */}
       {depots.map((depot) => (

@@ -126,6 +126,17 @@ NOTES = {
     26: "Refrigerated — keep cold",
 }
 
+# Service level per order (default ROUTINE). Capital Diagnostics Lab (customer 1)
+# ships STAT medical work; a few others are RUSH. Deterministic, story-driven.
+SERVICE_LEVELS = {
+    1: "STAT", 11: "STAT", 12: "STAT", 26: "STAT",
+    4: "RUSH", 9: "RUSH", 17: "RUSH", 23: "RUSH", 27: "RUSH", 30: "RUSH",
+}
+
+
+def service_level(order_num: int) -> str:
+    return SERVICE_LEVELS.get(order_num, "ROUTINE")
+
 # Orders 1..30. (customer#, pickup: "depot" or "site", delivery point index 0-based,
 # parcel_count, pickup window start offset minutes from 08:00, window length min)
 ORDERS = [
@@ -361,7 +372,7 @@ def main() -> None:
             return ("COMPLETED", ts(done_min - 2), ts(done_min))
         return ("PENDING", "NULL", "NULL")
 
-    w("INSERT INTO orders (id, tenant_id, order_number, customer_id, status, notes) VALUES")
+    w("INSERT INTO orders (id, tenant_id, order_number, customer_id, status, service_level, notes) VALUES")
     rows = []
     for o in ORDERS:
         n, cust, *_ = o
@@ -378,7 +389,8 @@ def main() -> None:
             else:
                 status = "ASSIGNED"
         rows.append(
-            f"  ('{order_id(n)}', '{TENANT}', 'ORD-{1000 + n}', '{customer_id(cust)}', '{status}', {sql_str(NOTES.get(n))})"
+            f"  ('{order_id(n)}', '{TENANT}', 'ORD-{1000 + n}', '{customer_id(cust)}', '{status}', "
+            f"'{service_level(n)}', {sql_str(NOTES.get(n))})"
         )
     w(",\n".join(rows) + ";")
     w("")
@@ -396,7 +408,14 @@ def main() -> None:
             if kind == "PICKUP":
                 ws, we = win_start, win_start + win_len
             else:
-                ws, we = win_start + 60, win_start + win_len + 180
+                # Delivery windows tighten with the service level.
+                lvl = service_level(n)
+                if lvl == "STAT":
+                    ws, we = win_start + 20, win_start + 90
+                elif lvl == "RUSH":
+                    ws, we = win_start + 40, win_start + 160
+                else:
+                    ws, we = win_start + 60, win_start + win_len + 180
             rows.append(
                 f"  ('{stop_id(n, kind)}', '{TENANT}', '{order_id(n)}', {rid}, '{kind}', {seq_sql}, '{status}', "
                 f"{sql_str(addr)}, {geo(lat, lng)}, {ts(ws)}, {ts(we)}, {arrived}, {completed})"

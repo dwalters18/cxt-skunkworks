@@ -20,15 +20,37 @@ RT-103/104/105 PLANNED and staffed), **30 orders** (23 routed, 7 unassigned),
 relative to today so the world never looks stale. Regenerate only via
 `make seed-regen` (edits go in `scripts/generate_seed.py`, never in seed.sql).
 
-## Demo moments by surface
+## The one-take demo (order entry → dispatch → delivered, no terminal)
 
-### Dispatch Board (/)
+1. **Dispatch Board (/)** — three panels: unassigned queue (urgency-sorted,
+   STAT pulses red), live map, drivers & routes. Status bar reads
+   "projected from N events" — call out that the board is a projection
+   consumer: it never refetches after a write; it folds the same envelopes
+   every other consumer sees.
+2. **New Order** (button on the queue) — pick a customer (choose Capital
+   Diagnostics Lab for the medical story), pickup "Depot", delivery from the
+   address book, service level **STAT** (watch the deliver-by tighten), 2
+   parcels → Create. You land on the order detail; its event tail already
+   shows `order.created` (lip-api) and the CDC `*.record-created` echoes.
+3. Back to the board — the order is already in the queue (it arrived as an
+   event, not a refetch), sorted by urgency.
+4. **Assign:** drag the order onto a driver (or click order → click driver).
+   If the driver has no route, one is planned automatically (`route.planned`)
+   then `order.assigned` lands and the card moves to their row; the stops
+   appear on the map in route colors.
+5. **Advance:** click the driver → slide-over → Start route (if planned), then
+   Arrive → Complete the pickup, then the delivery. Each press is an API call
+   whose `stop.status-updated` event moves the board; completing the delivery
+   fires `order.completed` (and `route.completed` when the route drains).
+6. Split-screen with **Event Console** (/events) during all of the above: every
+   transition shows up as canonical envelopes with shared traceIds.
+
+### Dispatch Board (/) — extra beats
 **Proves:** the world model is alive — one screen shows state + events + action.
-- Driver dots move every 2s (simulator telemetry → backbone → WebSocket → map).
+- Driver dots move every 2s while routes are ACTIVE (simulator telemetry →
+  backbone → WebSocket → map); manual stop advancement works even while the
+  simulator runs (it drives only ACTIVE routes).
 - Click a stop: numbered by route sequence, colored by status; completed stops dim.
-- **Money moment:** assign ORD-1024 to RT-103 (Unassigned tab → select → Assign),
-  then press ▶ on RT-103 — Aisha's dot leaves the depot within seconds. You just
-  drove the action plane and watched the perception plane respond.
 
 ### Event Console (/events)
 **Proves:** the canonical contract exists and is enforced.

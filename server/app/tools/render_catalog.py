@@ -18,6 +18,7 @@ EXAMPLES = {
         "orderNumber": "ORD-1005",
         "customerId": "c1000000-0000-4000-8000-000000000009",
         "customerName": "Clarksville Floral Studio",
+        "serviceLevel": "RUSH",
         "parcelCount": 1,
         "pickup": {
             "stopId": "b2000000-0000-4000-8000-000000000051",
@@ -44,6 +45,10 @@ EXAMPLES = {
         "routeNumber": "RT-103",
         "driverId": "d2000000-0000-4000-8000-000000000003",
         "vehicleId": "e1000000-0000-4000-8000-000000000003",
+        "stops": [
+            {"stopId": "b2000000-0000-4000-8000-000000000241", "kind": "PICKUP", "sequence": 11},
+            {"stopId": "b2000000-0000-4000-8000-000000000242", "kind": "DELIVERY", "sequence": 12},
+        ],
     },
     "order.completed": {
         "orderId": "b1000000-0000-4000-8000-000000000006",

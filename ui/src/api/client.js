@@ -37,8 +37,10 @@ export const api = {
   listOrders: (params = {}) => get(`/api/orders?${new URLSearchParams(params)}`),
   unassignedOrders: () => get('/api/orders/unassigned'),
   getOrder: (id) => get(`/api/orders/${id}`),
+  orderEvents: (id, limit = 200) => get(`/api/orders/${id}/events?limit=${limit}`),
   createOrder: (body) => post('/api/orders', body),
   assignOrder: (id, routeId) => post(`/api/orders/${id}/assign`, { routeId }),
+  assignOrderToDriver: (id, driverId) => post(`/api/orders/${id}/assign`, { driverId }),
   cancelOrder: (id, reason) => post(`/api/orders/${id}/cancel`, { reason }),
 
   // routes

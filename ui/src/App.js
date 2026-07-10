@@ -9,6 +9,8 @@ import DispatchPage from './pages/DispatchPage';
 import DashboardPage from './pages/DashboardPage';
 import AnalyticsPage from './pages/AnalyticsPage';
 import OrdersPage from './pages/OrdersPage';
+import OrderEntryPage from './pages/OrderEntryPage';
+import OrderDetailPage from './pages/OrderDetailPage';
 import FleetPage from './pages/FleetPage';
 import DriversPage from './pages/DriversPage';
 import EventsPage from './pages/EventsPage';
@@ -63,6 +65,8 @@ function AppWithLayout() {
         <Route path="dashboard" element={<DashboardPage />} />
         <Route path="analytics" element={<AnalyticsPage />} />
         <Route path="orders" element={<OrdersPage />} />
+        <Route path="orders/new" element={<OrderEntryPage />} />
+        <Route path="orders/:orderId" element={<OrderDetailPage />} />
         <Route path="fleet" element={<FleetPage />} />
         <Route path="drivers" element={<DriversPage />} />
         <Route path="events" element={<EventsPage />} />

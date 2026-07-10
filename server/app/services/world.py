@@ -115,6 +115,7 @@ async def _compose_orders(pg: asyncpg.Pool, order_rows: List[asyncpg.Record]) ->
                 "id": str(r["id"]),
                 "orderNumber": r["order_number"],
                 "status": r["status"],
+                "serviceLevel": r["service_level"],
                 "notes": r["notes"],
                 "customer": {
                     "id": str(r["customer_id"]),
@@ -136,7 +137,7 @@ async def _compose_orders(pg: asyncpg.Pool, order_rows: List[asyncpg.Record]) ->
 
 
 ORDER_BASE_QUERY = """
-    SELECT o.id, o.order_number, o.status, o.notes, o.created_at, o.updated_at,
+    SELECT o.id, o.order_number, o.status, o.service_level, o.notes, o.created_at, o.updated_at,
            c.id AS customer_id, c.code AS customer_code, c.name AS customer_name
     FROM orders o JOIN customers c ON c.id = o.customer_id
 """
@@ -192,6 +193,9 @@ def _uuid(v: str):
 # ---------------------------------------------------------------------------
 
 
+VALID_SERVICE_LEVELS = ("ROUTINE", "RUSH", "STAT")
+
+
 async def create_order(
     pg: asyncpg.Pool,
     publisher: EventPublisher,
@@ -200,10 +204,14 @@ async def create_order(
     pickup: Dict[str, Any],
     delivery: Dict[str, Any],
     parcel_count: int = 1,
+    service_level: str = "ROUTINE",
     notes: Optional[str] = None,
     trace_id: Optional[str] = None,
 ) -> Dict[str, Any]:
     """Create an order with its pickup and delivery stops and its parcels."""
+    service_level = (service_level or "ROUTINE").upper()
+    if service_level not in VALID_SERVICE_LEVELS:
+        raise WorldError(f"invalid service level {service_level}; use ROUTINE, RUSH, or STAT")
     customer = await pg.fetchrow(
         "SELECT id, code, name FROM customers WHERE id = $1", _uuid(customer_id)
     )
@@ -225,12 +233,13 @@ async def create_order(
                 )
             row = await conn.fetchrow(
                 """
-                INSERT INTO orders (tenant_id, order_number, customer_id, status, notes)
-                VALUES ($1, $2, $3, 'CREATED', $4) RETURNING id
+                INSERT INTO orders (tenant_id, order_number, customer_id, status, service_level, notes)
+                VALUES ($1, $2, $3, 'CREATED', $4::service_level, $5) RETURNING id
                 """,
                 tenant_id,
                 order_number,
                 customer["id"],
+                service_level,
                 notes,
             )
             order_pk = row["id"]
@@ -274,6 +283,7 @@ async def create_order(
             "orderNumber": order_number,
             "customerId": str(customer["id"]),
             "customerName": customer["name"],
+            "serviceLevel": service_level,
             "parcelCount": parcel_count,
             "pickup": _stop_snapshot(order["pickup"]),
             "delivery": _stop_snapshot(order["delivery"]),
@@ -329,7 +339,7 @@ async def assign_order_to_route(
             await conn.execute(
                 """
                 UPDATE stops SET route_id = $1,
-                       sequence = CASE kind WHEN 'PICKUP' THEN $2 ELSE $3 END
+                       sequence = CASE kind WHEN 'PICKUP' THEN $2::int ELSE $3::int END
                 WHERE order_id = $4
                 """,
                 route_pk,
@@ -341,6 +351,9 @@ async def assign_order_to_route(
                 "UPDATE orders SET status = 'ASSIGNED' WHERE id = $1", order_pk
             )
 
+    stop_rows = await pg.fetch(
+        "SELECT id, kind, sequence FROM stops WHERE order_id = $1 ORDER BY sequence", order_pk
+    )
     await publisher.emit(
         "order.assigned",
         SourceSystem.API,
@@ -357,10 +370,66 @@ async def assign_order_to_route(
             "routeNumber": route["route_number"],
             "driverId": str(route["driver_id"]) if route["driver_id"] else None,
             "vehicleId": str(route["vehicle_id"]) if route["vehicle_id"] else None,
+            "stops": [
+                {"stopId": str(s["id"]), "kind": s["kind"], "sequence": s["sequence"]}
+                for s in stop_rows
+            ],
         },
         trace_id=trace_id,
     )
     return await get_order(pg, order_id)
+
+
+async def assign_order_to_driver(
+    pg: asyncpg.Pool,
+    publisher: EventPublisher,
+    tenant_id: str,
+    order_id: str,
+    driver_id: str,
+    trace_id: Optional[str] = None,
+) -> Dict[str, Any]:
+    """Dispatch verb: put an order on a driver's plate.
+
+    Uses the driver's open route for today (ACTIVE preferred, then PLANNED);
+    if they have none, plans a new route for them with an available vehicle.
+    """
+    driver_pk = _uuid(driver_id)
+    driver = await pg.fetchrow(
+        "SELECT id, first_name, last_name, status FROM drivers WHERE id = $1", driver_pk
+    )
+    if not driver:
+        raise WorldError("driver not found", 404)
+    if driver["status"] == "OFF_DUTY":
+        raise WorldError(
+            f"{driver['first_name']} {driver['last_name']} is off duty; pick another driver"
+        )
+
+    route = await pg.fetchrow(
+        """
+        SELECT id FROM routes
+        WHERE driver_id = $1 AND status IN ('ACTIVE', 'PLANNED') AND service_date = CURRENT_DATE
+        ORDER BY (status = 'ACTIVE') DESC, route_number
+        LIMIT 1
+        """,
+        driver_pk,
+    )
+    if route:
+        route_id = str(route["id"])
+    else:
+        vehicle_id = await pg.fetchval(
+            "SELECT id FROM vehicles WHERE status = 'AVAILABLE' ORDER BY vehicle_number LIMIT 1"
+        )
+        new_route = await create_route(
+            pg,
+            publisher,
+            tenant_id,
+            driver_id=driver_id,
+            vehicle_id=str(vehicle_id) if vehicle_id else None,
+            trace_id=trace_id,
+        )
+        route_id = new_route["id"]
+
+    return await assign_order_to_route(pg, publisher, order_id, route_id, trace_id)
 
 
 async def cancel_order(

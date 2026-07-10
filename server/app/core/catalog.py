@@ -103,10 +103,20 @@ class OrderCreatedPayload(PayloadModel):
     order_number: str
     customer_id: str
     customer_name: str
+    service_level: str  # ROUTINE | RUSH | STAT
     parcel_count: int
     pickup: StopSnapshot
     delivery: StopSnapshot
     notes: Optional[str] = None
+
+
+class StopAssignment(PayloadModel):
+    """Where an order's stop landed on the route — enough for a projection
+    consumer (like the dispatch board) to draw the change without refetching."""
+
+    stop_id: str
+    kind: str  # PICKUP | DELIVERY
+    sequence: int
 
 
 class OrderAssignedPayload(PayloadModel):
@@ -116,6 +126,7 @@ class OrderAssignedPayload(PayloadModel):
     route_number: str
     driver_id: Optional[str] = None
     vehicle_id: Optional[str] = None
+    stops: List[StopAssignment] = []
 
 
 class OrderCompletedPayload(PayloadModel):

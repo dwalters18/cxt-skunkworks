@@ -13,7 +13,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from pydantic.alias_generators import to_camel
 
 from core.config import TENANT_ID
-from routers.deps import get_events, get_pg, get_trace_id
+from routers.deps import get_events, get_pg, get_trace_id, get_ts
 from services import world
 from services.world import WorldError
 
@@ -37,11 +37,16 @@ class CreateOrderRequest(ApiModel):
     pickup: StopInput
     delivery: StopInput
     parcel_count: int = Field(default=1, ge=1, le=20)
+    service_level: str = "ROUTINE"  # ROUTINE | RUSH | STAT
     notes: Optional[str] = None
 
 
 class AssignOrderRequest(ApiModel):
-    route_id: str
+    """Assign to an explicit route, or to a driver (their open route for today,
+    planning a new one if needed). Exactly one of the two."""
+
+    route_id: Optional[str] = None
+    driver_id: Optional[str] = None
 
 
 class CancelOrderRequest(ApiModel):
@@ -101,6 +106,7 @@ async def create_order(
             pickup=_side(body.pickup),
             delivery=_side(body.delivery),
             parcel_count=body.parcel_count,
+            service_level=body.service_level,
             notes=body.notes,
             trace_id=trace_id,
         )
@@ -116,10 +122,51 @@ async def assign_order(
     events=Depends(get_events),
     trace_id=Depends(get_trace_id),
 ):
+    if bool(body.route_id) == bool(body.driver_id):
+        raise HTTPException(422, "provide exactly one of routeId or driverId")
     try:
+        if body.driver_id:
+            return await world.assign_order_to_driver(
+                pg, events, TENANT_ID, order_id, body.driver_id, trace_id
+            )
         return await world.assign_order_to_route(pg, events, order_id, body.route_id, trace_id)
     except WorldError as e:
         raise HTTPException(e.status_code, str(e))
+
+
+@router.get("/{order_id}/events")
+async def order_events(order_id: str, limit: int = 200, ts=Depends(get_ts)):
+    """Every canonical event that references this order — the raw evidence tail."""
+    import json as _json
+
+    rows = await ts.fetch(
+        """
+        SELECT time, event_id, event_type, event_version, source_system, tenant_id,
+               trace_id, entity_refs, occurred_at, payload
+        FROM event_stream
+        WHERE entity_refs @> $1::jsonb
+        ORDER BY time DESC
+        LIMIT $2
+        """,
+        _json.dumps([{"type": "order", "id": order_id}]),
+        min(limit, 500),
+    )
+    events = [
+        {
+            "eventId": str(r["event_id"]),
+            "eventType": r["event_type"],
+            "eventVersion": r["event_version"],
+            "sourceSystem": r["source_system"],
+            "tenantId": r["tenant_id"],
+            "traceId": str(r["trace_id"]) if r["trace_id"] else None,
+            "entityRefs": _json.loads(r["entity_refs"]),
+            "occurredAt": r["occurred_at"].isoformat().replace("+00:00", "Z"),
+            "observedAt": r["time"].isoformat().replace("+00:00", "Z"),
+            "payload": _json.loads(r["payload"]),
+        }
+        for r in rows
+    ]
+    return {"events": events, "count": len(events)}
 
 
 @router.post("/{order_id}/cancel")
